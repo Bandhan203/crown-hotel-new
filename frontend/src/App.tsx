@@ -43,6 +43,7 @@ import CMSTeam from './admin/pages/CMSTeam';
 import CMSGallery from './admin/pages/CMSGallery';
 import CMSHeroSlides from './admin/pages/CMSHeroSlides';
 import CMSSiteSettings from './admin/pages/CMSSiteSettings';
+import Branding from './admin/pages/Branding';
 import Settings from './admin/pages/Settings';
 import FrontDesk from './admin/pages/FrontDesk';
 import ReservationCalendar from './admin/pages/ReservationCalendar';
@@ -111,6 +112,7 @@ function App() {
             <Route path="/admin/cms/gallery" element={<CMSGallery />} />
             <Route path="/admin/cms/hero-slides" element={<CMSHeroSlides />} />
             <Route path="/admin/cms/site-settings" element={<CMSSiteSettings />} />
+            <Route path="/admin/branding" element={<Branding />} />
             <Route path="/admin/settings" element={<Settings />} />
           </Route>
         </Route>

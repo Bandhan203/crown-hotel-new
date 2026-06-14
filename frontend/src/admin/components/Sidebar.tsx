@@ -6,12 +6,12 @@ import {
   MdNewspaper, MdQuiz, MdStar, MdGroups, MdPhotoLibrary, MdViewCarousel,
   MdTune, MdRestaurant, MdSpa, MdRoomService, MdMessage,
   MdDesktopWindows, MdCalendarMonth, MdDiscount, MdCleaningServices,
-  MdNightsStay, MdBarChart,
+  MdNightsStay, MdBarChart, MdPalette,
 } from 'react-icons/md';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSiteSettings } from '../../contexts/SiteSettingsContext';
 
 const linkBase = 'flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors';
-const linkActive = 'bg-[#aa8453] text-white';
 const linkInactive = 'text-gray-300 hover:bg-white/5 hover:text-white';
 
 interface NavItem {
@@ -48,6 +48,7 @@ const navItems: NavItem[] = [
       { to: '/admin/cms/site-settings', icon: <MdTune size={18} />, label: 'Site Settings' },
     ],
   },
+  { to: '/admin/branding', icon: <MdPalette size={20} />, label: 'Branding' },
   { to: '/admin/settings', icon: <MdSettings size={20} />, label: 'Settings' },
 ];
 
@@ -55,6 +56,11 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
   const { logout } = useAuth();
   const location = useLocation();
   const [cmsOpen, setCmsOpen] = useState(location.pathname.startsWith('/admin/cms'));
+  const { getSetting } = useSiteSettings();
+
+  const hotelName = getSetting('site_name', 'Hotel Crown');
+  const accentColor = getSetting('admin_accent_color', '#aa8453');
+  const adminTagline = getSetting('admin_tagline', 'Hotel Management System');
 
   return (
     <>
@@ -64,14 +70,14 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
       <aside className={`
         fixed top-0 left-0 z-50 h-full w-64 bg-[#1a1a1a] border-r border-white/10 flex flex-col
         transition-transform duration-300 lg:translate-x-0 lg:static lg:z-auto
-        BDT {open ? 'translate-x-0' : '-translate-x-full'}
+        ${open ? 'translate-x-0' : '-translate-x-full'}
       `}>
         {/* Logo */}
         <div className="p-5 border-b border-white/10">
           <h1 className="text-xl font-bold text-white" style={{ fontFamily: '"Gilda Display", serif' }}>
-            <span className="text-[#aa8453]">Navy</span> Admin
+            <span style={{ color: accentColor }}>{hotelName}</span>
           </h1>
-          <p className="text-xs text-gray-500 mt-1">Hotel Management System</p>
+          <p className="text-xs text-gray-500 mt-1">{adminTagline}</p>
         </div>
 
         {/* Navigation */}
@@ -94,7 +100,10 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                         key={child.to}
                         to={child.to}
                         onClick={onClose}
-                        className={({ isActive }) => `${linkBase} text-xs ${isActive ? linkActive : linkInactive}`}
+                        className={({ isActive }) =>
+                          `${linkBase} text-xs ${isActive ? 'text-white' : linkInactive}`
+                        }
+                        style={({ isActive }) => isActive ? { backgroundColor: accentColor } : {}}
                       >
                         {child.icon}
                         {child.label}
@@ -109,7 +118,8 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                 to={item.to!}
                 end={item.to === '/admin'}
                 onClick={onClose}
-                className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}
+                className={({ isActive }) => `${linkBase} ${isActive ? 'text-white' : linkInactive}`}
+                style={({ isActive }) => isActive ? { backgroundColor: accentColor } : {}}
               >
                 {item.icon}
                 {item.label}
