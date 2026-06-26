@@ -1,7 +1,8 @@
 from rest_framework import generics, permissions, viewsets
+from rest_framework.response import Response
 
 from accounts.permissions import IsAdmin
-from .models import FAQ, GalleryImage, HeroSlide, NewsPost, SiteSetting, TeamMember, Testimonial
+from .models import FAQ, GalleryImage, HeroSlide, NewsPost, PageCMS, SiteSetting, TeamMember, Testimonial
 from .serializers import (
     FAQSerializer,
     GalleryImageSerializer,
@@ -9,7 +10,10 @@ from .serializers import (
     NewsPostAdminSerializer,
     NewsPostDetailSerializer,
     NewsPostListSerializer,
+    PageCMSSerializer,
+    PageCMSAdminSerializer,
     SiteSettingSerializer,
+    SiteSettingAdminSerializer,
     TeamMemberSerializer,
     TestimonialSerializer,
 )
@@ -77,12 +81,40 @@ class GalleryImageListView(generics.ListAPIView):
     pagination_class = None
 
 
-class SiteSettingPublicView(generics.ListAPIView):
-    """GET /api/site-settings/"""
-    queryset = SiteSetting.objects.all()
+class SiteSettingPublicView(generics.RetrieveAPIView):
+    """GET /api/site-settings/ -> Returns the singleton object"""
     serializer_class = SiteSettingSerializer
     permission_classes = [permissions.AllowAny]
-    pagination_class = None
+
+    def get_object(self):
+        return SiteSetting.objects.first()
+
+
+class PageCMSDetailView(generics.RetrieveAPIView):
+    """GET /api/pages/<slug>/ -> Returns Page data + Global Settings in 1 query"""
+    queryset = PageCMS.objects.all()
+    serializer_class = PageCMSSerializer
+    permission_classes = [permissions.AllowAny]
+    lookup_field = 'page_slug'
+    lookup_url_kwarg = 'slug'
+
+    def retrieve(self, request, *args, **kwargs):
+        # Get page content
+        try:
+            page = self.get_object()
+            page_data = self.get_serializer(page).data
+        except:
+            # Fallback for missing pages to prevent 404s
+            page_data = {"page_slug": kwargs.get('slug'), "title": "Page Not Found", "extra_content": {}}
+        
+        # Get global settings
+        site_settings = SiteSetting.objects.first()
+        settings_data = SiteSettingSerializer(site_settings, context={'request': request}).data if site_settings else {}
+        
+        return Response({
+            "page": page_data,
+            "global_settings": settings_data
+        })
 
 
 # ══════════════════════════════════════════════
@@ -136,5 +168,11 @@ class AdminGalleryImageViewSet(viewsets.ModelViewSet):
 
 class AdminSiteSettingViewSet(viewsets.ModelViewSet):
     queryset = SiteSetting.objects.all()
-    serializer_class = SiteSettingSerializer
+    serializer_class = SiteSettingAdminSerializer
     permission_classes = [IsAdmin]
+
+class AdminPageCMSViewSet(viewsets.ModelViewSet):
+    queryset = PageCMS.objects.all()
+    serializer_class = PageCMSAdminSerializer
+    permission_classes = [IsAdmin]
+    lookup_field = 'page_slug'

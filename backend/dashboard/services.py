@@ -96,6 +96,33 @@ def get_admin_dashboard_stats():
     }
 
 
+def get_room_grid_data():
+    """Get all rooms and public areas as lightweight primitives."""
+    rooms = Room.objects.all().order_by('floor', 'room_number')
+    
+    grid_data = {
+        'rooms': [],
+        'public_areas': []
+    }
+
+    for room in rooms:
+        room_data = {
+            'id': room.id,
+            'room_number': room.room_number,
+            'floor': room.floor,
+            'status': room.status,
+            'housekeeping_status': room.housekeeping_status,
+            'is_public_area': room.is_public_area,
+            'area_type': room.area_type,
+        }
+        if room.is_public_area:
+            grid_data['public_areas'].append(room_data)
+        else:
+            grid_data['rooms'].append(room_data)
+
+    return grid_data
+
+
 # ──────────────────────────────────────────────
 # Night Audit
 # ──────────────────────────────────────────────

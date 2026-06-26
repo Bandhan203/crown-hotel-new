@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MdHotel, MdBookOnline, MdPeople, MdAttachMoney, MdLogout as MdCheckout, MdLogin, MdHome } from 'react-icons/md';
+import { MdHotel, MdBookOnline, MdPeople, MdAttachMoney, MdLogout as MdCheckout, MdLogin, MdHome, MdRestaurant, MdLocalParking, MdCelebration, MdDeck, MdInfo } from 'react-icons/md';
 import { TbCurrencyTaka } from 'react-icons/tb';
 import {
   Chart as ChartJS,
@@ -10,6 +10,7 @@ import { Line, Doughnut } from 'react-chartjs-2';
 import api from '../../services/api';
 import StatsCard from '../components/StatsCard';
 import QuickActions from '../components/QuickActions';
+import toast from 'react-hot-toast';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -24,34 +25,85 @@ interface DashboardData {
   arrivals_today: number;
   departures_today: number;
   in_house_count: number;
-  room_status: { clean: number; dirty: number; inspected: number; out_of_order: number };
-  recent_bookings: {
-    id: number; booking_ref: string; guest_name: string; room_type: string;
-    check_in: string; check_out: string; status: string; total_price: number;
-  }[];
   revenue_chart: { date: string; revenue: number }[];
 }
 
-const statusColor: Record<string, string> = {
-  PENDING: 'bg-yellow-500/20 text-yellow-400',
-  CONFIRMED: 'bg-blue-500/20 text-blue-400',
-  CHECKED_IN: 'bg-green-500/20 text-green-400',
-  CHECKED_OUT: 'bg-gray-500/20 text-gray-400',
-  CANCELLED: 'bg-red-500/20 text-red-400',
-};
+interface RoomGridData {
+  id: number;
+  room_number: string;
+  floor: number;
+  status: string;
+  housekeeping_status: string;
+  is_public_area: boolean;
+  area_type: string;
+}
+
+interface GridResponse {
+  rooms: RoomGridData[];
+  public_areas: RoomGridData[];
+}
+
+interface RoomContext {
+  room_id: number;
+  room_number: string;
+  status: string;
+  housekeeping_status: string;
+  notes: string;
+  room_type: string;
+  occupant: {
+    booking_id: number;
+    guest_name: string;
+    check_in: string;
+    check_out: string;
+    booking_ref: string;
+    balance_due: number;
+    guest_preferences: string;
+  } | null;
+}
+
+function getRoomBgColor(r: RoomGridData | RoomContext) {
+  if (r.status === 'MAINTENANCE' || r.housekeeping_status === 'OUT_OF_ORDER') return 'bg-gray-800 border-gray-600 text-gray-400';
+  if (r.status === 'OCCUPIED') return 'bg-red-500/80 border-red-500/50 text-white';
+  if (r.status === 'RESERVED') return 'bg-blue-500/80 border-blue-500/50 text-white';
+  if (['DIRTY', 'OD', 'VD'].includes(r.housekeeping_status)) return 'bg-yellow-500/80 border-yellow-500/50 text-white';
+  return 'bg-green-500/80 border-green-500/50 text-white';
+}
 
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [gridData, setGridData] = useState<GridResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
+  const [roomContext, setRoomContext] = useState<RoomContext | null>(null);
+  const [contextLoading, setContextLoading] = useState(false);
 
   useEffect(() => {
-    api.get('/dashboard/admin/')
-      .then((res) => setData(res.data))
-      .catch(() => {})
+    Promise.all([
+      api.get('/dashboard/admin/'),
+      api.get('/dashboard/admin/room-grid/')
+    ])
+      .then(([res, gridRes]) => {
+        setData(res.data);
+        setGridData(gridRes.data);
+      })
+      .catch(() => toast.error("Failed to load dashboard data"))
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) {
+  useEffect(() => {
+    if (selectedRoomId) {
+      setContextLoading(true);
+      api.get(`/dashboard/admin/room-grid/${selectedRoomId}/context/`)
+        .then(res => setRoomContext(res.data))
+        .catch(() => toast.error("Failed to load room context"))
+        .finally(() => setContextLoading(false));
+    } else {
+      setRoomContext(null);
+    }
+  }, [selectedRoomId]);
+
+  if (loading || !data || !gridData) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-4 border-[#aa8453] border-t-transparent rounded-full animate-spin" />
@@ -59,12 +111,10 @@ export default function Dashboard() {
     );
   }
 
-  if (!data) return <p className="text-gray-400">Failed to load dashboard data.</p>;
-
   const revenueChartData = {
     labels: data.revenue_chart.map((d) => new Date(d.date).toLocaleDateString('en', { weekday: 'short' })),
     datasets: [{
-      label: 'Revenue ($)',
+      label: 'Revenue',
       data: data.revenue_chart.map((d) => d.revenue),
       borderColor: '#aa8453',
       backgroundColor: 'rgba(170,132,83,0.1)',
@@ -83,42 +133,149 @@ export default function Dashboard() {
     }],
   };
 
+  const floors = [...new Set(gridData.rooms.map(r => r.floor))].sort((a, b) => b - a);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1600px] mx-auto">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-white">Live Dashboard</h1>
+        <div className="flex gap-4">
+          <StatsCard title="Arrivals" value={data.arrivals_today} icon={<MdLogin size={20} />} color="#22c55e" compact />
+          <StatsCard title="Departures" value={data.departures_today} icon={<MdCheckout size={20} />} color="#f59e0b" compact />
+          <StatsCard title="In-House" value={data.in_house_count} icon={<MdHome size={20} />} color="#3b82f6" compact />
+        </div>
+      </div>
+
       <QuickActions />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatsCard title="Total Rooms" value={data.total_rooms} icon={<MdHotel size={22} />} />
-        <StatsCard title="Occupancy Rate" value={`${data.occupancy_rate}%`} icon={<MdHotel size={22} />} color="#3b82f6" />
-        <StatsCard title="Bookings Today" value={data.bookings_today} icon={<MdBookOnline size={22} />} color="#22c55e" />
-        <StatsCard title="Monthly Revenue" value={data.revenue_month.toLocaleString()} icon={<TbCurrencyTaka size={24} />} color="#f59e0b" valueClassName="text-lg xl:text-xl" />
-        <StatsCard title="Total Guests" value={data.total_guests} icon={<MdPeople size={22} />} color="#8b5cf6" />
+      {/* Two-Column Master-Detail Layout */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        
+        {/* Left Column - 25% Width - Sticky Context Panel */}
+        <div className="w-full lg:w-1/4 shrink-0 lg:sticky lg:top-4 space-y-4">
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl p-5 min-h-[400px] flex flex-col">
+            <h3 className="text-white font-semibold text-lg mb-4 flex items-center gap-2 border-b border-white/10 pb-2">
+              <MdInfo className="text-[#aa8453]" /> Room Context
+            </h3>
+            
+            {contextLoading ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="w-6 h-6 border-2 border-[#aa8453] border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : roomContext ? (
+              <div className="space-y-4 flex-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-3xl font-bold text-white">{roomContext.room_number}</span>
+                  <span className={`px-2 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider ${getRoomBgColor(roomContext)}`}>
+                    {roomContext.status}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-400 capitalize">{roomContext.room_type}</div>
+                
+                {roomContext.occupant ? (
+                  <div className="mt-6 space-y-3 border-t border-white/10 pt-4">
+                    <div>
+                      <div className="text-xs text-gray-500">Guest Name</div>
+                      <div className="text-white font-medium">{roomContext.occupant.guest_name}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Checkout Date</div>
+                      <div className="text-white">{roomContext.occupant.check_out}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Balance Due</div>
+                      <div className={`font-semibold ${roomContext.occupant.balance_due > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                        BDT {roomContext.occupant.balance_due.toLocaleString()}
+                      </div>
+                    </div>
+                    {roomContext.occupant.guest_preferences && (
+                      <div>
+                        <div className="text-xs text-gray-500">Preferences</div>
+                        <div className="text-amber-200 text-sm italic">{roomContext.occupant.guest_preferences}</div>
+                      </div>
+                    )}
+                    <div className="pt-4 flex gap-2">
+                      <button className="flex-1 bg-white/10 hover:bg-white/20 text-white text-xs py-2 rounded transition">Folio</button>
+                      <button className="flex-1 bg-orange-600 hover:bg-orange-700 text-white text-xs py-2 rounded transition">Check Out</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-6 flex flex-col items-center justify-center flex-1 text-center space-y-3 border-t border-white/10 pt-6">
+                    <MdHotel size={40} className="text-gray-600" />
+                    <p className="text-sm text-gray-400">Room is currently Vacant.</p>
+                    <button className="w-full bg-[#aa8453] hover:bg-[#8c6c44] text-white text-sm font-medium py-2 rounded transition mt-4">
+                      Walk-in Booking
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50">
+                <MdHotel size={48} className="mb-4 text-gray-500" />
+                <p className="text-sm text-gray-400">Select a room from the matrix<br/>to view details and actions.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column - 75% Width - High-Density Minimalist Matrix */}
+        <div className="w-full lg:w-3/4">
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl p-5">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-white font-semibold text-lg">High-Density Matrix</h3>
+              <div className="flex gap-3 text-[10px] font-bold uppercase tracking-wider">
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-green-500"></span> Vacant Clean</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-red-500"></span> Occupied</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-yellow-500"></span> Dirty</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500"></span> Reserved</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {floors.map(floor => (
+                <div key={floor} className="flex items-start gap-4">
+                  <div className="w-12 pt-1 text-right text-gray-500 font-bold text-xs shrink-0">
+                    F{floor}
+                  </div>
+                  <div className="flex-1 flex flex-wrap gap-1.5">
+                    {gridData.rooms.filter(r => r.floor === floor).map(room => (
+                      <button
+                        key={room.id}
+                        onClick={() => setSelectedRoomId(room.id)}
+                        className={`w-10 h-10 rounded shadow-sm border border-black/20 focus:outline-none focus:ring-2 focus:ring-white flex items-center justify-center text-xs font-bold transition-transform hover:scale-110 ${getRoomBgColor(room)} ${selectedRoomId === room.id ? 'ring-2 ring-white scale-110 shadow-lg z-10' : ''}`}
+                        title={`Room ${room.room_number}`}
+                      >
+                        {room.room_number}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Front Desk Quick Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatsCard title="Arrivals Today" value={data.arrivals_today} icon={<MdLogin size={22} />} color="#22c55e" />
-        <StatsCard title="Departures Today" value={data.departures_today} icon={<MdCheckout size={22} />} color="#f59e0b" />
-        <StatsCard title="In-House Guests" value={data.in_house_count} icon={<MdHome size={22} />} color="#3b82f6" />
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Analytics Charts (Bottom Section - Scroll Only) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-6 border-t border-white/10">
         <div className="lg:col-span-2 bg-[#1a1a1a] border border-white/10 rounded-xl p-5">
           <h3 className="text-white font-semibold mb-4">Revenue (Last 7 Days)</h3>
-          <Line
-            data={revenueChartData}
-            options={{
-              responsive: true,
-              plugins: { legend: { display: false } },
-              scales: {
-                y: { ticks: { color: '#6b7280' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                x: { ticks: { color: '#6b7280' }, grid: { display: false } },
-              },
-            }}
-          />
+          <div className="h-64">
+            <Line
+              data={revenueChartData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                  y: { ticks: { color: '#6b7280' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                  x: { ticks: { color: '#6b7280' }, grid: { display: false } },
+                },
+              }}
+            />
+          </div>
         </div>
+        
         <div className="bg-[#1a1a1a] border border-white/10 rounded-xl p-5 flex flex-col items-center">
           <h3 className="text-white font-semibold mb-4 self-start">Room Occupancy</h3>
           <div className="w-48 h-48">
@@ -135,58 +292,6 @@ export default function Dashboard() {
             <p className="text-3xl font-bold text-[#aa8453]">{data.occupancy_rate}%</p>
             <p className="text-xs text-gray-400">{data.occupied_rooms} of {data.total_rooms} rooms</p>
           </div>
-        </div>
-      </div>
-
-      {/* Pending Checkouts alert */}
-      {data.pending_checkouts_today > 0 && (
-        <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4 flex items-center gap-3">
-          <MdCheckout size={24} className="text-orange-400" />
-          <p className="text-orange-300 text-sm font-medium">
-            {data.pending_checkouts_today} checkout{data.pending_checkouts_today > 1 ? 's' : ''} pending today
-          </p>
-        </div>
-      )}
-
-      {/* Recent Bookings Table */}
-      <div className="bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden">
-        <div className="p-5 border-b border-white/10">
-          <h3 className="text-white font-semibold">Recent Bookings</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-white/5">
-              <tr className="text-gray-400 text-left">
-                <th className="px-5 py-3 font-medium">Ref</th>
-                <th className="px-5 py-3 font-medium">Guest</th>
-                <th className="px-5 py-3 font-medium">Room Type</th>
-                <th className="px-5 py-3 font-medium">Check-in</th>
-                <th className="px-5 py-3 font-medium">Check-out</th>
-                <th className="px-5 py-3 font-medium">Amount</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {data.recent_bookings.map((b) => (
-                <tr key={b.id} className="text-gray-300 hover:bg-white/5">
-                  <td className="px-5 py-3 font-mono text-xs text-[#aa8453]">{b.booking_ref}</td>
-                  <td className="px-5 py-3">{b.guest_name}</td>
-                  <td className="px-5 py-3">{b.room_type}</td>
-                  <td className="px-5 py-3">{b.check_in}</td>
-                  <td className="px-5 py-3">{b.check_out}</td>
-                  <td className="px-5 py-3">BDT {b.total_price}</td>
-                  <td className="px-5 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor[b.status] || ''}`}>
-                      {b.status.replace('_', ' ')}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {data.recent_bookings.length === 0 && (
-                <tr><td colSpan={7} className="px-5 py-8 text-center text-gray-500">No bookings yet</td></tr>
-              )}
-            </tbody>
-          </table>
         </div>
       </div>
     </div>

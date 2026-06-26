@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import FAQ, GalleryImage, HeroSlide, NewsPost, SiteSetting, TeamMember, Testimonial
+from .models import FAQ, GalleryImage, HeroSlide, NewsPost, PageCMS, SiteSetting, TeamMember, Testimonial
 
 
 # ── Hero Slides ──────────────────────────────
@@ -81,4 +81,29 @@ class GalleryImageSerializer(serializers.ModelSerializer):
 class SiteSettingSerializer(serializers.ModelSerializer):
     class Meta:
         model = SiteSetting
-        fields = ['id', 'key', 'value']
+        fields = [
+            'site_name', 'light_logo', 'dark_logo', 'favicon',
+            'contact_phone', 'contact_email', 'address', 'map_embed_url',
+            'social_links'
+        ]
+
+class SiteSettingAdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SiteSetting
+        fields = '__all__'
+
+
+# ── Page CMS ─────────────────────────────────
+
+class PageCMSSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PageCMS
+        fields = [
+            'page_slug', 'title', 'subtitle', 'hero_image',
+            'meta_description', 'extra_content'
+        ]
+
+class PageCMSAdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PageCMS
+        fields = '__all__'

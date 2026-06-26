@@ -4,7 +4,7 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsAdmin
+from accounts.permissions import IsAdmin, IsStaffUser
 from bookings.models import Booking
 from bookings.serializers import BookingListSerializer
 from .models import NightAuditLog
@@ -18,6 +18,7 @@ from .services import (
     get_no_show_report,
     get_cancellation_report,
     get_guest_ledger_report,
+    get_room_grid_data,
 )
 
 
@@ -28,6 +29,61 @@ class AdminDashboardView(APIView):
     def get(self, request):
         stats = get_admin_dashboard_stats()
         return Response(stats)
+
+
+class RoomGridView(APIView):
+    """GET /api/admin/dashboard/room-grid/"""
+    permission_classes = [IsStaffUser]
+
+    def get(self, request):
+        data = get_room_grid_data()
+        return Response(data)
+
+
+class RoomGridContextView(APIView):
+    """GET /api/admin/dashboard/room-grid/<id>/context/"""
+    permission_classes = [IsStaffUser]
+
+    def get(self, request, pk):
+        from rooms.models import Room
+        from bookings.models import Booking
+        from django.db.models import Sum
+        
+        try:
+            room = Room.objects.get(pk=pk)
+        except Room.DoesNotExist:
+            return Response({'detail': 'Room not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        context = {
+            'room_id': room.id,
+            'room_number': room.room_number,
+            'status': room.status,
+            'housekeeping_status': room.housekeeping_status,
+            'notes': room.notes,
+            'room_type': room.room_type.name if room.room_type else room.get_area_type_display(),
+            'occupant': None
+        }
+
+        # Find current occupant
+        booking = Booking.objects.filter(room=room, status='CHECKED_IN').first()
+        if booking:
+            # Calculate balance
+            from bookings.models import FolioCharge, Payment
+            folio_total = FolioCharge.objects.filter(booking=booking, is_void=False).aggregate(total=Sum('total'))['total'] or 0
+            payments_total = Payment.objects.filter(booking=booking, status='COMPLETED').aggregate(total=Sum('amount'))['total'] or 0
+            balance = float(booking.total_price) + float(folio_total) - float(payments_total)
+
+            context['occupant'] = {
+                'booking_id': booking.id,
+                'guest_name': booking.guest.full_name,
+                'check_in': booking.check_in_date.isoformat(),
+                'check_out': booking.check_out_date.isoformat(),
+                'booking_ref': booking.booking_ref,
+                'balance_due': round(balance, 2),
+                'guest_preferences': booking.guest_preferences,
+            }
+
+        return Response(context)
 
 
 class GuestDashboardView(APIView):
@@ -220,3 +276,28 @@ class GuestLedgerReportView(APIView):
 
     def get(self, request):
         return Response(get_guest_ledger_report())
+
+
+class RecentBookingsReportView(APIView):
+    """GET /api/admin/reports/recent-bookings/"""
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        from bookings.models import Booking
+        bookings = Booking.objects.select_related('guest', 'room_type').order_by('-created_at')[:100]
+        return Response({
+            'count': len(bookings),
+            'bookings': [
+                {
+                    'id': b.id,
+                    'booking_ref': b.booking_ref,
+                    'guest_name': b.guest.full_name,
+                    'room_type': b.room_type.name,
+                    'check_in': b.check_in_date.isoformat(),
+                    'check_out': b.check_out_date.isoformat(),
+                    'status': b.status,
+                    'total_price': float(b.total_price),
+                    'created_at': b.created_at.isoformat(),
+                } for b in bookings
+            ]
+        })

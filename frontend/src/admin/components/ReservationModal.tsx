@@ -65,6 +65,8 @@ const EMPTY_FORM = {
   drop_required: 'NO', flight_drop_no: '', flight_etd: '',
   dnm: 'false', no_post: 'false', is_travel_agency: 'false', non_smoking: 'false',
   special_requests: '', profile_note: '',
+  reference_source: '', guest_hobbies: '', guest_preferences: '',
+  airport_details: '', transport_notes: '', parent_booking_id: '',
 };
 
 /* Classic PMS light theme — module-level so React does not remount on every keystroke */
@@ -511,6 +513,12 @@ export default function ReservationModal({ onClose, onSuccess }: Props) {
         pickup_required: form.pickup_required, flight_pickup_no: form.flight_pickup_no, flight_eta: form.flight_eta,
         drop_required:   form.drop_required,   flight_drop_no:   form.flight_drop_no,   flight_etd: form.flight_etd,
         special_requests: form.special_requests, profile_note: form.profile_note,
+        reference_source: form.reference_source,
+        guest_hobbies: form.guest_hobbies,
+        guest_preferences: form.guest_preferences,
+        airport_details: form.airport_details,
+        transport_notes: form.transport_notes,
+        parent_booking_id: form.parent_booking_id ? Number(form.parent_booking_id) : null,
       });
       toast.success('Reservation created successfully');
       onSuccess();
@@ -520,6 +528,21 @@ export default function ReservationModal({ onClose, onSuccess }: Props) {
   };
 
   const roomReady = canPickRoom(form.room_type, form.check_in_date, form.check_out_date);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === 'Enter') {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON') return;
+      e.preventDefault();
+      const formElements = Array.from(
+        e.currentTarget.querySelectorAll('input, select, textarea, button[type="submit"]')
+      ) as HTMLElement[];
+      const index = formElements.indexOf(target);
+      if (index > -1 && index < formElements.length - 1) {
+        formElements[index + 1].focus();
+      }
+    }
+  };
 
   /* ─────────────────────────────── RENDER ──────────────────────────────── */
   return (
@@ -594,7 +617,7 @@ export default function ReservationModal({ onClose, onSuccess }: Props) {
 
         {/* ── scrollable body ── */}
         <div className="overflow-y-auto overflow-x-hidden flex-1">
-          <form onSubmit={handleSubmit} className="px-3 pb-3 pt-2 min-w-0 [color-scheme:light]">
+          <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="px-3 pb-3 pt-2 min-w-0 [color-scheme:light]">
 
             <Section title="Guest Information">
             {/* ══ Row 1 — Conf No + Title | Mode of Payment ══ */}
@@ -930,7 +953,27 @@ export default function ReservationModal({ onClose, onSuccess }: Props) {
                   <option value="CORPORATE">Corporate</option>
                 </select>
               </Field>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-[2px] pl-[7.5rem]">
+              <Field id="reference_source" label="Ref Source">
+                <select id="reference_source" value={form.reference_source}
+                  onChange={e => set('reference_source', e.target.value)} className={SEL}>
+                  <option value="">— Select Reference —</option>
+                  <option value="Booking.com">Booking.com</option>
+                  <option value="Agoda">Agoda</option>
+                  <option value="Expedia">Expedia</option>
+                  <option value="Direct Call">Direct Call</option>
+                  <option value="Email">Email</option>
+                  <option value="Walk In">Walk In</option>
+                  <option value="Local Corporate">Local Corporate</option>
+                </select>
+              </Field>
+            </Row>
+            <Row>
+              <Field id="parent_booking_id" label="Parent Invoice" wide>
+                <input id="parent_booking_id" type="number" min="1"
+                  value={form.parent_booking_id} onChange={e => set('parent_booking_id', e.target.value)}
+                  className={INP} placeholder="Parent Booking ID for Group Billing" />
+              </Field>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-[2px] pl-[1.5rem]">
                 <Chk id="chk_dnm"  checked={bool('dnm')}  onChange={() => toggle('dnm')}  label="DNM" />
                 <Chk id="chk_ta"   checked={bool('is_travel_agency')} onChange={() => toggle('is_travel_agency')} label="Travel Agency" />
                 <Chk id="chk_np"   checked={bool('no_post')} onChange={() => toggle('no_post')} label="No Post" />
@@ -959,6 +1002,36 @@ export default function ReservationModal({ onClose, onSuccess }: Props) {
                 <input id="coming_from" type="text" value={form.coming_from}
                   onChange={e => set('coming_from', e.target.value)}
                   className={INP} placeholder="City / Country" />
+              </Field>
+            </Row>
+            </Section>
+
+            <Section title="Guest Profiling">
+            <Row>
+              <Field id="guest_hobbies" label="Hobbies" wide>
+                <input id="guest_hobbies" type="text" value={form.guest_hobbies}
+                  onChange={e => set('guest_hobbies', e.target.value)}
+                  className={INP} placeholder="E.g., Reading, Golf" />
+              </Field>
+              <Field id="guest_preferences" label="Preferences">
+                <input id="guest_preferences" type="text" value={form.guest_preferences}
+                  onChange={e => set('guest_preferences', e.target.value)}
+                  className={INP} placeholder="E.g., Extra pillows, Quiet room" />
+              </Field>
+            </Row>
+            </Section>
+
+            <Section title="Logistics & Transport">
+            <Row>
+              <Field id="airport_details" label="Airport Details" wide>
+                <input id="airport_details" type="text" value={form.airport_details}
+                  onChange={e => set('airport_details', e.target.value)}
+                  className={INP} placeholder="E.g., DAC Terminal 1" />
+              </Field>
+              <Field id="transport_notes" label="Transport Notes">
+                <input id="transport_notes" type="text" value={form.transport_notes}
+                  onChange={e => set('transport_notes', e.target.value)}
+                  className={INP} placeholder="E.g., VIP Transport" />
               </Field>
             </Row>
             </Section>

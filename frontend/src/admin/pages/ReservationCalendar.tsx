@@ -239,7 +239,7 @@ export default function ReservationCalendar() {
                           }}
                           title={`${booking.booking_ref}: ${booking.guest_name} (${booking.status}) ${booking.check_in_date} → ${booking.check_out_date}`}
                         >
-                          <span className="truncate">{booking.guest_name}</span>
+                          <span className="truncate">{booking.guest_name} ({bar.span}N)</span>
                         </div>
                       );
                     })}

@@ -768,6 +768,10 @@ class CheckOutView(APIView):
                 payments_total = float(payments_total) + payment_amount
                 balance = room_charges + float(folio_total) - float(payments_total)
 
+            if balance > 0.01:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({'detail': 'Payment not clear. Full payment must be completed before check-out.'})
+
             # Update booking
             booking.status = 'CHECKED_OUT'
             booking.actual_check_out = timezone.now()

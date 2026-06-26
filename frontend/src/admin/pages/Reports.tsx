@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MdBarChart, MdTrendingUp, MdFlightLand, MdFlightTakeoff, MdPersonOff, MdCancel, MdAccountBalance } from 'react-icons/md';
+import { MdBarChart, MdTrendingUp, MdFlightLand, MdFlightTakeoff, MdPersonOff, MdCancel, MdAccountBalance, MdBookOnline } from 'react-icons/md';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
@@ -7,7 +7,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
 
-type ReportType = 'occupancy' | 'revenue' | 'arrivals' | 'no-shows' | 'cancellations' | 'guest-ledger';
+type ReportType = 'occupancy' | 'revenue' | 'arrivals' | 'no-shows' | 'cancellations' | 'guest-ledger' | 'recent-bookings';
 
 const REPORTS: { key: ReportType; label: string; icon: React.ReactNode; desc: string }[] = [
   { key: 'occupancy', label: 'Occupancy', icon: <MdBarChart size={20} />, desc: 'Daily occupancy rates' },
@@ -16,6 +16,7 @@ const REPORTS: { key: ReportType; label: string; icon: React.ReactNode; desc: st
   { key: 'no-shows', label: 'No-Shows', icon: <MdPersonOff size={20} />, desc: 'Missed reservations' },
   { key: 'cancellations', label: 'Cancellations', icon: <MdCancel size={20} />, desc: 'Cancelled bookings' },
   { key: 'guest-ledger', label: 'Guest Ledger', icon: <MdAccountBalance size={20} />, desc: 'Outstanding balances' },
+  { key: 'recent-bookings', label: 'Recent Bookings', icon: <MdBookOnline size={20} />, desc: 'Latest reservations' },
 ];
 
 export default function Reports() {
@@ -38,7 +39,7 @@ export default function Reports() {
       let params: any = {};
       if (active === 'arrivals') {
         params.date = singleDate;
-      } else if (active === 'guest-ledger') {
+      } else if (active === 'guest-ledger' || active === 'recent-bookings') {
         // no params
       } else {
         params.start_date = startDate;
@@ -60,7 +61,7 @@ export default function Reports() {
       </div>
 
       {/* Report Selector */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
         {REPORTS.map(r => (
           <button key={r.key} onClick={() => { setActive(r.key); setData(null); }}
             className={`p-3 rounded-xl text-left transition-all ${active === r.key ? 'bg-[#aa8453]/20 border-[#aa8453] border' : 'bg-white/5 border border-white/10 hover:border-white/20'}`}>
@@ -110,6 +111,7 @@ export default function Reports() {
           {active === 'no-shows' && <NoShowReport data={data} />}
           {active === 'cancellations' && <CancellationReport data={data} />}
           {active === 'guest-ledger' && <GuestLedgerReport data={data} />}
+          {active === 'recent-bookings' && <RecentBookingsReport data={data} />}
         </div>
       ) : (
         <p className="text-gray-500 text-center py-12">Select a report and click Generate to view results.</p>
@@ -311,5 +313,58 @@ function DataTable({ headers, rows }: { headers: string[]; rows: (string | numbe
         </tbody>
       </table>
     </div>
+  );
+}
+
+function RecentBookingsReport({ data }: { data: any }) {
+  const statusColor: Record<string, string> = {
+    PENDING: 'bg-yellow-500/20 text-yellow-400',
+    CONFIRMED: 'bg-blue-500/20 text-blue-400',
+    CHECKED_IN: 'bg-green-500/20 text-green-400',
+    CHECKED_OUT: 'bg-gray-500/20 text-gray-400',
+    CANCELLED: 'bg-red-500/20 text-red-400',
+  };
+
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-4">
+        <SummaryCard label="Total Recent Bookings" value={String(data.count)} />
+        <SummaryCard label="Report" value="Latest 100" />
+      </div>
+      {data.bookings.length > 0 ? (
+        <div className="bg-white/5 border border-white/10 rounded-xl overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="text-gray-500 text-xs border-b border-white/10">
+              <th className="py-2.5 px-3 text-left">Ref</th>
+              <th className="py-2.5 px-3 text-left">Guest</th>
+              <th className="py-2.5 px-3 text-left">Room Type</th>
+              <th className="py-2.5 px-3 text-left">Check-in</th>
+              <th className="py-2.5 px-3 text-left">Check-out</th>
+              <th className="py-2.5 px-3 text-left">Amount</th>
+              <th className="py-2.5 px-3 text-left">Status</th>
+            </tr></thead>
+            <tbody>
+              {data.bookings.map((b: any, i: number) => (
+                <tr key={i} className="border-b border-white/5">
+                  <td className="py-2 px-3 font-mono text-xs text-[#aa8453]">{b.booking_ref}</td>
+                  <td className="py-2 px-3 text-gray-300">{b.guest_name}</td>
+                  <td className="py-2 px-3 text-gray-300">{b.room_type}</td>
+                  <td className="py-2 px-3 text-gray-300">{b.check_in}</td>
+                  <td className="py-2 px-3 text-gray-300">{b.check_out}</td>
+                  <td className="py-2 px-3 text-gray-300">BDT {b.total_price.toLocaleString()}</td>
+                  <td className="py-2 px-3">
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-medium uppercase tracking-wider ${statusColor[b.status] || 'bg-white/10 text-white'}`}>
+                      {b.status.replace('_', ' ')}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="text-gray-500 text-center py-8">No recent bookings found.</p>
+      )}
+    </>
   );
 }

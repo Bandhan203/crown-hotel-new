@@ -4,6 +4,8 @@ from . import views
 
 urlpatterns = [
     path('dashboard/admin/', views.AdminDashboardView.as_view(), name='admin-dashboard'),
+    path('dashboard/admin/room-grid/', views.RoomGridView.as_view(), name='admin-room-grid'),
+    path('dashboard/admin/room-grid/<int:pk>/context/', views.RoomGridContextView.as_view(), name='admin-room-grid-context'),
     path('dashboard/guest/', views.GuestDashboardView.as_view(), name='guest-dashboard'),
     # Night Audit
     path('admin/night-audit/', views.NightAuditListView.as_view(), name='night-audit-list'),
@@ -17,4 +19,5 @@ urlpatterns = [
     path('admin/reports/no-shows/', views.NoShowReportView.as_view(), name='report-no-shows'),
     path('admin/reports/cancellations/', views.CancellationReportView.as_view(), name='report-cancellations'),
     path('admin/reports/guest-ledger/', views.GuestLedgerReportView.as_view(), name='report-guest-ledger'),
+    path('admin/reports/recent-bookings/', views.RecentBookingsReportView.as_view(), name='report-recent-bookings'),
 ]

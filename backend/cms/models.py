@@ -118,11 +118,53 @@ class GalleryImage(models.Model):
 
 
 class SiteSetting(models.Model):
-    key = models.CharField(max_length=100, unique=True)
-    value = models.TextField(blank=True, default='')
+    name = models.CharField(max_length=255, default="Global Site Settings")
+    
+    # Branding
+    site_name = models.CharField(max_length=255, default="Hotel Crown")
+    light_logo = models.ImageField(upload_to='settings/', null=True, blank=True)
+    dark_logo = models.ImageField(upload_to='settings/', null=True, blank=True)
+    favicon = models.ImageField(upload_to='settings/', null=True, blank=True)
+    
+    # Contact Info
+    contact_phone = models.CharField(max_length=50, blank=True)
+    contact_email = models.EmailField(blank=True)
+    address = models.TextField(blank=True)
+    map_embed_url = models.TextField(blank=True, help_text="Google Maps iframe src URL")
+    
+    # Social Links
+    social_links = models.JSONField(default=dict, blank=True, help_text="Format: {'facebook': 'url', 'twitter': 'url'}")
 
     class Meta:
-        ordering = ['key']
+        verbose_name = "Global Site Setting"
+        verbose_name_plural = "Global Site Settings"
+        
+    def save(self, *args, **kwargs):
+        self.pk = 1  # Force single row
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.key
+        return self.name
+
+class PageCMS(models.Model):
+    PAGE_CHOICES = (
+        ('home', 'Home'),
+        ('about', 'About'),
+        ('faq', 'FAQ'),
+        ('rooms', 'Rooms'),
+        ('news', 'News'),
+        ('contact', 'Contact'),
+    )
+    page_slug = models.CharField(max_length=50, choices=PAGE_CHOICES, unique=True)
+    title = models.CharField(max_length=200)
+    subtitle = models.CharField(max_length=200, blank=True)
+    hero_image = models.ImageField(upload_to='pages/hero/', null=True, blank=True)
+    meta_description = models.CharField(max_length=255, blank=True, help_text="For SEO purposes")
+    extra_content = models.JSONField(default=dict, blank=True, help_text="Dynamic section blocks")
+    
+    class Meta:
+        verbose_name = "Page Content"
+        verbose_name_plural = "Page Contents"
+
+    def __str__(self):
+        return f"Page: {self.get_page_slug_display()}"

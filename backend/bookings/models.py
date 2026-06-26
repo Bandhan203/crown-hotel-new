@@ -74,8 +74,13 @@ class Booking(models.Model):
 
     # New reservation fields
     booking_source = models.CharField(max_length=20, choices=BookingSource.choices, default=BookingSource.WEBSITE)
+    reference_source = models.CharField(max_length=50, blank=True, default='') # Will be restricted via frontend/serializers
     guest_type = models.CharField(max_length=20, choices=GuestType.choices, blank=True, default='')
     purpose_of_visit = models.CharField(max_length=200, blank=True, default='')
+    guest_hobbies = models.TextField(blank=True, default='')
+    guest_preferences = models.TextField(blank=True, default='')
+    airport_details = models.TextField(blank=True, default='')
+    transport_notes = models.TextField(blank=True, default='')
     coming_from = models.CharField(max_length=200, blank=True, default='')
     extra_bed = models.PositiveIntegerField(default=0)
     infants = models.PositiveIntegerField(default=0)
@@ -98,6 +103,9 @@ class Booking(models.Model):
     company_name = models.CharField(max_length=200, blank=True, default='')
     notes_internal = models.TextField(blank=True, default='')
     profile_note = models.TextField(blank=True, default='')
+    
+    # Group Billing / Invoice Consolidation
+    parent_booking = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='child_bookings', help_text='If set, billing is consolidated to this booking')
     no_show = models.BooleanField(default=False)
 
     # Operational flags
@@ -156,6 +164,9 @@ class Payment(models.Model):
         CARD = 'CARD', 'Card'
         CASH = 'CASH', 'Cash'
         ONLINE = 'ONLINE', 'Online'
+        ONLINE_SSLCOMMERZ = 'ONLINE_SSLCOMMERZ', 'Online (SSLCommerz)'
+        BANK_TRANSFER = 'BANK_TRANSFER', 'Bank Transfer'
+        POS = 'POS', 'POS Terminal'
 
     class Status(models.TextChoices):
         PENDING = 'PENDING', 'Pending'
@@ -165,7 +176,7 @@ class Payment(models.Model):
 
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_method = models.CharField(max_length=10, choices=Method.choices, default=Method.ONLINE)
+    payment_method = models.CharField(max_length=50, choices=Method.choices, default=Method.ONLINE)
     transaction_id = models.CharField(max_length=255, blank=True, default='')
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.PENDING)
     paid_at = models.DateTimeField(null=True, blank=True)
@@ -249,6 +260,7 @@ class FolioCharge(models.Model):
     posted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='posted_charges')
     reference = models.CharField(max_length=100, blank=True, default='')
     is_void = models.BooleanField(default=False)
+    is_transferred = models.BooleanField(default=False, help_text='Flag if this charge was transferred to another folio')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

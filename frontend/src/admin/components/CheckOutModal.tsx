@@ -49,10 +49,20 @@ export default function CheckOutModal({ booking, onClose, onSuccess }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const paymentAmount = parseFloat(form.payment_amount) || 0;
+    if (summary && (summary.balance - paymentAmount) > 0.01) {
+      toast.error('Payment not clear. Full payment must be completed before check-out.', {
+        duration: 4000,
+        position: 'top-center',
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       await api.post(`/admin/reservations/${booking.id}/check-out/`, {
-        payment_amount: parseFloat(form.payment_amount) || 0,
+        payment_amount: paymentAmount,
         payment_method: form.payment_method,
         notes_internal: form.notes_internal || undefined,
       });

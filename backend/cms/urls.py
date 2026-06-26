@@ -11,6 +11,7 @@ router.register(r'admin/testimonials', views.AdminTestimonialViewSet, basename='
 router.register(r'admin/team', views.AdminTeamMemberViewSet, basename='admin-team')
 router.register(r'admin/gallery', views.AdminGalleryImageViewSet, basename='admin-gallery')
 router.register(r'admin/site-settings', views.AdminSiteSettingViewSet, basename='admin-site-settings')
+router.register(r'admin/pages', views.AdminPageCMSViewSet, basename='admin-pages')
 
 urlpatterns = [
     # Public
@@ -22,6 +23,7 @@ urlpatterns = [
     path('team/', views.TeamMemberListView.as_view(), name='team'),
     path('gallery/', views.GalleryImageListView.as_view(), name='gallery'),
     path('site-settings/', views.SiteSettingPublicView.as_view(), name='site-settings'),
+    path('pages/<slug:slug>/', views.PageCMSDetailView.as_view(), name='pages-detail'),
     # Admin (router)
     path('', include(router.urls)),
 ]
