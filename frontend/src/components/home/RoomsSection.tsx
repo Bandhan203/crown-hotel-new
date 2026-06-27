@@ -35,7 +35,7 @@ export default function RoomsSection() {
         const res = await api.get('/rooms/');
         if (mounted) {
           // Filter to featured rooms if possible, or just slice top 6
-          const items = unwrapList(res.data);
+          const items = unwrapList(res.data) as RoomType[];
           const featured = items.filter((r: RoomType) => r.is_featured);
           setRooms(featured.length > 0 ? featured : items.slice(0, 6));
         }
@@ -75,7 +75,7 @@ export default function RoomsSection() {
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 group h-full overflow-hidden transition-all hover:shadow-md">
                   <div className="relative overflow-hidden">
                     <img
-                      src={toMediaUrl(room.primary_image, hotelImages.roomsFallback)}
+                      src={toMediaUrl(room.primary_image, hotelImages.roomDetailsFallback)}
                       alt={room.name}
                       className="w-full h-[300px] object-cover group-hover:scale-105 transition-transform duration-700"
                     />

@@ -52,6 +52,9 @@ import RatePlanManagement from './admin/pages/RatePlanManagement';
 import HousekeepingBoard from './admin/pages/HousekeepingBoard';
 import NightAudit from './admin/pages/NightAudit';
 import Reports from './admin/pages/Reports';
+import ServiceEntry from './admin/pages/ServiceEntry';
+import InventoryManagement from './admin/pages/InventoryManagement';
+import CorporateManagement from './admin/pages/CorporateManagement';
 
 function App() {
   return (
@@ -98,6 +101,9 @@ function App() {
             <Route path="/admin/housekeeping" element={<HousekeepingBoard />} />
             <Route path="/admin/night-audit" element={<NightAudit />} />
             <Route path="/admin/reports" element={<Reports />} />
+            <Route path="/admin/service-entry" element={<ServiceEntry />} />
+            <Route path="/admin/inventory" element={<InventoryManagement />} />
+            <Route path="/admin/corporate" element={<CorporateManagement />} />
             <Route path="/admin/rooms" element={<RoomManagement />} />
             <Route path="/admin/bookings" element={<BookingManagement />} />
             <Route path="/admin/guests" element={<GuestManagement />} />

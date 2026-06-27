@@ -6,7 +6,7 @@ import {
   MdNewspaper, MdQuiz, MdStar, MdGroups, MdPhotoLibrary, MdViewCarousel,
   MdTune, MdRestaurant, MdSpa, MdRoomService, MdMessage,
   MdDesktopWindows, MdCalendarMonth, MdDiscount, MdCleaningServices,
-  MdNightsStay, MdBarChart, MdPalette,
+  MdNightsStay, MdBarChart, MdPalette, MdReceipt, MdInventory, MdBusiness,
 } from 'react-icons/md';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSiteSettings } from '../../contexts/SiteSettingsContext';
@@ -32,6 +32,9 @@ const navItems: NavItem[] = [
   { to: '/admin/housekeeping', icon: <MdCleaningServices size={20} />, label: 'Housekeeping' },
   { to: '/admin/night-audit', icon: <MdNightsStay size={20} />, label: 'Night Audit' },
   { to: '/admin/reports', icon: <MdBarChart size={20} />, label: 'Reports' },
+  { to: '/admin/service-entry', icon: <MdReceipt size={20} />, label: 'Service Entry' },
+  { to: '/admin/inventory', icon: <MdInventory size={20} />, label: 'Inventory' },
+  { to: '/admin/corporate', icon: <MdBusiness size={20} />, label: 'Corporate CRM' },
   { to: '/admin/staff', icon: <MdBadge size={20} />, label: 'Staff' },
   { to: '/admin/restaurant', icon: <MdRestaurant size={20} />, label: 'Restaurant' },
   { to: '/admin/spa', icon: <MdSpa size={20} />, label: 'Spa' },

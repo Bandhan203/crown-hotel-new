@@ -160,8 +160,11 @@ function RevenueReport({ data }: { data: any }) {
     datasets: [{
       label: 'Revenue',
       data: data.daily.map((d: any) => d.revenue),
-      backgroundColor: '#aa8453',
-      borderRadius: 4,
+      borderColor: '#aa8453',
+      backgroundColor: 'rgba(170,132,83,0.1)',
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: '#aa8453',
     }],
   };
 
@@ -183,7 +186,7 @@ function RevenueReport({ data }: { data: any }) {
       </div>
       <div className="grid md:grid-cols-2 gap-4">
         <div className="bg-white/5 border border-white/10 rounded-xl p-5" style={{ height: 300 }}>
-          <Bar data={chartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#666' } }, x: { ticks: { color: '#666' } } } }} />
+          <Line data={chartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#666' }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { ticks: { color: '#666' }, grid: { display: false } } } }} />
         </div>
         {data.by_type.length > 0 && (
           <div className="bg-white/5 border border-white/10 rounded-xl p-5 flex items-center justify-center" style={{ height: 300 }}>

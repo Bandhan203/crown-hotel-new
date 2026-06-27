@@ -1,0 +1,43 @@
+/* Print styles for A4 reports */
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .print-area {
+    background: #fff !important;
+    color: #000 !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+  .print-area * {
+    background: transparent !important;
+    color: #000 !important;
+    border-color: #ccc !important;
+  }
+  nav, header, button, .no-print {
+    display: none !important;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0f1623;
+}
+::-webkit-scrollbar-thumb {
+  background: #2d3f6a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3b52a0;
+}
+
+/* Input autofill fix */
+input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 100px #0f1623 inset !important;
+  -webkit-text-fill-color: #e2e8f0 !important;
+}

@@ -78,8 +78,8 @@ export default function AdminDataGrid({
     const api = gridRef.current?.api;
     if (!api) return;
     const sm = api.getColumnState()
-      .filter(c => c.sort)
-      .map(c => ({ colId: c.colId!, sort: c.sort! }));
+      .filter((c: any) => c.sort)
+      .map((c: any) => ({ colId: c.colId!, sort: c.sort! }));
     setSortModel(sm);
     setPage(1);
   }, []);

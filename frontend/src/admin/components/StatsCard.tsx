@@ -7,9 +7,10 @@ interface StatsCardProps {
   trend?: { value: string; positive: boolean };
   color?: string;
   valueClassName?: string;
+  compact?: boolean;
 }
 
-export default function StatsCard({ title, value, icon, trend, color = '#aa8453', valueClassName }: StatsCardProps) {
+export default function StatsCard({ title, value, icon, trend, color = '#aa8453', valueClassName, compact }: StatsCardProps) {
   return (
     <div className="bg-[#1a1a1a] border border-white/10 rounded-xl p-5">
       <div className="flex items-start justify-between">

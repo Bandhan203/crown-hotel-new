@@ -70,7 +70,7 @@ export default function Rooms() {
                 <div key={room.id} className="bg-white rounded-xl shadow-sm border border-gray-100 group overflow-hidden transition-all hover:shadow-md">
                   <div className="relative overflow-hidden">
                     <img
-                      src={toMediaUrl(room.primary_image, hotelImages.roomsFallback)}
+                      src={toMediaUrl(room.primary_image, hotelImages.roomDetailsFallback)}
                       alt={room.name}
                       className="w-full h-[300px] object-cover group-hover:scale-105 transition-transform duration-700"
                     />
