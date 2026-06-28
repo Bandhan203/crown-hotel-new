@@ -161,7 +161,7 @@ export default function BookingManagement() {
     return (
       <div className="flex items-center gap-1 h-full">
         <button type="button" title="View booking" onClick={() => setViewBookingId(b.id)}
-          className={`${btn} px-1.5 h-5 text-[10px] font-semibold text-[#8a6a3f] border-[#aa8453]/35 bg-[#aa8453]/5 hover:bg-[#aa8453]/15`}>
+          className={`${btn} px-1.5 h-5 text-[10px] font-semibold text-teal-700 border-teal-600/35 bg-teal-50/50 hover:bg-teal-100`}>
           View
         </button>
         {nextStatuses.includes('CHECKED_IN') && (
@@ -210,36 +210,36 @@ export default function BookingManagement() {
 
   return (
     <div className="space-y-2">
-      <div className="rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2">
+      <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap gap-0.5 p-0.5 rounded-md border border-white/5 flex-1 min-w-[12rem]">
             {statusTabs.map(s => (
               <button key={s} onClick={() => setFilter(s)}
-                className={`px-2 py-1 rounded text-[11px] font-medium transition ${filter === s ? 'bg-[#aa8453] text-white' : 'text-gray-400 hover:text-white'}`}>
+                className={`px-2 py-1 rounded text-[11px] font-medium transition ${filter === s ? 'bg-teal-700 text-white' : 'text-gray-500 hover:text-slate-800'}`}>
                 {s.replace(/_/g, ' ')}
               </button>
             ))}
           </div>
           <div className="relative shrink-0">
-            <MdSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+            <MdSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" size={15} />
             <input
               value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search ref, guest, mobile..."
-              className="pl-8 pr-3 py-1.5 bg-[#111] border border-white/10 rounded-md text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#aa8453] w-48"
+              className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs text-slate-800 placeholder-gray-500 focus:outline-none focus:border-teal-600 w-48"
             />
           </div>
           <button onClick={() => { setShowCreate(true); setGuestSearch(''); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#aa8453] text-white rounded-md text-xs font-medium hover:bg-[#c49b63] transition shrink-0">
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-700 text-white rounded-md text-xs font-medium hover:bg-teal-600 transition shrink-0">
             <MdAdd size={16} /> New Booking
           </button>
         </div>
       </div>
 
-      <div className="rounded-xl overflow-hidden border border-white/10 bg-[#141414] shadow-lg">
+      <div className="rounded-xl overflow-hidden border border-gray-200 bg-[#141414] shadow-lg">
         <div className="ag-theme-quartz ag-theme-bookings w-full" style={{ height: 500 }}>
           {loading ? (
             <div className="flex items-center justify-center h-full bg-white">
-              <div className="w-8 h-8 border-4 border-[#aa8453] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
             <AgGridReact
@@ -259,20 +259,20 @@ export default function BookingManagement() {
             />
           )}
         </div>
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[#1a1a1a] border-t border-white/10">
-          <span className="text-xs text-gray-400">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-white border-t border-gray-200">
+          <span className="text-xs text-gray-500">
             {total !== null
               ? `${total} booking${total !== 1 ? 's' : ''} · showing page ${page} of ${totalPages}`
               : 'Loading...'}
           </span>
           <div className="flex items-center gap-2">
             <button type="button" disabled={page === 1 || loading} onClick={() => setPage(p => p - 1)}
-              className="px-3 py-1 text-xs font-medium rounded border border-white/10 text-gray-300 disabled:opacity-40 hover:border-[#aa8453]/50 hover:text-white transition">
+              className="px-3 py-1 text-xs font-medium rounded border border-gray-200 text-gray-600 disabled:opacity-40 hover:border-teal-600/50 hover:text-slate-800 transition">
               Previous
             </button>
             <span className="text-xs text-gray-500 min-w-[4.5rem] text-center">{page} / {totalPages}</span>
             <button type="button" disabled={page >= totalPages || loading} onClick={() => setPage(p => p + 1)}
-              className="px-3 py-1 text-xs font-medium rounded border border-white/10 text-gray-300 disabled:opacity-40 hover:border-[#aa8453]/50 hover:text-white transition">
+              className="px-3 py-1 text-xs font-medium rounded border border-gray-200 text-gray-600 disabled:opacity-40 hover:border-teal-600/50 hover:text-slate-800 transition">
               Next
             </button>
           </div>
@@ -293,25 +293,25 @@ export default function BookingManagement() {
       {showCreate && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto"
           onClick={() => setShowCreate(false)}>
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl w-full max-w-md p-6 my-4"
+          <div className="bg-white border border-gray-200 rounded-xl w-full max-w-md p-6 my-4"
             onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-white mb-5">New Booking</h2>
+            <h2 className="text-lg font-bold text-slate-800 mb-5">New Booking</h2>
 
             <div className="space-y-4 text-sm">
               <div>
-                <label className="block text-gray-400 mb-1">Guest *</label>
+                <label className="block text-gray-500 mb-1">Guest *</label>
                 <input value={guestSearch} onChange={e => setGuestSearch(e.target.value)}
                   placeholder="Search by email or name..."
-                  className="w-full bg-[#111] border border-white/10 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#aa8453] mb-1" />
+                  className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-teal-600 mb-1" />
                 {guests.length > 0 && (
-                  <div className="bg-[#111] border border-white/10 rounded max-h-36 overflow-y-auto">
+                  <div className="bg-gray-50 border border-gray-200 rounded max-h-36 overflow-y-auto">
                     {guests.map(g => (
                       <button key={g.id} onClick={() => {
                         setCreateForm(f => ({ ...f, guest_id: String(g.id) }));
                         setGuestSearch(`${g.full_name} (${g.email})`);
                         setGuests([]);
                       }}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-white/5">
+                        className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
                         {g.full_name} — <span className="text-gray-500">{g.email}</span>
                       </button>
                     ))}
@@ -320,10 +320,10 @@ export default function BookingManagement() {
               </div>
 
               <div>
-                <label className="block text-gray-400 mb-1">Room Type *</label>
+                <label className="block text-gray-500 mb-1">Room Type *</label>
                 <select value={createForm.room_type_id}
                   onChange={e => setCreateForm(f => ({ ...f, room_type_id: e.target.value }))}
-                  className="w-full bg-[#111] border border-white/10 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#aa8453]">
+                  className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-teal-600">
                   <option value="">Select room type...</option>
                   {roomTypes.map(rt => (
                     <option key={rt.id} value={rt.id}>{rt.name} — BDT {rt.price_per_night}/night</option>
@@ -346,10 +346,10 @@ export default function BookingManagement() {
               </div>
 
               <div>
-                <label className="block text-gray-400 mb-1">Initial Status</label>
+                <label className="block text-gray-500 mb-1">Initial Status</label>
                 <select value={createForm.status}
                   onChange={e => setCreateForm(f => ({ ...f, status: e.target.value }))}
-                  className="w-full bg-[#111] border border-white/10 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#aa8453]">
+                  className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-teal-600">
                   <option value="CONFIRMED">Confirmed</option>
                   <option value="PENDING">Pending</option>
                   <option value="CHECKED_IN">Checked In</option>
@@ -357,20 +357,20 @@ export default function BookingManagement() {
               </div>
 
               <div>
-                <label className="block text-gray-400 mb-1">Special Requests</label>
+                <label className="block text-gray-500 mb-1">Special Requests</label>
                 <textarea value={createForm.special_requests} rows={2}
                   onChange={e => setCreateForm(f => ({ ...f, special_requests: e.target.value }))}
-                  className="w-full bg-[#111] border border-white/10 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#aa8453]" />
+                  className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-slate-800 text-sm focus:outline-none focus:border-teal-600" />
               </div>
             </div>
 
             <div className="mt-6 flex gap-3">
               <button onClick={handleCreateSubmit}
-                className="flex-1 py-2 bg-[#aa8453] text-white text-sm font-medium rounded hover:bg-[#c49b63] transition">
+                className="flex-1 py-2 bg-teal-700 text-white text-sm font-medium rounded hover:bg-teal-600 transition">
                 Create Booking
               </button>
               <button onClick={() => setShowCreate(false)}
-                className="flex-1 py-2 border border-white/10 text-gray-400 text-sm rounded hover:text-white transition">
+                className="flex-1 py-2 border border-gray-200 text-gray-500 text-sm rounded hover:text-slate-800 transition">
                 Cancel
               </button>
             </div>
@@ -402,9 +402,9 @@ function Field({ label, type, value, onChange }: {
 }) {
   return (
     <div>
-      <label className="block text-gray-400 text-xs mb-1">{label}</label>
+      <label className="block text-gray-500 text-xs mb-1">{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
-        className="w-full bg-[#111] border border-white/10 rounded px-3 py-1.5 text-white text-sm focus:outline-none focus:border-[#aa8453]" />
+        className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-1.5 text-slate-800 text-sm focus:outline-none focus:border-teal-600" />
     </div>
   );
 }

@@ -88,7 +88,7 @@ export default function InventoryManagement() {
   return (
     <div className="space-y-4 max-w-[1600px] mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
           <MdInventory className="text-purple-400" size={24} /> Inventory & Store
         </h1>
         {pendingReqs.length > 0 && (
@@ -110,7 +110,7 @@ export default function InventoryManagement() {
       <div className="flex gap-2">
         {tabs.map(t => (
           <button key={t.key} onClick={() => setTab(t.key as any)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium transition ${tab === t.key ? 'bg-[#aa8453] text-white' : 'bg-[#1a1a1a] text-gray-400 border border-white/10 hover:border-white/20'}`}>
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium transition ${tab === t.key ? 'bg-teal-700 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-300'}`}>
             {t.icon} {t.label}
           </button>
         ))}
@@ -118,16 +118,16 @@ export default function InventoryManagement() {
 
       {/* ITEMS TAB */}
       {tab === 'items' && (
-        <div className="bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden">
-          <div className="grid grid-cols-[80px_2fr_1fr_1fr_1fr_1fr] px-4 py-2.5 bg-white/5 text-[10px] text-gray-500 uppercase tracking-wider gap-3">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="grid grid-cols-[80px_2fr_1fr_1fr_1fr_1fr] px-4 py-2.5 bg-gray-50 text-[10px] text-gray-500 uppercase tracking-wider gap-3">
             <span>Code</span><span>Item Name</span><span>Category</span><span>Unit</span><span>Stock</span><span>Reorder</span>
           </div>
           {items.map((item, i) => (
             <div key={item.id} className={`grid grid-cols-[80px_2fr_1fr_1fr_1fr_1fr] px-4 py-2.5 border-t border-white/5 gap-3 items-center text-xs ${i % 2 === 1 ? 'bg-white/[0.02]' : ''}`}>
               <span className="text-gray-500 font-mono">{item.code}</span>
-              <span className="text-white">{item.name}</span>
-              <span className="text-[10px] bg-white/5 text-gray-400 px-2 py-0.5 rounded w-fit">{item.category}</span>
-              <span className="text-gray-400">{item.unit}</span>
+              <span className="text-slate-800">{item.name}</span>
+              <span className="text-[10px] bg-gray-50 text-gray-500 px-2 py-0.5 rounded w-fit">{item.category}</span>
+              <span className="text-gray-500">{item.unit}</span>
               <span className={`font-mono font-bold ${item.currentStock <= item.reorderLevel ? 'text-red-400' : 'text-green-400'}`}>
                 {item.currentStock} {item.currentStock <= item.reorderLevel && <span className="text-[9px]">⚠</span>}
               </span>
@@ -141,19 +141,19 @@ export default function InventoryManagement() {
       {tab === 'requisitions' && (
         <div className="space-y-3">
           <div className="flex justify-end">
-            <button onClick={() => setShowReqForm(true)} className="flex items-center gap-1.5 bg-[#aa8453] text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-[#8c6c44] transition">
+            <button onClick={() => setShowReqForm(true)} className="flex items-center gap-1.5 bg-teal-700 text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-teal-800 transition">
               <MdAdd size={14} /> New Requisition
             </button>
           </div>
 
           {showReqForm && (
-            <div className="bg-[#1a1a1a] border border-white/10 rounded-xl p-4 space-y-3">
+            <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
               <h4 className="text-blue-300 text-sm font-semibold">New Requisition</h4>
               <div className="flex gap-3">
                 <div className="flex-[2]">
                   <label className="text-[11px] text-gray-500 block mb-1">Item</label>
                   <select value={reqForm.itemId} onChange={e => setReqForm(p => ({ ...p, itemId: e.target.value }))}
-                    className="w-full bg-[#0f0f0f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none">
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:outline-none">
                     <option value="">— Select item —</option>
                     {items.map(i => <option key={i.id} value={i.id}>{i.name} (Stock: {i.currentStock} {i.unit})</option>)}
                   </select>
@@ -161,30 +161,30 @@ export default function InventoryManagement() {
                 <div className="flex-1">
                   <label className="text-[11px] text-gray-500 block mb-1">Quantity</label>
                   <input type="number" value={reqForm.quantity} onChange={e => setReqForm(p => ({ ...p, quantity: e.target.value }))}
-                    className="w-full bg-[#0f0f0f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none" />
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:outline-none" />
                 </div>
               </div>
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="text-[11px] text-gray-500 block mb-1">Department</label>
                   <input value={reqForm.department} onChange={e => setReqForm(p => ({ ...p, department: e.target.value }))} placeholder="Housekeeping / Restaurant"
-                    className="w-full bg-[#0f0f0f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none" />
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:outline-none" />
                 </div>
                 <div className="flex-1">
                   <label className="text-[11px] text-gray-500 block mb-1">Notes</label>
                   <input value={reqForm.notes} onChange={e => setReqForm(p => ({ ...p, notes: e.target.value }))}
-                    className="w-full bg-[#0f0f0f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none" />
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:outline-none" />
                 </div>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => setShowReqForm(false)} className="flex-1 bg-white/10 text-gray-400 rounded-lg py-2 text-xs hover:bg-white/15 transition">Cancel</button>
-                <button onClick={submitRequisition} className="flex-[2] bg-[#aa8453] text-white rounded-lg py-2 text-xs font-bold hover:bg-[#8c6c44] transition">Submit Requisition</button>
+                <button onClick={() => setShowReqForm(false)} className="flex-1 bg-white/10 text-gray-500 rounded-lg py-2 text-xs hover:bg-white/15 transition">Cancel</button>
+                <button onClick={submitRequisition} className="flex-[2] bg-teal-700 text-white rounded-lg py-2 text-xs font-bold hover:bg-teal-800 transition">Submit Requisition</button>
               </div>
             </div>
           )}
 
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden">
-            <div className="grid grid-cols-[100px_2fr_1fr_1fr_100px_120px] px-4 py-2.5 bg-white/5 text-[10px] text-gray-500 uppercase tracking-wider gap-3">
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="grid grid-cols-[100px_2fr_1fr_1fr_100px_120px] px-4 py-2.5 bg-gray-50 text-[10px] text-gray-500 uppercase tracking-wider gap-3">
               <span>Date</span><span>Item</span><span>Quantity</span><span>Department</span><span>Status</span><span>Action</span>
             </div>
             {stockTxs.filter(t => t.type === 'requisition').slice().reverse().map((tx, i) => {
@@ -192,8 +192,8 @@ export default function InventoryManagement() {
               return (
                 <div key={tx.id} className={`grid grid-cols-[100px_2fr_1fr_1fr_100px_120px] px-4 py-2.5 border-t border-white/5 gap-3 items-center text-xs ${i % 2 === 1 ? 'bg-white/[0.02]' : ''}`}>
                   <span className="text-gray-500">{tx.date}</span>
-                  <span className="text-white">{item?.name}</span>
-                  <span className="text-gray-400 font-mono">{tx.quantity} {item?.unit}</span>
+                  <span className="text-slate-800">{item?.name}</span>
+                  <span className="text-gray-500 font-mono">{tx.quantity} {item?.unit}</span>
                   <span className="text-gray-500">{tx.department}</span>
                   <span className={`text-[10px] px-2 py-0.5 rounded w-fit font-semibold ${tx.status === 'pending' ? 'bg-orange-500/10 text-orange-400' : tx.status === 'approved' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
                     {tx.status === 'pending' ? 'Pending' : tx.status === 'approved' ? 'Approved' : 'Rejected'}
@@ -223,13 +223,13 @@ export default function InventoryManagement() {
       {/* PURCHASE TAB */}
       {tab === 'purchase' && (
         <div className="space-y-3">
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl p-4 space-y-3">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
             <h4 className="text-blue-300 text-sm font-semibold">Purchase Entry (Stock In)</h4>
             <div className="flex gap-3">
               <div className="flex-[2]">
                 <label className="text-[11px] text-gray-500 block mb-1">Item</label>
                 <select value={purchaseForm.itemId} onChange={e => setPurchaseForm(p => ({ ...p, itemId: e.target.value }))}
-                  className="w-full bg-[#0f0f0f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none">
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:outline-none">
                   <option value="">— Select item —</option>
                   {items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
                 </select>
@@ -237,12 +237,12 @@ export default function InventoryManagement() {
               <div className="flex-1">
                 <label className="text-[11px] text-gray-500 block mb-1">Quantity</label>
                 <input type="number" value={purchaseForm.quantity} onChange={e => setPurchaseForm(p => ({ ...p, quantity: e.target.value }))}
-                  className="w-full bg-[#0f0f0f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none" />
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:outline-none" />
               </div>
               <div className="flex-1">
                 <label className="text-[11px] text-gray-500 block mb-1">Unit Price (৳)</label>
                 <input type="number" value={purchaseForm.unitPrice} onChange={e => setPurchaseForm(p => ({ ...p, unitPrice: e.target.value }))}
-                  className="w-full bg-[#0f0f0f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none" />
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:outline-none" />
               </div>
             </div>
             {purchaseForm.itemId && purchaseForm.quantity && purchaseForm.unitPrice && (
@@ -256,15 +256,15 @@ export default function InventoryManagement() {
           </div>
 
           {/* Purchase history */}
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden">
-            <div className="px-4 py-2.5 bg-white/5 text-[11px] text-gray-500 uppercase tracking-wider">Purchase History</div>
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="px-4 py-2.5 bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wider">Purchase History</div>
             {stockTxs.filter(t => t.type === 'purchase').slice().reverse().map((tx, i) => {
               const item = items.find(it => it.id === tx.itemId);
               return (
                 <div key={tx.id} className={`grid grid-cols-[100px_2fr_1fr_1fr_1fr] px-4 py-2.5 border-t border-white/5 gap-3 text-xs ${i % 2 === 1 ? 'bg-white/[0.02]' : ''}`}>
                   <span className="text-gray-500">{tx.date}</span>
-                  <span className="text-white">{item?.name}</span>
-                  <span className="text-gray-400">{tx.quantity} {item?.unit}</span>
+                  <span className="text-slate-800">{item?.name}</span>
+                  <span className="text-gray-500">{tx.quantity} {item?.unit}</span>
                   <span className="text-gray-500">৳{tx.unitPrice?.toLocaleString()}/unit</span>
                   <span className="text-yellow-400 font-mono font-bold">৳{tx.totalAmount?.toLocaleString()}</span>
                 </div>

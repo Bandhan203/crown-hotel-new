@@ -13,7 +13,7 @@ export default function SectionHeading({ subtitle, title, light }: SectionHeadin
       </div>
       <h2
         className={`section-title text-3xl md:text-4xl lg:text-[48px] ${
-          light ? '!text-white' : ''
+          light ? '!text-slate-800' : ''
         }`}
       >
         {title}

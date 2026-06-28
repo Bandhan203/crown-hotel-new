@@ -132,19 +132,19 @@ export default function MyBookings() {
 
                     <div className="mt-4 pt-4 border-t border-gray-50 flex flex-wrap gap-6 text-sm text-[var(--color-body)]">
                       <div>
-                        <p className="text-xs uppercase tracking-wider text-gray-400 mb-0.5">Check-in</p>
+                        <p className="text-xs uppercase tracking-wider text-gray-500 mb-0.5">Check-in</p>
                         <p className="font-medium text-[var(--color-dark)]">
                           {new Date(b.check_in_date).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs uppercase tracking-wider text-gray-400 mb-0.5">Check-out</p>
+                        <p className="text-xs uppercase tracking-wider text-gray-500 mb-0.5">Check-out</p>
                         <p className="font-medium text-[var(--color-dark)]">
                           {new Date(b.check_out_date).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs uppercase tracking-wider text-gray-400 mb-0.5">Guests</p>
+                        <p className="text-xs uppercase tracking-wider text-gray-500 mb-0.5">Guests</p>
                         <p className="font-medium text-[var(--color-dark)]">
                           {b.adults} adult{b.adults > 1 ? 's' : ''}{b.children > 0 ? `, ${b.children} child${b.children > 1 ? 'ren' : ''}` : ''}
                         </p>
@@ -183,7 +183,7 @@ export default function MyBookings() {
                               window.URL.revokeObjectURL(url);
                             }).catch(() => toast.error('Invoice not available yet'));
                         }}
-                          className="px-4 py-1.5 text-sm border border-[#aa8453] text-[#aa8453] rounded-lg hover:bg-[#aa8453]/10 transition-colors flex items-center gap-1.5">
+                          className="px-4 py-1.5 text-sm border border-teal-600 text-teal-700 rounded-lg hover:bg-teal-50 transition-colors flex items-center gap-1.5">
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                           Download Invoice
                         </button>

@@ -28,13 +28,13 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-[var(--color-dark)] text-white/70">
+    <footer className="bg-[var(--color-dark)] text-slate-800/70">
       {/* Main Footer */}
       <div className="max-w-7xl mx-auto px-4 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {/* About Hotel */}
           <div>
-            <h3 className="text-white text-xl font-[var(--font-heading)] mb-6">About Hotel</h3>
+            <h3 className="text-slate-800 text-xl font-[var(--font-heading)] mb-6">About Hotel</h3>
             <p className="text-sm leading-relaxed mb-6">
               {siteTagline}
             </p>
@@ -46,7 +46,7 @@ export default function Footer() {
                     target="_blank"
                     rel="noreferrer"
                     aria-label={label}
-                    className="w-10 h-10 border border-white/20 flex items-center justify-center text-white/50 hover:bg-[var(--color-primary)] hover:border-[var(--color-primary)] hover:text-white transition-all"
+                    className="w-10 h-10 border border-gray-300 flex items-center justify-center text-slate-800/50 hover:bg-[var(--color-primary)] hover:border-[var(--color-primary)] hover:text-slate-800 transition-all"
                   >
                     <Icon size={14} />
                   </a>
@@ -56,7 +56,7 @@ export default function Footer() {
 
           {/* Explore */}
           <div>
-            <h3 className="text-white text-xl font-[var(--font-heading)] mb-6">Explore</h3>
+            <h3 className="text-slate-800 text-xl font-[var(--font-heading)] mb-6">Explore</h3>
             <div className="grid grid-cols-2 gap-2">
               {[
                 { name: 'Home', path: '/' },
@@ -81,7 +81,7 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
-            <h3 className="text-white text-xl font-[var(--font-heading)] mb-6">Contact</h3>
+            <h3 className="text-slate-800 text-xl font-[var(--font-heading)] mb-6">Contact</h3>
             <div className="flex flex-col gap-4">
               <div className="flex items-start gap-3">
                 <FiMapPin className="text-[var(--color-primary)] mt-1 shrink-0" />
@@ -116,16 +116,16 @@ export default function Footer() {
       </div>
 
       {/* Bottom Footer */}
-      <div className="border-t border-white/10">
+      <div className="border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-5 flex flex-col md:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-white/40">
+          <p className="text-xs text-slate-800/40">
             {copyrightText}
           </p>
           <div className="flex gap-6">
-            <Link to="/faq" className="text-xs text-white/40 hover:text-[var(--color-primary)]">
+            <Link to="/faq" className="text-xs text-slate-800/40 hover:text-[var(--color-primary)]">
               Terms & Conditions
             </Link>
-            <Link to="/contact" className="text-xs text-white/40 hover:text-[var(--color-primary)]">
+            <Link to="/contact" className="text-xs text-slate-800/40 hover:text-[var(--color-primary)]">
               Privacy Policy
             </Link>
           </div>

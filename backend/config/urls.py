@@ -17,6 +17,7 @@ urlpatterns = [
     path('api/', include('contact.urls')),
     path('api/', include('staff.urls')),
     path('api/', include('dashboard.urls')),
+    path('api/', include('inventory.urls')),
     # Media files (served in all environments)
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]

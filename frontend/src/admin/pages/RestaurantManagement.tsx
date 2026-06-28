@@ -98,7 +98,7 @@ export default function RestaurantManagement() {
 
   return (
     <div className="space-y-2">
-      <div className="rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2">
+      <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex gap-0.5 p-0.5 rounded-md border border-white/5 shrink-0">
             {(['items', 'categories'] as Tab[]).map(t => (
@@ -106,7 +106,7 @@ export default function RestaurantManagement() {
                 key={t}
                 type="button"
                 onClick={() => setTab(t)}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium transition ${tab === t ? 'bg-[#aa8453] text-white' : 'text-gray-400 hover:text-white'}`}
+                className={`px-2.5 py-1 rounded text-[11px] font-medium transition ${tab === t ? 'bg-teal-700 text-white' : 'text-gray-500 hover:text-slate-800'}`}
               >
                 {t === 'categories' ? 'Categories' : 'Menu Items'}
               </button>
@@ -115,7 +115,7 @@ export default function RestaurantManagement() {
           <button
             type="button"
             onClick={() => { setEditItem(null); setShowModal(true); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#aa8453] text-white rounded-md text-xs font-medium hover:bg-[#c49b63] transition shrink-0 ml-auto"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-700 text-white rounded-md text-xs font-medium hover:bg-teal-600 transition shrink-0 ml-auto"
           >
             <MdAdd size={16} /> Add {tab === 'categories' ? 'Category' : 'Item'}
           </button>
@@ -132,8 +132,8 @@ export default function RestaurantManagement() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => { setShowModal(false); setEditItem(null); }}>
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-white mb-4">{editItem ? 'Edit' : 'Add'} {tab === 'categories' ? 'Category' : 'Menu Item'}</h2>
+          <div className="bg-white border border-gray-200 rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-slate-800 mb-4">{editItem ? 'Edit' : 'Add'} {tab === 'categories' ? 'Category' : 'Menu Item'}</h2>
             {tab === 'categories' ? (
               <CatForm initial={editItem} onSave={handleSave} />
             ) : (
@@ -153,7 +153,7 @@ function CatForm({ initial, onSave }: { initial: any; onSave: (d: any) => void }
     <div className="space-y-4">
       <FInput label="Name" value={name} onChange={setName} />
       <FInput label="Order" value={order} onChange={v => setOrder(parseInt(v) || 0)} type="number" />
-      <button onClick={() => onSave({ name, order })} className="w-full py-2 bg-[#aa8453] hover:bg-[#c49b63] text-white rounded-lg text-sm font-medium">Save</button>
+      <button onClick={() => onSave({ name, order })} className="w-full py-2 bg-teal-700 hover:bg-teal-600 text-white rounded-lg text-sm font-medium">Save</button>
     </div>
   );
 }
@@ -171,17 +171,17 @@ function ItemForm({ initial, categories, onSave }: { initial: any; categories: a
       <FInput label="Description" value={form.description} onChange={v => set('description', v)} />
       <FInput label="Price" value={form.price} onChange={v => set('price', v)} type="number" />
       <div>
-        <label className="block text-sm text-gray-300 mb-1">Category</label>
+        <label className="block text-sm text-gray-600 mb-1">Category</label>
         <select value={form.category} onChange={e => set('category', parseInt(e.target.value))}
-          className="w-full px-3 py-2 bg-[#0f0f0f] border border-white/10 rounded-lg text-white text-sm focus:border-[#aa8453] outline-none">
+          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-slate-800 text-sm focus:border-teal-600 outline-none">
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </div>
-      <label className="flex items-center gap-2 text-sm text-gray-300">
+      <label className="flex items-center gap-2 text-sm text-gray-600">
         <input type="checkbox" checked={form.is_available} onChange={e => set('is_available', e.target.checked)}
-          className="w-4 h-4 rounded border-white/10 bg-[#0f0f0f]" />Available
+          className="w-4 h-4 rounded border-gray-200 bg-gray-50" />Available
       </label>
-      <button onClick={() => onSave(form)} className="w-full py-2 bg-[#aa8453] hover:bg-[#c49b63] text-white rounded-lg text-sm font-medium">Save</button>
+      <button onClick={() => onSave(form)} className="w-full py-2 bg-teal-700 hover:bg-teal-600 text-white rounded-lg text-sm font-medium">Save</button>
     </div>
   );
 }
@@ -189,9 +189,9 @@ function ItemForm({ initial, categories, onSave }: { initial: any; categories: a
 function FInput({ label, value, onChange, type = 'text' }: { label: string; value: any; onChange: (v: string) => void; type?: string }) {
   return (
     <div>
-      <label className="block text-sm text-gray-300 mb-1">{label}</label>
+      <label className="block text-sm text-gray-600 mb-1">{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
-        className="w-full px-3 py-2 bg-[#0f0f0f] border border-white/10 rounded-lg text-white text-sm focus:border-[#aa8453] outline-none" />
+        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-slate-800 text-sm focus:border-teal-600 outline-none" />
     </div>
   );
 }

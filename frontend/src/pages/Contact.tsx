@@ -33,8 +33,8 @@ export default function Contact() {
 
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-gradient-primary rounded-xl shadow-sm flex items-center justify-center shrink-0">
-                    <FiMapPin className="text-white" size={20} />
+                  <div className="w-12 h-12 bg-teal-700 text-white rounded-xl shadow-sm flex items-center justify-center shrink-0">
+                    <FiMapPin className="text-slate-800" size={20} />
                   </div>
                   <div>
                     <h4 className="font-(--font-heading) text-lg text-dark mb-1">
@@ -45,8 +45,8 @@ export default function Contact() {
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-gradient-primary rounded-xl shadow-sm flex items-center justify-center shrink-0">
-                    <FiPhone className="text-white" size={20} />
+                  <div className="w-12 h-12 bg-teal-700 text-white rounded-xl shadow-sm flex items-center justify-center shrink-0">
+                    <FiPhone className="text-slate-800" size={20} />
                   </div>
                   <div>
                     <h4 className="font-(--font-heading) text-lg text-dark mb-1">
@@ -59,8 +59,8 @@ export default function Contact() {
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-gradient-primary rounded-xl shadow-sm flex items-center justify-center shrink-0">
-                    <FiMail className="text-white" size={20} />
+                  <div className="w-12 h-12 bg-teal-700 text-white rounded-xl shadow-sm flex items-center justify-center shrink-0">
+                    <FiMail className="text-slate-800" size={20} />
                   </div>
                   <div>
                     <h4 className="font-(--font-heading) text-lg text-dark mb-1">

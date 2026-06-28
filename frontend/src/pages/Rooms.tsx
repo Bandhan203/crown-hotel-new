@@ -77,7 +77,7 @@ export default function Rooms() {
                     <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm text-[var(--color-dark)] px-3 py-1 text-xs font-bold rounded-md">
                       {room.max_guests} {room.max_guests === 1 ? 'Guest' : 'Guests'}
                     </div>
-                    <div className="absolute top-4 right-4 bg-[var(--color-dark)] text-white px-4 py-1.5 text-sm font-semibold rounded-full shadow-lg">
+                    <div className="absolute top-4 right-4 bg-[var(--color-dark)] text-slate-800 px-4 py-1.5 text-sm font-semibold rounded-full shadow-lg">
                       BDT {Math.round(parseFloat(room.price_per_night || '0')).toLocaleString()}
                     </div>
                   </div>
@@ -130,7 +130,7 @@ export default function Rooms() {
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             {/* Table Header */}
-            <div className="grid grid-cols-3 md:grid-cols-4 bg-[var(--color-dark)] text-white text-sm font-semibold">
+            <div className="grid grid-cols-3 md:grid-cols-4 bg-[var(--color-dark)] text-slate-800 text-sm font-semibold">
               <div className="px-6 py-4 col-span-2 md:col-span-1">Room Category</div>
               <div className="px-6 py-4 text-center hidden md:block">Guests</div>
               <div className="px-6 py-4 text-center">BDT / Night</div>
@@ -163,7 +163,7 @@ export default function Rooms() {
                     </span>
                   </div>
                   <div className="px-6 py-5 text-center">
-                    <span className="inline-block bg-[var(--color-primary)] text-white px-4 py-1 rounded-full text-sm font-semibold">
+                    <span className="inline-block bg-[var(--color-primary)] text-slate-800 px-4 py-1 rounded-full text-sm font-semibold">
                       $ {usd}
                     </span>
                   </div>

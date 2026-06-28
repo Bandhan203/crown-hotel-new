@@ -57,7 +57,7 @@ export default function GallerySection() {
                 className="w-full h-75 object-cover group-hover:scale-110 transition-transform duration-700"
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
-                <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity font-[var(--font-condensed)] uppercase tracking-[2px] text-sm text-center px-3">
+                <span className="text-slate-800 opacity-0 group-hover:opacity-100 transition-opacity font-[var(--font-condensed)] uppercase tracking-[2px] text-sm text-center px-3">
                   {img.title || 'Hotel Crown'}
                 </span>
               </div>

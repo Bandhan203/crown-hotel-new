@@ -137,6 +137,8 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             'profile_note',
             # Payment
             'payment_status',
+            # Meal plan & arrival logistics
+            'meal_plan', 'arrival_mode', 'vehicle_assigned',
         ]
 
 
@@ -331,6 +333,10 @@ class ReservationCreateSerializer(serializers.Serializer):
     # ── Misc ───────────────────────────────────
     special_requests = serializers.CharField(required=False, allow_blank=True, default='')
     profile_note = serializers.CharField(required=False, allow_blank=True, default='')
+    # ── Meal plan & logistics ───────────────────
+    meal_plan = serializers.ChoiceField(choices=Booking.MealPlan.choices, required=False, default='EP')
+    arrival_mode = serializers.CharField(max_length=50, required=False, allow_blank=True, default='')
+    vehicle_assigned = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
 
     def validate(self, attrs):
         if attrs['check_in_date'] >= attrs['check_out_date']:

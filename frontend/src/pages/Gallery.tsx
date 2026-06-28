@@ -94,7 +94,7 @@ export default function Gallery() {
                 onClick={() => setActive(cat.key)}
                 className={`px-5 py-2 text-xs font-(--font-condensed) uppercase tracking-[2px] border transition-all ${
                   active === cat.key
-                    ? 'bg-gradient-primary text-white border-transparent shadow-sm'
+                    ? 'bg-teal-700 text-white border-transparent shadow-sm'
                     : 'bg-white text-dark border-gray-200 hover:border-primary hover:text-primary'
                 }`}
               >
@@ -120,7 +120,7 @@ export default function Gallery() {
                   className="w-full h-75 object-cover group-hover:scale-110 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
-                  <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity font-(--font-condensed) uppercase tracking-[2px] text-sm text-center px-3">
+                  <span className="text-slate-800 opacity-0 group-hover:opacity-100 transition-opacity font-(--font-condensed) uppercase tracking-[2px] text-sm text-center px-3">
                     {img.title || categoryLabel(img.category)}
                   </span>
                 </div>

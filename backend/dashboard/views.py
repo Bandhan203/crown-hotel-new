@@ -1,5 +1,6 @@
 from datetime import date, datetime
 
+from django.utils import timezone
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -7,7 +8,7 @@ from rest_framework.views import APIView
 from accounts.permissions import IsAdmin, IsStaffUser
 from bookings.models import Booking
 from bookings.serializers import BookingListSerializer
-from .models import NightAuditLog
+from .models import NightAuditLog, HotelConfig, FolioWindow, QueueEntry, FolioAuditLog
 from .services import (
     get_admin_dashboard_stats,
     get_night_audit_preview,
@@ -109,7 +110,7 @@ class NightAuditPreviewView(APIView):
 
     def get(self, request):
         date_str = request.query_params.get('date')
-        audit_date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else date.today()
+        audit_date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else HotelConfig.load().business_date
         data = get_night_audit_preview(audit_date)
         return Response(data)
 
@@ -120,7 +121,7 @@ class NightAuditRunView(APIView):
 
     def post(self, request):
         date_str = request.data.get('date')
-        audit_date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else date.today()
+        audit_date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else HotelConfig.load().business_date
         notes = request.data.get('notes', '')
 
         try:
@@ -301,3 +302,183 @@ class RecentBookingsReportView(APIView):
                 } for b in bookings
             ]
         })
+
+# ──────────────────────────────────────────────
+# ERP Features (Phase 1)
+# ──────────────────────────────────────────────
+
+class HotelConfigView(APIView):
+    """GET/PUT /api/admin/config/"""
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        config = HotelConfig.load()
+        return Response({
+            'hotel_name': config.hotel_name,
+            'business_date': config.business_date.isoformat(),
+            'timezone': config.timezone,
+            'language': config.language,
+            'theme': config.theme,
+        })
+
+    def put(self, request):
+        config = HotelConfig.load()
+        if 'language' in request.data:
+            config.language = request.data['language']
+        if 'theme' in request.data:
+            config.theme = request.data['theme']
+        # Note: business_date is only advanced via Night Audit, not here.
+        config.save()
+        return Response({'detail': 'Configuration updated.'})
+
+
+class FolioWindowView(APIView):
+    """GET/POST /api/admin/bookings/<booking_id>/folio-windows/"""
+    permission_classes = [IsStaffUser]
+
+    def get(self, request, booking_id):
+        windows = FolioWindow.objects.filter(booking_id=booking_id).order_by('window_number')
+        if not windows.exists():
+            FolioWindow.objects.create(booking_id=booking_id, window_number=1, label='Main Folio')
+            windows = FolioWindow.objects.filter(booking_id=booking_id)
+
+        from bookings.models import FolioCharge, Payment
+        data = []
+        for w in windows:
+            charges = FolioCharge.objects.filter(booking_id=booking_id, folio_window=w.window_number, is_void=False)
+            data.append({
+                'window_number': w.window_number,
+                'label': w.label,
+                'charges': [{
+                    'id': c.id,
+                    'type': c.charge_type,
+                    'desc': c.description,
+                    'amount': float(c.amount),
+                    'qty': c.quantity,
+                    'total': float(c.total),
+                    'date': str(c.charge_date),
+                    'is_adjustment': c.is_adjustment
+                } for c in charges]
+            })
+        return Response(data)
+
+    def post(self, request, booking_id):
+        """Create a new window for this booking, up to 8."""
+        count = FolioWindow.objects.filter(booking_id=booking_id).count()
+        if count >= 8:
+            return Response({'detail': 'Maximum 8 folio windows allowed.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        label = request.data.get('label', f'Window {count + 1}')
+        window = FolioWindow.objects.create(booking_id=booking_id, window_number=count + 1, label=label)
+        return Response({'window_number': window.window_number, 'label': window.label})
+
+
+class FolioTransferView(APIView):
+    """POST /api/admin/bookings/<booking_id>/folio-transfer/"""
+    permission_classes = [IsStaffUser]
+
+    def post(self, request, booking_id):
+        charge_id = request.data.get('charge_id')
+        target_window = request.data.get('target_window')
+
+        from bookings.models import FolioCharge
+        try:
+            charge = FolioCharge.objects.get(id=charge_id, booking_id=booking_id)
+        except FolioCharge.DoesNotExist:
+            return Response({'detail': 'Charge not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        old_window = charge.folio_window
+        charge.folio_window = target_window
+        charge.is_transferred = True
+        charge.save(update_fields=['folio_window', 'is_transferred'])
+
+        FolioAuditLog.objects.create(
+            folio_charge=charge,
+            action=FolioAuditLog.ActionType.TRANSFER,
+            from_window=old_window,
+            to_window=target_window,
+            performed_by=request.user
+        )
+
+        return Response({'detail': 'Charge transferred successfully.'})
+
+
+class FolioAdjustmentView(APIView):
+    """POST /api/admin/folio/<charge_id>/adjust/"""
+    permission_classes = [IsStaffUser]
+
+    def post(self, request, charge_id):
+        reason_code = request.data.get('reason_code')
+        reason_note = request.data.get('reason_note', '')
+        
+        from bookings.models import FolioCharge
+        try:
+            charge = FolioCharge.objects.get(id=charge_id)
+        except FolioCharge.DoesNotExist:
+            return Response({'detail': 'Charge not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        if charge.is_void:
+            return Response({'detail': 'Charge is already voided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Instead of deleting, mark it as voided with an adjustment code
+        charge.is_void = True
+        charge.void_reason = reason_note
+        charge.void_by = request.user
+        charge.void_at = timezone.now()
+        charge.reason_code = reason_code
+        charge.save(update_fields=['is_void', 'void_reason', 'void_by', 'void_at', 'reason_code'])
+
+        FolioAuditLog.objects.create(
+            folio_charge=charge,
+            action=FolioAuditLog.ActionType.ADJUSTMENT,
+            reason_code=reason_code,
+            reason_note=reason_note,
+            performed_by=request.user
+        )
+
+        return Response({'detail': 'Adjustment recorded securely.'})
+
+
+class QueueManagementView(APIView):
+    """GET/POST /api/admin/dashboard/queue/"""
+    permission_classes = [IsStaffUser]
+
+    def get(self, request):
+        queue = QueueEntry.objects.filter(is_resolved=False).select_related('booking__guest')
+        data = [{
+            'id': q.id,
+            'booking_ref': q.booking.booking_ref,
+            'guest_name': q.booking.guest.full_name,
+            'priority': q.priority,
+            'queued_at': q.queued_at.isoformat(),
+            'wait_minutes': q.wait_minutes,
+            'notes': q.notes,
+        } for q in queue]
+        return Response(data)
+
+    def post(self, request):
+        booking_id = request.data.get('booking_id')
+        action = request.data.get('action') # 'enqueue', 'resolve'
+        
+        try:
+            booking = Booking.objects.get(id=booking_id)
+        except Booking.DoesNotExist:
+            return Response({'detail': 'Booking not found.'}, status=404)
+
+        if action == 'enqueue':
+            q, created = QueueEntry.objects.get_or_create(booking=booking, is_resolved=False)
+            if not created:
+                return Response({'detail': 'Already in queue.'}, status=400)
+            return Response({'detail': 'Added to queue.'})
+            
+        elif action == 'resolve':
+            try:
+                q = QueueEntry.objects.get(booking=booking, is_resolved=False)
+                q.is_resolved = True
+                q.room_assigned_at = timezone.now()
+                q.save()
+                return Response({'detail': 'Queue resolved.'})
+            except QueueEntry.DoesNotExist:
+                return Response({'detail': 'Queue entry not found.'}, status=404)
+        
+        return Response({'detail': 'Invalid action.'}, status=400)

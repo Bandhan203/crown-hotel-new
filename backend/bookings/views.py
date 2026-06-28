@@ -584,6 +584,9 @@ class ReservationCreateView(APIView):
                 drop_required=data.get('drop_required', 'NO'),
                 flight_drop_no=data.get('flight_drop_no', ''),
                 flight_etd=data.get('flight_etd', ''),
+                meal_plan=data.get('meal_plan', 'EP'),
+                arrival_mode=data.get('arrival_mode', ''),
+                vehicle_assigned=data.get('vehicle_assigned', ''),
             )
 
             # Record advance payment if provided
@@ -1687,3 +1690,80 @@ class AdminRefundPaymentView(APIView):
             'payment_id': payment.id,
             'refund_amount': str(refund_amount),
         })
+
+
+# ── Police Portal Export ─────────────────────────────────────────────────────
+
+class PoliceExportView(APIView):
+    """GET /api/admin/reports/police-export/?date=YYYY-MM-DD
+    Returns checked-in guests in Bangladesh Police Portal format (JSON/CSV).
+    """
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        from accounts.models import GuestProfile
+        import csv
+        from io import StringIO
+
+        export_date_str = request.query_params.get('date')
+        export_format = request.query_params.get('format', 'json')
+
+        try:
+            from datetime import datetime
+            export_date = datetime.strptime(export_date_str, '%Y-%m-%d').date() if export_date_str else date.today()
+        except (ValueError, TypeError):
+            export_date = date.today()
+
+        # Bookings active (checked-in) on the export date
+        bookings = Booking.objects.filter(
+            status__in=['CHECKED_IN', 'CHECKED_OUT'],
+            check_in_date__lte=export_date,
+            check_out_date__gte=export_date,
+        ).select_related('guest', 'room', 'room_type').prefetch_related('guest__guest_profile')
+
+        records = []
+        for b in bookings:
+            try:
+                profile = b.guest.guest_profile
+            except Exception:
+                profile = None
+
+            records.append({
+                'sl_no': len(records) + 1,
+                'hotel_name': 'Hotel Crown',
+                'room_number': b.room.room_number if b.room else '',
+                'check_in_date': str(b.check_in_date),
+                'check_out_date': str(b.check_out_date),
+                'guest_name': b.guest.full_name or '',
+                'father_name': getattr(profile, 'father_name', '') if profile else '',
+                'mother_name': getattr(profile, 'mother_name', '') if profile else '',
+                'date_of_birth': str(getattr(profile, 'date_of_birth', '') or '') if profile else '',
+                'gender': getattr(profile, 'gender', '') if profile else '',
+                'nationality': getattr(profile, 'nationality', '') if profile else '',
+                'nid_passport': b.id_number or (getattr(profile, 'id_number', '') if profile else ''),
+                'id_type': b.id_type or (getattr(profile, 'id_type', '') if profile else ''),
+                'phone': b.guest.phone or '',
+                'address': getattr(profile, 'address_line1', '') if profile else '',
+                'occupation': getattr(profile, 'occupation', '') if profile else '',
+                'coming_from': b.coming_from or '',
+                'purpose_of_visit': b.purpose_of_visit or '',
+                'guest_type': b.guest_type or '',
+                'visa_no': getattr(profile, 'visa_no', '') if profile else '',
+            })
+
+        if export_format == 'csv':
+            output = StringIO()
+            if records:
+                writer = csv.DictWriter(output, fieldnames=records[0].keys())
+                writer.writeheader()
+                writer.writerows(records)
+            response = HttpResponse(output.getvalue(), content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename="police_export_{export_date}.csv"'
+            return response
+
+        return Response({
+            'date': str(export_date),
+            'total_guests': len(records),
+            'records': records,
+        })
+

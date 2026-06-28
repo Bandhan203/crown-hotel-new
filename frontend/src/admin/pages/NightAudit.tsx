@@ -111,21 +111,21 @@ export default function NightAudit() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <MdNightsStay className="text-[#aa8453]" /> Night Audit
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <MdNightsStay className="text-teal-700" /> Night Audit
           </h1>
-          <p className="text-gray-400 text-sm mt-1">Daily close process — post charges, mark no-shows, generate reports</p>
+          <p className="text-gray-500 text-sm mt-1">Daily close process — post charges, mark no-shows, generate reports</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-white/10">
+      <div className="flex gap-1 border-b border-gray-200">
         <button onClick={() => setTab('run')}
-          className={`px-5 py-2.5 text-sm font-medium flex items-center gap-2 transition-colors ${tab === 'run' ? 'text-[#aa8453] border-b-2 border-[#aa8453]' : 'text-gray-400 hover:text-white'}`}>
+          className={`px-5 py-2.5 text-sm font-medium flex items-center gap-2 transition-colors ${tab === 'run' ? 'text-teal-700 border-b-2 border-teal-600' : 'text-gray-500 hover:text-slate-800'}`}>
           <MdPlayArrow size={18} /> Run Audit
         </button>
         <button onClick={() => setTab('history')}
-          className={`px-5 py-2.5 text-sm font-medium flex items-center gap-2 transition-colors ${tab === 'history' ? 'text-[#aa8453] border-b-2 border-[#aa8453]' : 'text-gray-400 hover:text-white'}`}>
+          className={`px-5 py-2.5 text-sm font-medium flex items-center gap-2 transition-colors ${tab === 'history' ? 'text-teal-700 border-b-2 border-teal-600' : 'text-gray-500 hover:text-slate-800'}`}>
           <MdHistory size={18} /> History
         </button>
       </div>
@@ -135,16 +135,16 @@ export default function NightAudit() {
         <div className="space-y-6">
           {/* Date Selector */}
           <div className="flex items-center gap-4">
-            <label className="text-sm text-gray-400">Audit Date:</label>
+            <label className="text-sm text-gray-500">Audit Date:</label>
             <input type="date" value={auditDate} onChange={e => setAuditDate(e.target.value)}
-              className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-[#aa8453]" />
-            <button onClick={fetchPreview} className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-400 hover:text-white">
+              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-slate-800 text-sm focus:outline-none focus:border-teal-600" />
+            <button onClick={fetchPreview} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-500 hover:text-slate-800">
               <MdRefresh size={18} />
             </button>
           </div>
 
           {previewLoading ? (
-            <div className="flex justify-center py-16"><div className="w-8 h-8 border-2 border-[#aa8453] border-t-transparent rounded-full animate-spin" /></div>
+            <div className="flex justify-center py-16"><div className="w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
           ) : preview && !lastResult ? (
             <>
               {/* Status Banner */}
@@ -170,16 +170,16 @@ export default function NightAudit() {
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                      <thead><tr className="text-gray-500 text-xs border-b border-white/10">
+                      <thead><tr className="text-gray-500 text-xs border-b border-gray-200">
                         <th className="py-2 text-left">Booking</th><th className="text-left">Guest</th><th className="text-left">Room</th><th className="text-right">Rate</th><th className="text-center">Status</th>
                       </tr></thead>
                       <tbody>
                         {preview.room_charges.map(c => (
                           <tr key={c.booking_id} className="border-b border-white/5">
-                            <td className="py-2 font-mono text-xs text-[#aa8453]">{c.booking_ref}</td>
-                            <td className="text-gray-300">{c.guest_name}</td>
-                            <td className="text-gray-300">{c.room_number}</td>
-                            <td className="text-right text-white">BDT {c.nightly_rate.toLocaleString()}</td>
+                            <td className="py-2 font-mono text-xs text-teal-700">{c.booking_ref}</td>
+                            <td className="text-gray-600">{c.guest_name}</td>
+                            <td className="text-gray-600">{c.room_number}</td>
+                            <td className="text-right text-slate-800">BDT {c.nightly_rate.toLocaleString()}</td>
                             <td className="text-center">
                               {c.already_posted
                                 ? <span className="text-green-400 text-xs">Posted</span>
@@ -200,8 +200,8 @@ export default function NightAudit() {
                     {preview.no_shows.map(n => (
                       <div key={n.booking_id} className="flex items-center justify-between bg-red-500/5 border border-red-500/20 rounded-lg p-3">
                         <div>
-                          <span className="font-mono text-xs text-[#aa8453]">{n.booking_ref}</span>
-                          <span className="text-gray-300 text-sm ml-3">{n.guest_name}</span>
+                          <span className="font-mono text-xs text-teal-700">{n.booking_ref}</span>
+                          <span className="text-gray-600 text-sm ml-3">{n.guest_name}</span>
                         </div>
                         <span className="text-gray-500 text-xs">{n.room_type}</span>
                       </div>
@@ -217,8 +217,8 @@ export default function NightAudit() {
                     {preview.overdue_checkouts.map(o => (
                       <div key={o.booking_id} className="flex items-center justify-between bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-3">
                         <div>
-                          <span className="font-mono text-xs text-[#aa8453]">{o.booking_ref}</span>
-                          <span className="text-gray-300 text-sm ml-3">{o.guest_name}</span>
+                          <span className="font-mono text-xs text-teal-700">{o.booking_ref}</span>
+                          <span className="text-gray-600 text-sm ml-3">{o.guest_name}</span>
                           <span className="text-gray-500 text-sm ml-2">Room {o.room_number}</span>
                         </div>
                         <span className="text-yellow-400 text-xs">Due: {o.check_out_date}</span>
@@ -231,20 +231,20 @@ export default function NightAudit() {
               {/* Revenue Preview */}
               <Section title="Revenue Summary">
                 <div className="grid grid-cols-4 gap-4">
-                  <div><p className="text-gray-500 text-xs">Room</p><p className="text-white text-lg font-semibold">BDT {preview.revenue_preview.room.toLocaleString()}</p></div>
-                  <div><p className="text-gray-500 text-xs">F&B</p><p className="text-white text-lg font-semibold">BDT {preview.revenue_preview.fnb.toLocaleString()}</p></div>
-                  <div><p className="text-gray-500 text-xs">Other</p><p className="text-white text-lg font-semibold">BDT {preview.revenue_preview.other.toLocaleString()}</p></div>
-                  <div><p className="text-gray-500 text-xs">Total</p><p className="text-[#aa8453] text-lg font-bold">BDT {preview.revenue_preview.total.toLocaleString()}</p></div>
+                  <div><p className="text-gray-500 text-xs">Room</p><p className="text-slate-800 text-lg font-semibold">BDT {preview.revenue_preview.room.toLocaleString()}</p></div>
+                  <div><p className="text-gray-500 text-xs">F&B</p><p className="text-slate-800 text-lg font-semibold">BDT {preview.revenue_preview.fnb.toLocaleString()}</p></div>
+                  <div><p className="text-gray-500 text-xs">Other</p><p className="text-slate-800 text-lg font-semibold">BDT {preview.revenue_preview.other.toLocaleString()}</p></div>
+                  <div><p className="text-gray-500 text-xs">Total</p><p className="text-teal-700 text-lg font-bold">BDT {preview.revenue_preview.total.toLocaleString()}</p></div>
                 </div>
               </Section>
 
               {/* Run Button */}
               {!preview.already_run && (
-                <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-4">
                   <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Audit notes (optional)..."
-                    rows={2} className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-[#aa8453]" />
+                    rows={2} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-slate-800 text-sm focus:outline-none focus:border-teal-600" />
                   <button onClick={runAudit} disabled={running}
-                    className="w-full py-3 bg-[#aa8453] text-white font-medium rounded-lg hover:bg-[#c4a472] transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                    className="w-full py-3 bg-teal-700 text-white font-medium rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                     <MdPlayArrow size={20} /> {running ? 'Running Night Audit...' : 'Run Night Audit'}
                   </button>
                 </div>
@@ -256,8 +256,8 @@ export default function NightAudit() {
               <div className="flex items-start gap-3">
                 <MdCheckCircle className="text-green-400 mt-1" size={24} />
                 <div>
-                  <h3 className="text-white font-semibold">Night Audit Completed</h3>
-                  <p className="text-gray-400 text-sm">Audit for {lastResult.audit_date} ran at {new Date(lastResult.created_at).toLocaleString()}</p>
+                  <h3 className="text-slate-800 font-semibold">Night Audit Completed</h3>
+                  <p className="text-gray-500 text-sm">Audit for {lastResult.audit_date} ran at {new Date(lastResult.created_at).toLocaleString()}</p>
                 </div>
               </div>
 
@@ -269,11 +269,11 @@ export default function NightAudit() {
               </div>
 
               <div className="grid grid-cols-3 gap-4 text-sm">
-                <div><span className="text-gray-500">Room Revenue:</span> <span className="text-white ml-2">BDT {lastResult.room_revenue.toLocaleString()}</span></div>
-                <div><span className="text-gray-500">F&B Revenue:</span> <span className="text-white ml-2">BDT {lastResult.fnb_revenue.toLocaleString()}</span></div>
-                <div><span className="text-gray-500">Other Revenue:</span> <span className="text-white ml-2">BDT {lastResult.other_revenue.toLocaleString()}</span></div>
-                <div><span className="text-gray-500">New Bookings:</span> <span className="text-white ml-2">{lastResult.new_bookings}</span></div>
-                <div><span className="text-gray-500">Performed by:</span> <span className="text-white ml-2">{lastResult.performed_by}</span></div>
+                <div><span className="text-gray-500">Room Revenue:</span> <span className="text-slate-800 ml-2">BDT {lastResult.room_revenue.toLocaleString()}</span></div>
+                <div><span className="text-gray-500">F&B Revenue:</span> <span className="text-slate-800 ml-2">BDT {lastResult.fnb_revenue.toLocaleString()}</span></div>
+                <div><span className="text-gray-500">Other Revenue:</span> <span className="text-slate-800 ml-2">BDT {lastResult.other_revenue.toLocaleString()}</span></div>
+                <div><span className="text-gray-500">New Bookings:</span> <span className="text-slate-800 ml-2">{lastResult.new_bookings}</span></div>
+                <div><span className="text-gray-500">Performed by:</span> <span className="text-slate-800 ml-2">{lastResult.performed_by}</span></div>
               </div>
             </div>
           ) : null}
@@ -283,14 +283,14 @@ export default function NightAudit() {
       {/* HISTORY TAB */}
       {tab === 'history' && (
         historyLoading ? (
-          <div className="flex justify-center py-16"><div className="w-8 h-8 border-2 border-[#aa8453] border-t-transparent rounded-full animate-spin" /></div>
+          <div className="flex justify-center py-16"><div className="w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
         ) : history.length === 0 ? (
           <p className="text-gray-500 text-center py-12">No audit history yet. Run your first night audit to get started.</p>
         ) : (
           <div className="space-y-4">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead><tr className="text-gray-500 text-xs border-b border-white/10">
+                <thead><tr className="text-gray-500 text-xs border-b border-gray-200">
                   <th className="py-2 text-left">Date</th>
                   <th className="text-right">Occupancy</th>
                   <th className="text-right">Revenue</th>
@@ -302,15 +302,15 @@ export default function NightAudit() {
                 </tr></thead>
                 <tbody>
                   {history.map(l => (
-                    <tr key={l.id} className="border-b border-white/5 hover:bg-white/5 cursor-pointer" onClick={() => setSelectedLog(l)}>
-                      <td className="py-2.5 text-white font-medium">{l.audit_date}</td>
-                      <td className="text-right text-[#aa8453] font-semibold">{l.occupancy_rate}%</td>
-                      <td className="text-right text-white">BDT {l.total_revenue.toLocaleString()}</td>
-                      <td className="text-center text-gray-300">{l.total_rooms_sold}/{l.total_rooms_available}</td>
+                    <tr key={l.id} className="border-b border-white/5 hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedLog(l)}>
+                      <td className="py-2.5 text-slate-800 font-medium">{l.audit_date}</td>
+                      <td className="text-right text-teal-700 font-semibold">{l.occupancy_rate}%</td>
+                      <td className="text-right text-slate-800">BDT {l.total_revenue.toLocaleString()}</td>
+                      <td className="text-center text-gray-600">{l.total_rooms_sold}/{l.total_rooms_available}</td>
                       <td className="text-center">{l.no_show_count > 0 ? <span className="text-red-400">{l.no_show_count}</span> : <span className="text-gray-600">0</span>}</td>
-                      <td className="text-center text-gray-300">{l.check_ins}</td>
-                      <td className="text-center text-gray-300">{l.check_outs}</td>
-                      <td className="text-gray-400">{l.performed_by || '—'}</td>
+                      <td className="text-center text-gray-600">{l.check_ins}</td>
+                      <td className="text-center text-gray-600">{l.check_outs}</td>
+                      <td className="text-gray-500">{l.performed_by || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -320,8 +320,8 @@ export default function NightAudit() {
             {/* Detail Modal */}
             {selectedLog && (
               <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setSelectedLog(null)}>
-                <div className="bg-[#1a1a1a] border border-white/10 rounded-xl w-full max-w-lg p-6 space-y-4" onClick={e => e.stopPropagation()}>
-                  <h3 className="text-white font-bold text-lg">Audit — {selectedLog.audit_date}</h3>
+                <div className="bg-white border border-gray-200 rounded-xl w-full max-w-lg p-6 space-y-4" onClick={e => e.stopPropagation()}>
+                  <h3 className="text-slate-800 font-bold text-lg">Audit — {selectedLog.audit_date}</h3>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <AField label="Occupancy" value={`${selectedLog.occupancy_rate}%`} />
                     <AField label="Rooms Sold" value={`${selectedLog.total_rooms_sold} / ${selectedLog.total_rooms_available}`} />
@@ -337,9 +337,9 @@ export default function NightAudit() {
                     <AField label="Run At" value={new Date(selectedLog.created_at).toLocaleString()} />
                   </div>
                   {selectedLog.notes && (
-                    <div><p className="text-gray-500 text-xs mb-1">Notes</p><p className="text-gray-300 text-sm">{selectedLog.notes}</p></div>
+                    <div><p className="text-gray-500 text-xs mb-1">Notes</p><p className="text-gray-600 text-sm">{selectedLog.notes}</p></div>
                   )}
-                  <button onClick={() => setSelectedLog(null)} className="w-full py-2 text-gray-400 hover:text-white text-sm border border-white/10 rounded-lg">Close</button>
+                  <button onClick={() => setSelectedLog(null)} className="w-full py-2 text-gray-500 hover:text-slate-800 text-sm border border-gray-200 rounded-lg">Close</button>
                 </div>
               </div>
             )}
@@ -352,9 +352,9 @@ export default function NightAudit() {
 
 function StatCard({ label, value, sub, color }: { label: string; value: string; sub: string; color?: string }) {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
       <p className="text-gray-500 text-xs">{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${color || 'text-white'}`}>{value}</p>
+      <p className={`text-2xl font-bold mt-1 ${color || 'text-slate-800'}`}>{value}</p>
       <p className="text-gray-500 text-xs mt-1">{sub}</p>
     </div>
   );
@@ -362,8 +362,8 @@ function StatCard({ label, value, sub, color }: { label: string; value: string; 
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-      <h3 className="text-white font-semibold text-sm mb-4">{title}</h3>
+    <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+      <h3 className="text-slate-800 font-semibold text-sm mb-4">{title}</h3>
       {children}
     </div>
   );
@@ -373,7 +373,7 @@ function AField({ label, value, highlight }: { label: string; value: string; hig
   return (
     <div>
       <p className="text-gray-500 text-xs">{label}</p>
-      <p className={`text-sm font-medium ${highlight ? 'text-[#aa8453]' : 'text-white'}`}>{value}</p>
+      <p className={`text-sm font-medium ${highlight ? 'text-teal-700' : 'text-slate-800'}`}>{value}</p>
     </div>
   );
 }

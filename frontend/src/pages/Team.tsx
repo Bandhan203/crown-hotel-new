@@ -71,20 +71,20 @@ export default function Team() {
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6">
                       <div className="flex gap-3">
                         {member.social_links?.facebook && (
-                          <a href={member.social_links.facebook} target="_blank" rel="noreferrer" className="w-10 h-10 border border-white text-white flex items-center justify-center hover:bg-[var(--color-primary)] hover:border-[var(--color-primary)] transition-colors"><FiFacebook size={16} /></a>
+                          <a href={member.social_links.facebook} target="_blank" rel="noreferrer" className="w-10 h-10 border border-white text-slate-800 flex items-center justify-center hover:bg-[var(--color-primary)] hover:border-[var(--color-primary)] transition-colors"><FiFacebook size={16} /></a>
                         )}
                         {member.social_links?.twitter && (
-                          <a href={member.social_links.twitter} target="_blank" rel="noreferrer" className="w-10 h-10 border border-white text-white flex items-center justify-center hover:bg-[var(--color-primary)] hover:border-[var(--color-primary)] transition-colors"><FiTwitter size={16} /></a>
+                          <a href={member.social_links.twitter} target="_blank" rel="noreferrer" className="w-10 h-10 border border-white text-slate-800 flex items-center justify-center hover:bg-[var(--color-primary)] hover:border-[var(--color-primary)] transition-colors"><FiTwitter size={16} /></a>
                         )}
                         {member.social_links?.instagram && (
-                          <a href={member.social_links.instagram} target="_blank" rel="noreferrer" className="w-10 h-10 border border-white text-white flex items-center justify-center hover:bg-[var(--color-primary)] hover:border-[var(--color-primary)] transition-colors"><FiInstagram size={16} /></a>
+                          <a href={member.social_links.instagram} target="_blank" rel="noreferrer" className="w-10 h-10 border border-white text-slate-800 flex items-center justify-center hover:bg-[var(--color-primary)] hover:border-[var(--color-primary)] transition-colors"><FiInstagram size={16} /></a>
                         )}
                         {member.social_links?.linkedin && (
-                          <a href={member.social_links.linkedin} target="_blank" rel="noreferrer" className="w-10 h-10 border border-white text-white flex items-center justify-center hover:bg-[var(--color-primary)] hover:border-[var(--color-primary)] transition-colors"><FiLinkedin size={16} /></a>
+                          <a href={member.social_links.linkedin} target="_blank" rel="noreferrer" className="w-10 h-10 border border-white text-slate-800 flex items-center justify-center hover:bg-[var(--color-primary)] hover:border-[var(--color-primary)] transition-colors"><FiLinkedin size={16} /></a>
                         )}
                         {/* Fallback if no specific links are present but we want to show icons */}
                         {(!member.social_links || Object.keys(member.social_links).length === 0) && (
-                           <a href="#" className="w-10 h-10 border border-white text-white flex items-center justify-center hover:bg-[var(--color-primary)] hover:border-[var(--color-primary)] transition-colors"><FiLink size={16} /></a>
+                           <a href="#" className="w-10 h-10 border border-white text-slate-800 flex items-center justify-center hover:bg-[var(--color-primary)] hover:border-[var(--color-primary)] transition-colors"><FiLink size={16} /></a>
                         )}
                       </div>
                     </div>

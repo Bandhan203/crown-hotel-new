@@ -82,12 +82,12 @@ export default function StaffManagement() {
 
   return (
     <div className="space-y-2">
-      <div className="rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2">
+      <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
         <div className="flex flex-wrap items-center justify-end gap-2">
           <button
             type="button"
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#aa8453] text-white rounded-md text-xs font-medium hover:bg-[#c49b63] transition shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-700 text-white rounded-md text-xs font-medium hover:bg-teal-600 transition shrink-0"
           >
             <MdAdd size={16} /> Add Staff
           </button>
@@ -114,22 +114,22 @@ function CreateStaffModal({ onClose, onSave }: { onClose: () => void; onSave: (d
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#1a1a1a] border border-white/10 rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-        <h2 className="text-lg font-bold text-white mb-4">Add Staff Member</h2>
+      <div className="bg-white border border-gray-200 rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+        <h2 className="text-lg font-bold text-slate-800 mb-4">Add Staff Member</h2>
         <div className="space-y-4">
           {[['email', 'Email', 'email'], ['full_name', 'Full Name', 'text'], ['phone', 'Phone', 'text'],
             ['password', 'Password', 'password'], ['department', 'Department', 'text'], ['position', 'Position', 'text']
           ].map(([key, label, type]) => (
             <div key={key}>
-              <label className="block text-sm text-gray-300 mb-1">{label}</label>
+              <label className="block text-sm text-gray-600 mb-1">{label}</label>
               <input type={type} value={(form as any)[key]} onChange={e => set(key, e.target.value)}
-                className="w-full px-3 py-2 bg-[#0f0f0f] border border-white/10 rounded-lg text-white text-sm focus:border-[#aa8453] outline-none" />
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-slate-800 text-sm focus:border-teal-600 outline-none" />
             </div>
           ))}
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white text-sm">Cancel</button>
-          <button onClick={() => onSave(form)} className="px-4 py-2 bg-[#aa8453] hover:bg-[#c49b63] text-white rounded-lg text-sm font-medium">Create</button>
+          <button onClick={onClose} className="px-4 py-2 text-gray-500 hover:text-slate-800 text-sm">Cancel</button>
+          <button onClick={() => onSave(form)} className="px-4 py-2 bg-teal-700 hover:bg-teal-600 text-white rounded-lg text-sm font-medium">Create</button>
         </div>
       </div>
     </div>
@@ -170,14 +170,14 @@ function PermissionsModal({ staff, onClose }: { staff: StaffProfile; onClose: ()
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#1a1a1a] border border-white/10 rounded-xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-        <h2 className="text-lg font-bold text-white mb-1">Permissions — {staff.full_name}</h2>
-        <p className="text-sm text-gray-400 mb-4">{staff.email}</p>
+      <div className="bg-white border border-gray-200 rounded-xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+        <h2 className="text-lg font-bold text-slate-800 mb-1">Permissions — {staff.full_name}</h2>
+        <p className="text-sm text-gray-500 mb-4">{staff.email}</p>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-gray-400 text-left border-b border-white/10">
+              <tr className="text-gray-500 text-left border-b border-gray-200">
                 <th className="py-2 pr-4">Module</th>
                 <th className="py-2 px-3 text-center">View</th>
                 <th className="py-2 px-3 text-center">Create</th>
@@ -188,11 +188,11 @@ function PermissionsModal({ staff, onClose }: { staff: StaffProfile; onClose: ()
             <tbody>
               {MODULES.map(m => (
                 <tr key={m} className="border-b border-white/5">
-                  <td className="py-2 pr-4 text-white font-medium">{m}</td>
+                  <td className="py-2 pr-4 text-slate-800 font-medium">{m}</td>
                   {(['can_view', 'can_create', 'can_edit', 'can_delete'] as const).map(p => (
                     <td key={p} className="py-2 px-3 text-center">
                       <input type="checkbox" checked={perms[m][p]} onChange={() => toggle(m, p)}
-                        className="w-4 h-4 rounded border-white/10 bg-[#0f0f0f] text-[#aa8453] focus:ring-[#aa8453]" />
+                        className="w-4 h-4 rounded border-gray-200 bg-gray-50 text-teal-700 focus:ring-teal-600" />
                     </td>
                   ))}
                 </tr>
@@ -202,9 +202,9 @@ function PermissionsModal({ staff, onClose }: { staff: StaffProfile; onClose: ()
         </div>
 
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white text-sm">Cancel</button>
+          <button onClick={onClose} className="px-4 py-2 text-gray-500 hover:text-slate-800 text-sm">Cancel</button>
           <button onClick={save} disabled={saving}
-            className="px-4 py-2 bg-[#aa8453] hover:bg-[#c49b63] disabled:opacity-50 text-white rounded-lg text-sm font-medium">
+            className="px-4 py-2 bg-teal-700 hover:bg-teal-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium">
             {saving ? 'Saving...' : 'Save Permissions'}
           </button>
         </div>

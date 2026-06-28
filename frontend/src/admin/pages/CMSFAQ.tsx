@@ -147,13 +147,13 @@ export default function CMSFAQ() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="text-2xl font-bold text-white" style={{ fontFamily: '"Gilda Display", serif' }}>
+        <h1 className="text-2xl font-bold text-slate-800" style={{ fontFamily: '"Gilda Display", serif' }}>
           <span className="inline mr-2 text-primary"><MdQuiz size={24} /></span>
           FAQ Management
         </h1>
         <button
           onClick={openAdd}
-          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-[#c49b63] text-white rounded-lg text-sm font-medium"
+          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-teal-600 text-white rounded-lg text-sm font-medium"
         >
           <MdAdd size={18} /> Add FAQ
         </button>
@@ -166,16 +166,16 @@ export default function CMSFAQ() {
       </div>
 
       {loading ? (
-        <p className="text-gray-400">Loading FAQs...</p>
+        <p className="text-gray-500">Loading FAQs...</p>
       ) : items.length === 0 ? (
-        <p className="text-gray-400">No FAQ items yet.</p>
+        <p className="text-gray-500">No FAQ items yet.</p>
       ) : (
         <div className="space-y-3">
           {items
             .slice()
             .sort((a, b) => a.order - b.order)
             .map((item, idx, arr) => (
-              <div key={item.id} className="bg-[#161616] border border-white/10 rounded-xl p-4">
+              <div key={item.id} className="bg-[#161616] border border-gray-200 rounded-xl p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -184,15 +184,15 @@ export default function CMSFAQ() {
                         {item.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </div>
-                    <h3 className="text-white font-semibold line-clamp-1">{item.question}</h3>
-                    <p className="text-sm text-gray-400 mt-1 whitespace-pre-line line-clamp-2">{item.answer}</p>
+                    <h3 className="text-slate-800 font-semibold line-clamp-1">{item.question}</h3>
+                    <p className="text-sm text-gray-500 mt-1 whitespace-pre-line line-clamp-2">{item.answer}</p>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => void moveItem(item, 'up')}
                       disabled={idx === 0}
-                      className="p-2 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="p-2 rounded-lg bg-gray-50 text-gray-600 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
                       title="Move Up"
                     >
                       <MdArrowUpward size={16} />
@@ -200,7 +200,7 @@ export default function CMSFAQ() {
                     <button
                       onClick={() => void moveItem(item, 'down')}
                       disabled={idx === arr.length - 1}
-                      className="p-2 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="p-2 rounded-lg bg-gray-50 text-gray-600 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
                       title="Move Down"
                     >
                       <MdArrowDownward size={16} />
@@ -228,41 +228,41 @@ export default function CMSFAQ() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
-          <div className="w-full max-w-2xl bg-[#161616] border border-white/10 rounded-2xl p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-semibold text-white mb-5">{editing ? 'Edit FAQ' : 'Add FAQ'}</h2>
+          <div className="w-full max-w-2xl bg-[#161616] border border-gray-200 rounded-2xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-semibold text-slate-800 mb-5">{editing ? 'Edit FAQ' : 'Add FAQ'}</h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Question</label>
+                <label className="block text-sm text-gray-600 mb-1">Question</label>
                 <input
                   value={form.question}
                   onChange={(e) => setForm((prev) => ({ ...prev, question: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg bg-[#101010] border border-white/10 text-white text-sm outline-none focus:border-primary"
+                  className="w-full px-3 py-2 rounded-lg bg-[#101010] border border-gray-200 text-slate-800 text-sm outline-none focus:border-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Answer</label>
+                <label className="block text-sm text-gray-600 mb-1">Answer</label>
                 <textarea
                   value={form.answer}
                   onChange={(e) => setForm((prev) => ({ ...prev, answer: e.target.value }))}
                   rows={5}
-                  className="w-full px-3 py-2 rounded-lg bg-[#101010] border border-white/10 text-white text-sm outline-none focus:border-primary resize-none"
+                  className="w-full px-3 py-2 rounded-lg bg-[#101010] border border-gray-200 text-slate-800 text-sm outline-none focus:border-primary resize-none"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Display Order</label>
+                  <label className="block text-sm text-gray-600 mb-1">Display Order</label>
                   <input
                     type="number"
                     value={form.order}
                     onChange={(e) => setForm((prev) => ({ ...prev, order: Number(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 rounded-lg bg-[#101010] border border-white/10 text-white text-sm outline-none focus:border-primary"
+                    className="w-full px-3 py-2 rounded-lg bg-[#101010] border border-gray-200 text-slate-800 text-sm outline-none focus:border-primary"
                   />
                 </div>
 
-                <label className="inline-flex items-center gap-2 text-sm text-gray-300">
+                <label className="inline-flex items-center gap-2 text-sm text-gray-600">
                   <input
                     type="checkbox"
                     checked={form.is_active}
@@ -275,8 +275,8 @@ export default function CMSFAQ() {
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-300 hover:text-white">Cancel</button>
-              <button onClick={() => void saveFaq()} className="px-4 py-2 rounded-lg bg-primary hover:bg-[#c49b63] text-white">Save</button>
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-600 hover:text-slate-800">Cancel</button>
+              <button onClick={() => void saveFaq()} className="px-4 py-2 rounded-lg bg-primary hover:bg-teal-600 text-slate-800">Save</button>
             </div>
           </div>
         </div>
@@ -287,9 +287,9 @@ export default function CMSFAQ() {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="bg-[#151515] border border-white/10 rounded-xl p-4">
-      <p className="text-sm text-gray-400">{label}</p>
-      <p className="text-2xl font-semibold text-white mt-1">{value}</p>
+    <div className="bg-[#151515] border border-gray-200 rounded-xl p-4">
+      <p className="text-sm text-gray-500">{label}</p>
+      <p className="text-2xl font-semibold text-slate-800 mt-1">{value}</p>
     </div>
   );
 }

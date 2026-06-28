@@ -102,7 +102,7 @@ export default function NewsDetail() {
               />
 
               <div className="flex flex-wrap gap-3 mb-4 text-xs uppercase tracking-wide">
-                <span className="bg-gradient-primary text-white px-3 py-1 rounded shadow-sm">
+                <span className="bg-teal-700 text-white px-3 py-1 rounded shadow-sm">
                   {formatPublishedDate(post.published_at)}
                 </span>
                 {post.category && <span className="bg-stone-100 text-stone-800 px-3 py-1">{post.category}</span>}

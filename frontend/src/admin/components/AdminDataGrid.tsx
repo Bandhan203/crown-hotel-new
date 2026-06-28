@@ -88,13 +88,13 @@ export default function AdminDataGrid({
   const label = total === 1 ? rowLabel : `${rowLabel}s`;
 
   return (
-    <div className="rounded-xl overflow-hidden border border-white/10 bg-[#141414] shadow-lg">
+    <div className="rounded-xl overflow-hidden border border-gray-200 bg-[#141414] shadow-lg">
       {showExport && (
-        <div className="flex justify-end px-3 py-2 border-b border-white/10 bg-[#1a1a1a]">
+        <div className="flex justify-end px-3 py-2 border-b border-gray-200 bg-white">
           <button
             type="button"
             onClick={() => gridRef.current?.api?.exportDataAsCsv()}
-            className="px-3 py-1 text-xs font-medium rounded border border-white/10 text-gray-300 hover:border-[#aa8453]/50 hover:text-white transition"
+            className="px-3 py-1 text-xs font-medium rounded border border-gray-200 text-gray-600 hover:border-teal-600/50 hover:text-slate-800 transition"
           >
             Export CSV
           </button>
@@ -104,7 +104,7 @@ export default function AdminDataGrid({
       <div className="ag-theme-quartz ag-theme-bookings w-full" style={{ height: 500 }}>
         {loading ? (
           <div className="flex items-center justify-center h-full bg-white">
-            <div className="w-8 h-8 border-4 border-[#aa8453] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
           <AgGridReact
@@ -130,8 +130,8 @@ export default function AdminDataGrid({
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[#1a1a1a] border-t border-white/10">
-        <span className="text-xs text-gray-400">
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-white border-t border-gray-200">
+        <span className="text-xs text-gray-500">
           {total !== null
             ? `${total} ${label} · showing page ${page} of ${totalPages}`
             : 'Loading...'}
@@ -141,7 +141,7 @@ export default function AdminDataGrid({
             type="button"
             disabled={page === 1 || loading}
             onClick={() => setPage(p => p - 1)}
-            className="px-3 py-1 text-xs font-medium rounded border border-white/10 text-gray-300 disabled:opacity-40 hover:border-[#aa8453]/50 hover:text-white transition"
+            className="px-3 py-1 text-xs font-medium rounded border border-gray-200 text-gray-600 disabled:opacity-40 hover:border-teal-600/50 hover:text-slate-800 transition"
           >
             Previous
           </button>
@@ -150,7 +150,7 @@ export default function AdminDataGrid({
             type="button"
             disabled={page >= totalPages || loading}
             onClick={() => setPage(p => p + 1)}
-            className="px-3 py-1 text-xs font-medium rounded border border-white/10 text-gray-300 disabled:opacity-40 hover:border-[#aa8453]/50 hover:text-white transition"
+            className="px-3 py-1 text-xs font-medium rounded border border-gray-200 text-gray-600 disabled:opacity-40 hover:border-teal-600/50 hover:text-slate-800 transition"
           >
             Next
           </button>

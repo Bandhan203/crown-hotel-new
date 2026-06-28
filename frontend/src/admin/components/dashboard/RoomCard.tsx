@@ -1,4 +1,4 @@
-import { TbWifiOff } from 'react-icons/tb';
+import { MdInfoOutline } from 'react-icons/md';
 
 interface RoomCardProps {
   room: any;
@@ -8,18 +8,18 @@ interface RoomCardProps {
 
 const getStatusConfig = (status: string, hkStatus: string) => {
   if (status === 'MAINTENANCE' || hkStatus === 'OUT_OF_ORDER') {
-    return { accent: '#a78bfa', label: 'OOO', isOOO: true };
+    return { label: 'OOO',      labelClass: 'text-violet-600', rowClass: 'bg-violet-50 hover:bg-violet-100' };
   }
   if (status === 'OCCUPIED') {
-    return { accent: '#ef4444', label: 'OCCUPIED', isOOO: false };
+    return { label: 'OCCUPIED', labelClass: 'text-red-600',    rowClass: 'bg-red-50 hover:bg-red-100' };
   }
   if (['DIRTY', 'OD', 'VD'].includes(hkStatus)) {
-    return { accent: '#f97316', label: 'DIRTY', isOOO: false };
+    return { label: 'DIRTY',    labelClass: 'text-orange-600', rowClass: 'hover:bg-gray-50' };
   }
   if (status === 'RESERVED') {
-    return { accent: '#3b82f6', label: 'RESERVED', isOOO: false };
+    return { label: 'RESV',     labelClass: 'text-blue-600',   rowClass: 'bg-blue-50 hover:bg-blue-100' };
   }
-  return { accent: '#22c55e', label: 'AVAILABLE', isOOO: false };
+  return   { label: 'VAC',      labelClass: 'text-green-600',  rowClass: 'hover:bg-gray-50' };
 };
 
 export default function RoomCard({ room, selected, onClick }: RoomCardProps) {
@@ -30,32 +30,36 @@ export default function RoomCard({ room, selected, onClick }: RoomCardProps) {
       type="button"
       onClick={onClick}
       className={`
-        group relative w-[72px] h-[52px] rounded-md cursor-pointer
-        flex flex-col items-center justify-center gap-0.5
-        border transition-all duration-150 outline-none
-        ${selected
-          ? 'bg-[#1e3a5f] border-[#60a5fa] ring-2 ring-[#60a5fa]/30 scale-105 z-10'
-          : 'bg-[#141416] border-white/[0.06] hover:border-white/15 hover:bg-[#1a1a1e]'}
+        w-full p-4 border-b border-gray-100 last:border-b-0 relative group cursor-pointer text-left
+        transition-colors
+        ${selected ? 'bg-teal-50 ring-1 ring-inset ring-teal-400' : cfg.rowClass}
       `}
-      style={!selected ? { borderLeftColor: cfg.accent, borderLeftWidth: 3 } : undefined}
     >
-      {cfg.isOOO && (
-        <TbWifiOff size={8} className="absolute top-1 right-1 text-[#a78bfa] opacity-60" />
+      <div className="flex justify-between items-start">
+        <span className={`text-sm font-bold ${selected ? 'text-teal-700' : 'text-slate-700'}`}>
+          {room.room_number}
+        </span>
+        <MdInfoOutline className="w-3 h-3 text-gray-600 group-hover:text-gray-500" />
+      </div>
+
+      {room.status === 'OCCUPIED' ? (
+        <div className="mt-1">
+          {room.guest_name && (
+            <p className={`text-[9px] font-extrabold tracking-wider uppercase ${cfg.labelClass}`}>
+              {room.guest_name.split(' ')[0]}
+            </p>
+          )}
+          {room.nights_remaining !== undefined && (
+            <p className="text-[8px] text-gray-500 mt-0.5">
+              {room.nights_remaining === 0 ? 'Dpt Today' : `${room.nights_remaining} Nts`}
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className={`text-[9px] font-extrabold mt-4 tracking-wider ${cfg.labelClass}`}>
+          {cfg.label}
+        </p>
       )}
-
-      <span
-        className="text-[13px] font-bold font-mono leading-none"
-        style={{ color: selected ? '#93c5fd' : cfg.accent }}
-      >
-        {room.room_number}
-      </span>
-
-      <span
-        className="text-[7px] font-semibold uppercase tracking-widest leading-none"
-        style={{ color: selected ? '#93c5fd' : `${cfg.accent}99` }}
-      >
-        {cfg.label}
-      </span>
     </button>
   );
 }

@@ -1,6 +1,7 @@
-import { MdClose, MdPhone, MdCreditCard, MdHotel, MdLogout, MdPrint, MdEventAvailable } from 'react-icons/md';
-import { TbArrowsRightLeft } from 'react-icons/tb';
+import { MdClose, MdPhone, MdCreditCard, MdHotel, MdLogout, MdPrint, MdEventAvailable, MdReceipt } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import GuestFolio from '../GuestFolio';
 
 interface GuestPanelProps {
   roomContext: any;
@@ -10,11 +11,12 @@ interface GuestPanelProps {
 
 export default function GuestPanel({ roomContext, loading, onClose }: GuestPanelProps) {
   const navigate = useNavigate();
+  const [showFolio, setShowFolio] = useState(false);
 
   if (loading) {
     return (
       <div className="h-full bg-[#141416] border-l border-gray-800 rounded-l-xl flex items-center justify-center">
-        <div className="w-5 h-5 border-2 border-[#aa8453] border-t-transparent rounded-full animate-spin" />
+        <div className="w-5 h-5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -40,7 +42,7 @@ export default function GuestPanel({ roomContext, loading, onClose }: GuestPanel
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-lg font-bold font-mono text-white">{roomContext.room_number}</span>
+            <span className="text-lg font-bold font-mono text-slate-800">{roomContext.room_number}</span>
             <span
               className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
               style={{ color: accent, backgroundColor: `${accent}15` }}
@@ -50,7 +52,7 @@ export default function GuestPanel({ roomContext, loading, onClose }: GuestPanel
           </div>
           <div className="text-[10px] text-gray-500 uppercase tracking-wider truncate">{roomContext.room_type}</div>
         </div>
-        <button onClick={onClose} className="text-gray-500 hover:text-white p-1 rounded transition-colors hover:bg-white/[0.06]">
+        <button onClick={onClose} className="text-gray-500 hover:text-slate-800 p-1 rounded transition-colors hover:bg-white/[0.06]">
           <MdClose size={16} />
         </button>
       </div>
@@ -60,7 +62,7 @@ export default function GuestPanel({ roomContext, loading, onClose }: GuestPanel
           {/* Guest name hero */}
           <div>
             <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">Guest</div>
-            <div className="text-base font-bold text-white leading-tight">{roomContext.occupant.guest_name}</div>
+            <div className="text-base font-bold text-slate-800 leading-tight">{roomContext.occupant.guest_name}</div>
             <span className="inline-block mt-1.5 text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
               In-House
             </span>
@@ -68,16 +70,16 @@ export default function GuestPanel({ roomContext, loading, onClose }: GuestPanel
 
           {/* Preferences */}
           {roomContext.occupant.guest_preferences && (
-            <div className="px-3 py-2 bg-[#aa8453]/5 rounded-md border-l-2 border-[#aa8453] text-[11px] text-[#d4a574] leading-relaxed">
+            <div className="px-3 py-2 bg-teal-50/50 rounded-md border-l-2 border-teal-600 text-[11px] text-[#d4a574] leading-relaxed">
               ⭐ {roomContext.occupant.guest_preferences}
             </div>
           )}
 
           {/* Details card */}
-          <div className="bg-[#0c0c0e] rounded-lg p-3 flex flex-col gap-2 text-[11px]">
+          <div className="bg-gray-50 rounded-lg p-3 flex flex-col gap-2 text-[11px]">
             <div className="flex justify-between items-center text-gray-500">
               <span className="flex items-center gap-1.5"><MdCreditCard size={11} /> Booking</span>
-              <span className="text-gray-300 font-mono text-[10px]">{roomContext.occupant.booking_ref}</span>
+              <span className="text-gray-600 font-mono text-[10px]">{roomContext.occupant.booking_ref}</span>
             </div>
             <div className="h-px bg-white/[0.04]" />
             <div className="flex justify-between items-center text-gray-500">
@@ -91,12 +93,12 @@ export default function GuestPanel({ roomContext, loading, onClose }: GuestPanel
             <div className="h-px bg-white/[0.04]" />
             <div className="flex justify-between items-center text-gray-500">
               <span className="flex items-center gap-1.5"><MdPhone size={11} /> Phone</span>
-              <span className="text-gray-300">On file</span>
+              <span className="text-gray-600">On file</span>
             </div>
           </div>
 
           {/* Balance */}
-          <div className="bg-[#0c0c0e] rounded-lg p-3 text-center">
+          <div className="bg-gray-50 rounded-lg p-3 text-center">
             <div className="text-[9px] text-gray-600 uppercase tracking-wider mb-1.5">Balance Due</div>
             <div className={`text-xl font-bold font-mono ${roomContext.occupant.balance_due > 0 ? 'text-red-400' : 'text-green-400'}`}>
               ৳ {roomContext.occupant.balance_due.toLocaleString()}
@@ -112,11 +114,11 @@ export default function GuestPanel({ roomContext, loading, onClose }: GuestPanel
               <MdLogout size={14} /> Check Out
             </button>
             <div className="flex gap-1.5">
-              <button className="flex-1 bg-white/[0.04] hover:bg-white/[0.08] text-gray-300 border border-white/[0.06] rounded-md py-1.5 flex items-center justify-center gap-1 text-[10px] transition-colors">
+              <button className="flex-1 bg-white/[0.04] hover:bg-white/[0.08] text-gray-600 border border-white/[0.06] rounded-md py-1.5 flex items-center justify-center gap-1 text-[10px] transition-colors">
                 <MdPrint size={12} /> Invoice
               </button>
-              <button className="flex-1 bg-white/[0.04] hover:bg-white/[0.08] text-gray-300 border border-white/[0.06] rounded-md py-1.5 flex items-center justify-center gap-1 text-[10px] transition-colors">
-                <TbArrowsRightLeft size={12} /> Transfer
+              <button onClick={() => setShowFolio(true)} className="flex-1 bg-teal-50 hover:bg-teal-700/30 text-teal-700 border border-teal-600/30 rounded-md py-1.5 flex items-center justify-center gap-1 text-[10px] transition-colors font-bold">
+                <MdReceipt size={12} /> Folio Billing
               </button>
             </div>
           </div>
@@ -130,11 +132,19 @@ export default function GuestPanel({ roomContext, loading, onClose }: GuestPanel
           </div>
           <button
             onClick={() => navigate('/admin/front-desk?action=walkin')}
-            className="w-full mt-2 bg-[#aa8453] hover:bg-[#c49b63] text-white text-xs font-semibold py-2 rounded-md flex items-center justify-center gap-1.5 transition-colors"
+            className="w-full mt-2 bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold py-2 rounded-md flex items-center justify-center gap-1.5 transition-colors"
           >
             <MdEventAvailable size={14} /> Walk-in Booking
           </button>
         </div>
+      )}
+
+      {showFolio && roomContext.occupant && (
+        <GuestFolio
+          bookingId={roomContext.occupant.booking_id}
+          bookingRef={roomContext.occupant.booking_ref}
+          onClose={() => setShowFolio(false)}
+        />
       )}
     </div>
   );

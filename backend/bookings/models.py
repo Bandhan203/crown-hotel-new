@@ -59,6 +59,12 @@ class Booking(models.Model):
         NID = 'NID', 'National ID'
         DRIVING_LICENSE = 'DRIVING_LICENSE', 'Driving License'
 
+    class MealPlan(models.TextChoices):
+        EP = 'EP', 'EP (European Plan - Room Only)'
+        CP = 'CP', 'CP (Continental Plan - Room + Breakfast)'
+        MAP = 'MAP', 'MAP (Modified American Plan - Room + Breakfast + 1 Meal)'
+        AP = 'AP', 'AP (American Plan - Room + 3 Meals)'
+
     booking_ref = models.CharField(max_length=20, unique=True, default=generate_booking_ref)
     guest = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bookings')
     room = models.ForeignKey('rooms.Room', on_delete=models.SET_NULL, null=True, blank=True, related_name='bookings')
@@ -71,6 +77,9 @@ class Booking(models.Model):
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.PENDING)
     special_requests = models.TextField(blank=True, default='')
+    meal_plan = models.CharField(max_length=5, choices=MealPlan.choices, default=MealPlan.EP)
+    arrival_mode = models.CharField(max_length=50, blank=True, default='')
+    vehicle_assigned = models.CharField(max_length=100, blank=True, default='')
 
     # New reservation fields
     booking_source = models.CharField(max_length=20, choices=BookingSource.choices, default=BookingSource.WEBSITE)
@@ -251,6 +260,7 @@ class FolioCharge(models.Model):
         REFUND = 'REFUND', 'Refund'
 
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='folio_charges')
+    folio_window = models.PositiveSmallIntegerField(default=1, help_text='Folio window number (1-8)')
     charge_type = models.CharField(max_length=20, choices=ChargeType.choices, default=ChargeType.ROOM)
     description = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -260,8 +270,14 @@ class FolioCharge(models.Model):
     posted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='posted_charges')
     reference = models.CharField(max_length=100, blank=True, default='')
     is_void = models.BooleanField(default=False)
+    void_reason = models.CharField(max_length=200, blank=True, default='')
+    void_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='voided_charges')
+    void_at = models.DateTimeField(null=True, blank=True)
+    is_adjustment = models.BooleanField(default=False, help_text='True if this is an adjustment entry, not a primary charge')
+    reason_code = models.CharField(max_length=20, blank=True, default='', help_text='BILLING_ERROR | COMP | GOODWILL | MANAGER_APPROVAL | DUPLICATE | RATE_CORRECTION | OTHER')
     is_transferred = models.BooleanField(default=False, help_text='Flag if this charge was transferred to another folio')
     created_at = models.DateTimeField(auto_now_add=True)
+
 
     class Meta:
         ordering = ['charge_date', 'created_at']

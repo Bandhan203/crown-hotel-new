@@ -1,7 +1,8 @@
 /** Local Hotel Crown photography — served from /public/images */
 
 export function img(filename: string): string {
-  return `${import.meta.env.BASE_URL}images/${filename}`;
+  const seed = filename.replace('.jpg', '');
+  return `https://picsum.photos/seed/${seed}/800/600`;
 }
 
 export const ALL_HOTEL_IMAGES = [

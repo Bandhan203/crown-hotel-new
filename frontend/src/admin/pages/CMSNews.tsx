@@ -27,12 +27,12 @@ export default function CMSNews() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by title"
-            className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-lg text-white text-sm focus:border-primary outline-none"
+            className="w-full px-3 py-2 bg-[#121212] border border-gray-200 rounded-lg text-slate-800 text-sm focus:border-primary outline-none"
           />
           <select
             value={published}
             onChange={(e) => setPublished(e.target.value as 'all' | 'true' | 'false')}
-            className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-lg text-white text-sm focus:border-primary outline-none"
+            className="w-full px-3 py-2 bg-[#121212] border border-gray-200 rounded-lg text-slate-800 text-sm focus:border-primary outline-none"
           >
             <option value="all">All publish states</option>
             <option value="true">Published only</option>
@@ -43,7 +43,7 @@ export default function CMSNews() {
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             placeholder="Filter by category"
-            className="w-full px-3 py-2 bg-[#121212] border border-white/10 rounded-lg text-white text-sm focus:border-primary outline-none"
+            className="w-full px-3 py-2 bg-[#121212] border border-gray-200 rounded-lg text-slate-800 text-sm focus:border-primary outline-none"
           />
         </div>
       )}

@@ -56,4 +56,6 @@ urlpatterns = [
     path('payments/fail/', views.PaymentFailView.as_view(), name='payment-fail'),
     path('payments/cancel/', views.PaymentCancelView.as_view(), name='payment-cancel'),
     path('payments/ipn/', views.PaymentIPNView.as_view(), name='payment-ipn'),
+    # Admin — Reports
+    path('admin/reports/police-export/', views.PoliceExportView.as_view(), name='police-export'),
 ]

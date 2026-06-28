@@ -95,17 +95,17 @@ function RoomTransferModal({ folio, rooms, onTransfer, onClose }: { folio: PMSFo
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-[#1a1a1a] border border-white/10 rounded-xl w-[460px] p-6">
+      <div className="bg-white border border-gray-200 rounded-xl w-[460px] p-6">
         <div className="flex items-center gap-2 mb-4">
-          <MdSwapHoriz size={18} className="text-[#aa8453]" />
-          <h3 className="text-white font-semibold flex-1">Room Transfer</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition">✕</button>
+          <MdSwapHoriz size={18} className="text-teal-700" />
+          <h3 className="text-slate-800 font-semibold flex-1">Room Transfer</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-slate-800 transition">✕</button>
         </div>
 
-        <div className="bg-white/5 rounded-lg p-3 mb-4">
+        <div className="bg-gray-50 rounded-lg p-3 mb-4">
           <div className="text-gray-500 text-xs mb-1">Current Room</div>
-          <div className="text-2xl font-bold text-[#aa8453] font-mono">{currentRoom?.number}</div>
-          <div className="text-gray-400 text-xs">{currentRoom?.type} — ৳{currentRoom?.ratePerNight.toLocaleString()}/night</div>
+          <div className="text-2xl font-bold text-teal-700 font-mono">{currentRoom?.number}</div>
+          <div className="text-gray-500 text-xs">{currentRoom?.type} — ৳{currentRoom?.ratePerNight.toLocaleString()}/night</div>
         </div>
 
         <div className="mb-4">
@@ -113,10 +113,10 @@ function RoomTransferModal({ folio, rooms, onTransfer, onClose }: { folio: PMSFo
           <div className="grid grid-cols-4 gap-2 max-h-48 overflow-auto">
             {vacantRooms.map(r => (
               <button key={r.id} onClick={() => setTargetRoomId(r.id)}
-                className={`text-left p-2 rounded-lg border-2 transition ${targetRoomId === r.id ? 'bg-green-500/10 border-green-500/50' : 'bg-white/5 border-white/10 hover:border-white/20'}`}>
+                className={`text-left p-2 rounded-lg border-2 transition ${targetRoomId === r.id ? 'bg-green-500/10 border-green-500/50' : 'bg-gray-50 border-gray-200 hover:border-gray-300'}`}>
                 <div className="text-sm font-bold font-mono text-green-400">{r.number}</div>
                 <div className="text-[9px] text-gray-500">{r.type} · F{r.floor}</div>
-                <div className="text-[9px] text-gray-400">৳{r.ratePerNight.toLocaleString()}</div>
+                <div className="text-[9px] text-gray-500">৳{r.ratePerNight.toLocaleString()}</div>
               </button>
             ))}
           </div>
@@ -128,9 +128,9 @@ function RoomTransferModal({ folio, rooms, onTransfer, onClose }: { folio: PMSFo
         </div>
 
         <div className="flex gap-2">
-          <button onClick={onClose} className="flex-1 bg-white/10 text-gray-400 rounded-lg py-2.5 text-sm hover:bg-white/15 transition">Cancel</button>
+          <button onClick={onClose} className="flex-1 bg-white/10 text-gray-500 rounded-lg py-2.5 text-sm hover:bg-white/15 transition">Cancel</button>
           <button onClick={() => { if (targetRoomId) { onTransfer(folio.roomId, targetRoomId); onClose(); } }} disabled={!targetRoomId}
-            className={`flex-[2] bg-[#aa8453] text-white rounded-lg py-2.5 text-sm font-bold transition ${!targetRoomId ? 'opacity-40' : 'hover:bg-[#8c6c44]'}`}>
+            className={`flex-[2] bg-teal-700 text-white rounded-lg py-2.5 text-sm font-bold transition ${!targetRoomId ? 'opacity-40' : 'hover:bg-teal-800'}`}>
             Confirm Transfer
           </button>
         </div>
@@ -239,11 +239,11 @@ export default function ServiceEntry() {
   return (
     <div className="space-y-4 max-w-[1600px] mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-          <MdReceipt className="text-[#aa8453]" size={24} />
+        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+          <MdReceipt className="text-teal-700" size={24} />
           Service Entry & Billing
         </h1>
-        <div className="text-xs font-mono bg-white/5 text-gray-400 px-3 py-1.5 rounded-lg border border-white/10">
+        <div className="text-xs font-mono bg-gray-50 text-gray-500 px-3 py-1.5 rounded-lg border border-gray-200">
           System Date: <span className="text-yellow-400 font-bold">{systemDate}</span>
         </div>
       </div>
@@ -254,19 +254,19 @@ export default function ServiceEntry() {
           {/* Mode toggle */}
           <div className="flex gap-2">
             <button onClick={() => setAutoHitMode(false)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium border transition ${!autoHitMode ? 'bg-[#aa8453] text-white border-[#aa8453]' : 'bg-[#1a1a1a] text-gray-400 border-white/10 hover:border-white/20'}`}>
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium border transition ${!autoHitMode ? 'bg-teal-700 text-white border-teal-600' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}>
               <MdKeyboard size={14} /> Manual Post
             </button>
             <button onClick={() => setAutoHitMode(true)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium border transition ${autoHitMode ? 'bg-yellow-500 text-black border-yellow-500' : 'bg-[#1a1a1a] text-gray-400 border-white/10 hover:border-white/20'}`}>
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium border transition ${autoHitMode ? 'bg-yellow-500 text-black border-yellow-500' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}>
               <MdFlashOn size={14} /> Auto-Hit
             </button>
           </div>
 
           {!autoHitMode ? (
-            <div className="bg-[#1a1a1a] border border-white/10 rounded-xl p-4 space-y-3">
+            <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
               {/* Keyboard hint */}
-              <div className="flex items-center gap-2 bg-white/5 rounded-lg px-3 py-2 text-[10px] text-gray-500">
+              <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 text-[10px] text-gray-500">
                 <MdKeyboard size={12} /> Enter key moves to next field — keyboard optimized
               </div>
 
@@ -276,14 +276,14 @@ export default function ServiceEntry() {
                 <input ref={roomRef} value={roomNo} onChange={e => setRoomNo(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') { if (!activeRoom) toast.error('Room not found'); else if (!activeFolio) toast.error('No in-house guest'); else catRef.current?.focus(); } }}
                   placeholder="Room number + Enter"
-                  className={`w-full bg-[#0f0f0f] border rounded-lg px-3 py-2.5 text-white text-base font-mono font-bold focus:outline-none focus:ring-2 transition ${activeRoom ? 'border-green-500/50 focus:ring-green-500/30' : 'border-white/10 focus:ring-[#aa8453]/30'}`} />
+                  className={`w-full bg-gray-50 border rounded-lg px-3 py-2.5 text-slate-800 text-base font-mono font-bold focus:outline-none focus:ring-2 transition ${activeRoom ? 'border-green-500/50 focus:ring-green-500/30' : 'border-gray-200 focus:ring-teal-600/30'}`} />
               </div>
 
               {/* Guest info banner */}
               {activeFolio && activeGuest && (
                 <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2 text-xs">
                   <div className="text-green-400 font-bold">{activeGuest.name}</div>
-                  <div className="flex gap-3 text-gray-400">
+                  <div className="flex gap-3 text-gray-500">
                     <span>{activeFolio.checkIn} → {activeFolio.checkOut}</span>
                     <span>{activeFolio.mealPlan}</span>
                     <span className={balance > 0 ? 'text-red-400' : 'text-green-400'}>৳{balance.toLocaleString()}</span>
@@ -302,7 +302,7 @@ export default function ServiceEntry() {
                 <select ref={catRef} value={category} onChange={e => setCategory(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') descRef.current?.focus(); }}
                   disabled={!activeFolio}
-                  className={`w-full bg-[#0f0f0f] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#aa8453]/30 ${!activeFolio ? 'opacity-40' : ''}`}>
+                  className={`w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600/30 ${!activeFolio ? 'opacity-40' : ''}`}>
                   <option value="">— Select —</option>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -314,7 +314,7 @@ export default function ServiceEntry() {
                 <input ref={descRef} value={description} onChange={e => setDescription(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') amtRef.current?.focus(); }}
                   disabled={!activeFolio} placeholder="Details..."
-                  className={`w-full bg-[#0f0f0f] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#aa8453]/30 ${!activeFolio ? 'opacity-40' : ''}`} />
+                  className={`w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600/30 ${!activeFolio ? 'opacity-40' : ''}`} />
               </div>
 
               {/* Amount + payment mode */}
@@ -324,13 +324,13 @@ export default function ServiceEntry() {
                   <input ref={amtRef} type="number" value={amount} onChange={e => setAmount(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') handlePost(); }}
                     disabled={!activeFolio} placeholder="0.00"
-                    className={`w-full bg-[#0f0f0f] border border-white/10 rounded-lg px-3 py-2.5 text-yellow-400 text-base font-mono font-bold focus:outline-none focus:ring-2 focus:ring-[#aa8453]/30 ${!activeFolio ? 'opacity-40' : ''}`} />
+                    className={`w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-yellow-400 text-base font-mono font-bold focus:outline-none focus:ring-2 focus:ring-teal-600/30 ${!activeFolio ? 'opacity-40' : ''}`} />
                 </div>
                 {isPayment && (
                   <div className="flex-1">
                     <label className="text-[11px] text-gray-500 block mb-1">Mode</label>
                     <select value={payMode} onChange={e => setPayMode(e.target.value)}
-                      className="w-full bg-[#0f0f0f] border border-white/10 rounded-lg px-3 py-2.5 text-white text-xs focus:outline-none">
+                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-slate-800 text-xs focus:outline-none">
                       <option>Cash</option><option>Card</option><option>bKash</option><option>Nagad</option><option>Rocket</option><option>Bank</option>
                     </select>
                   </div>
@@ -339,19 +339,19 @@ export default function ServiceEntry() {
 
               {/* Post button */}
               <button onClick={handlePost} disabled={!activeFolio || !category || !amount}
-                className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition ${isPayment ? 'bg-green-500 hover:bg-green-600 text-black' : 'bg-[#aa8453] hover:bg-[#8c6c44] text-white'} ${(!activeFolio || !category || !amount) ? 'opacity-40 cursor-not-allowed' : ''}`}>
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition ${isPayment ? 'bg-green-500 hover:bg-green-600 text-black' : 'bg-teal-700 hover:bg-teal-800 text-white'} ${(!activeFolio || !category || !amount) ? 'opacity-40 cursor-not-allowed' : ''}`}>
                 <MdCheckCircle size={16} /> {isPayment ? 'Receive Payment' : 'Post Charge'} (Enter)
               </button>
 
               {/* Utility row */}
               <div className="flex gap-2">
                 <button onClick={() => setVoidMode(v => !v)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs border transition ${voidMode ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-white/5 text-gray-500 border-white/10 hover:border-white/20'}`}>
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs border transition ${voidMode ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'}`}>
                   <MdBlock size={12} /> Void Mode
                 </button>
                 {activeFolio && (
                   <button onClick={() => setShowTransfer(true)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs bg-white/5 text-gray-500 border border-white/10 hover:border-white/20 transition">
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs bg-gray-50 text-gray-500 border border-gray-200 hover:border-gray-300 transition">
                     <MdSwapHoriz size={12} /> Room Transfer
                   </button>
                 )}
@@ -359,7 +359,7 @@ export default function ServiceEntry() {
             </div>
           ) : (
             /* AUTO-HIT MODE */
-            <div className="bg-[#1a1a1a] border border-yellow-500/30 rounded-xl p-4 space-y-3">
+            <div className="bg-white border border-yellow-500/30 rounded-xl p-4 space-y-3">
               <div className="text-xs text-yellow-400 font-semibold flex items-center gap-2">
                 <MdFlashOn size={14} /> Auto-Hit: Post department charges directly to guest room
               </div>
@@ -368,7 +368,7 @@ export default function ServiceEntry() {
                 <div className="flex gap-2">
                   {(['Restaurant', 'Spa', 'Laundry'] as const).map(d => (
                     <button key={d} onClick={() => setAutoHitDept(d)}
-                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition ${autoHitDept === d ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30 font-bold' : 'bg-white/5 text-gray-400 border-white/10'}`}>
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition ${autoHitDept === d ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30 font-bold' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
                       {d}
                     </button>
                   ))}
@@ -377,18 +377,18 @@ export default function ServiceEntry() {
               <div>
                 <label className="text-[11px] text-gray-500 block mb-1">Room Number</label>
                 <input value={autoHitRoomNo} onChange={e => setAutoHitRoomNo(e.target.value)} placeholder="Enter room no."
-                  className="w-full bg-[#0f0f0f] border border-white/10 rounded-lg px-3 py-2.5 text-white font-mono font-bold text-base focus:outline-none focus:ring-2 focus:ring-yellow-500/30" />
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-slate-800 font-mono font-bold text-base focus:outline-none focus:ring-2 focus:ring-yellow-500/30" />
               </div>
               <div className="flex gap-2">
                 <div className="flex-[2]">
                   <label className="text-[11px] text-gray-500 block mb-1">Amount (৳)</label>
                   <input type="number" value={autoHitAmt} onChange={e => setAutoHitAmt(e.target.value)} placeholder="0.00"
-                    className="w-full bg-[#0f0f0f] border border-white/10 rounded-lg px-3 py-2.5 text-yellow-400 font-mono font-bold text-base focus:outline-none focus:ring-2 focus:ring-yellow-500/30" />
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-yellow-400 font-mono font-bold text-base focus:outline-none focus:ring-2 focus:ring-yellow-500/30" />
                 </div>
                 <div className="flex-[2]">
                   <label className="text-[11px] text-gray-500 block mb-1">Description</label>
                   <input value={autoHitDesc} onChange={e => setAutoHitDesc(e.target.value)} placeholder="Table order, service..."
-                    className="w-full bg-[#0f0f0f] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/30" />
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/30" />
                 </div>
               </div>
               <button onClick={handleAutoHit}
@@ -400,14 +400,14 @@ export default function ServiceEntry() {
 
           {/* Void mode panel */}
           {voidMode && !autoHitMode && (
-            <div className="bg-[#1a1a1a] border border-red-500/20 rounded-xl p-4 space-y-3">
+            <div className="bg-white border border-red-500/20 rounded-xl p-4 space-y-3">
               <div className="text-xs text-red-400 font-semibold flex items-center gap-2">
                 <MdBlock size={14} /> Void Mode — Manager/Admin Only
               </div>
               <input value={voidId} onChange={e => setVoidId(e.target.value)} placeholder="Transaction ID (partial ID ok)"
-                className="w-full bg-red-500/5 border border-red-500/20 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-red-500/30" />
+                className="w-full bg-red-500/5 border border-red-500/20 rounded-lg px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/30" />
               <input value={voidReason} onChange={e => setVoidReason(e.target.value)} placeholder="Void reason (mandatory)"
-                className="w-full bg-red-500/5 border border-red-500/20 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-red-500/30" />
+                className="w-full bg-red-500/5 border border-red-500/20 rounded-lg px-3 py-2.5 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/30" />
               <button onClick={handleVoid} className="w-full bg-red-500 text-white rounded-lg py-2.5 text-sm font-bold hover:bg-red-600 transition">
                 Confirm Void
               </button>
@@ -419,10 +419,10 @@ export default function ServiceEntry() {
         <div className="flex-1 flex flex-col gap-3 overflow-auto">
           {/* Folio Ledger */}
           {activeFolio && (
-            <div className="bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden">
-              <div className="px-4 py-2.5 bg-white/5 text-[11px] text-gray-500 uppercase tracking-wider border-b border-white/10 flex items-center justify-between">
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <div className="px-4 py-2.5 bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wider border-b border-gray-200 flex items-center justify-between">
                 <span>Room {roomNo} — Ledger ({activeFolio.referenceNo})</span>
-                <button className="flex items-center gap-1 text-gray-400 hover:text-white transition"><MdPrint size={12} /> Print</button>
+                <button className="flex items-center gap-1 text-gray-500 hover:text-slate-800 transition"><MdPrint size={12} /> Print</button>
               </div>
               <div className="max-h-[360px] overflow-auto">
                 {folioTxs.length === 0 && <div className="p-4 text-center text-gray-500 text-xs">No transactions</div>}
@@ -432,14 +432,14 @@ export default function ServiceEntry() {
                     <span className={tx.type === 'void' ? 'text-red-400' : tx.type === 'payment' ? 'text-green-400' : 'text-blue-400'}>
                       {tx.type === 'void' ? '⊘ ' : ''}{tx.category}
                     </span>
-                    <span className="text-gray-400 truncate">{tx.description}</span>
-                    <span className={`text-right font-mono font-bold ${tx.amount < 0 ? 'text-green-400' : tx.type === 'void' ? 'text-red-400' : 'text-white'}`}>
+                    <span className="text-gray-500 truncate">{tx.description}</span>
+                    <span className={`text-right font-mono font-bold ${tx.amount < 0 ? 'text-green-400' : tx.type === 'void' ? 'text-red-400' : 'text-slate-800'}`}>
                       {tx.amount < 0 ? '-' : '+'}৳{Math.abs(tx.amount).toLocaleString()}
                     </span>
                   </div>
                 ))}
               </div>
-              <div className="px-4 py-2.5 border-t-2 border-white/10 flex justify-end gap-4 bg-white/5">
+              <div className="px-4 py-2.5 border-t-2 border-gray-200 flex justify-end gap-4 bg-gray-50">
                 <span className="text-xs text-gray-500">Net Balance:</span>
                 <span className={`text-base font-extrabold font-mono ${balance > 0 ? 'text-red-400' : 'text-green-400'}`}>
                   ৳{balance.toLocaleString()}
@@ -449,8 +449,8 @@ export default function ServiceEntry() {
           )}
 
           {/* In-house quick list */}
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden">
-            <div className="px-4 py-2.5 bg-white/5 text-[11px] text-gray-500 uppercase tracking-wider">
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="px-4 py-2.5 bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wider">
               In-House Rooms — Quick Reference
             </div>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] p-2.5 gap-1.5">
@@ -460,9 +460,9 @@ export default function ServiceEntry() {
                 const bal = transactions.filter(t => t.folioId === f.id).reduce((s, t) => s + t.amount, 0);
                 return (
                   <button key={f.id} onClick={() => { if (r) setRoomNo(r.number); }}
-                    className={`text-left bg-white/5 rounded-lg p-2 border transition hover:border-[#aa8453]/50 ${bal > 0 ? 'border-red-500/40' : 'border-white/10'}`}>
-                    <div className="text-sm font-extrabold text-[#aa8453] font-mono">{r?.number}</div>
-                    <div className="text-[10px] text-gray-400 truncate">{g?.name}</div>
+                    className={`text-left bg-gray-50 rounded-lg p-2 border transition hover:border-teal-600/50 ${bal > 0 ? 'border-red-500/40' : 'border-gray-200'}`}>
+                    <div className="text-sm font-extrabold text-teal-700 font-mono">{r?.number}</div>
+                    <div className="text-[10px] text-gray-500 truncate">{g?.name}</div>
                     <div className={`text-[10px] font-mono ${bal > 0 ? 'text-red-400' : 'text-green-400'}`}>৳{bal.toLocaleString()}</div>
                   </button>
                 );

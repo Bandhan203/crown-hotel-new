@@ -20,15 +20,15 @@ export default function AdminLayout() {
 
       const shortcuts: Record<string, string> = {
         F1: '/admin',
-        F2: '/admin/front-desk',
-        F3: '/admin/bookings',
-        F4: '/admin/guests',
-        F5: '/admin/service-entry',
-        F6: '/admin/night-audit',
-        F7: '/admin/reports',
-        F8: '/admin/inventory',
-        F9: '/admin/housekeeping',
-        F10: '/admin/corporate',
+        F2: '/admin/front-desk?action=walkin',
+        F3: '/admin/front-desk?action=reserve',
+        F4: '/admin/night-audit',
+        F5: '/admin/bookings',
+        F6: '/admin/guests',
+        F7: '/admin/service-entry',
+        F8: '/admin/reports',
+        F9: '/admin/inventory',
+        F10: '/admin/housekeeping',
       };
       if (shortcuts[e.key]) {
         e.preventDefault();
@@ -40,7 +40,7 @@ export default function AdminLayout() {
   }, [navigate]);
 
   return (
-    <div className="flex h-screen w-full bg-[#0c0c0e] overflow-hidden">
+    <div className="flex h-screen w-full bg-gray-50 text-slate-700 overflow-hidden font-inter">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <AdminHeader onMenuClick={() => setSidebarOpen(true)} />

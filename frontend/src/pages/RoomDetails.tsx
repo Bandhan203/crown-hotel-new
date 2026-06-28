@@ -228,19 +228,19 @@ export default function RoomDetails() {
                 )}
 
                 <button onClick={handleBookNow} disabled={booking || (!!availability && !availability.available)}
-                  className="w-full bg-[var(--color-primary)] text-white py-3 font-[var(--font-condensed)] text-sm uppercase tracking-[3px] hover:bg-[var(--color-primary-dark)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                  className="w-full bg-[var(--color-primary)] text-slate-800 py-3 font-[var(--font-condensed)] text-sm uppercase tracking-[3px] hover:bg-[var(--color-primary-dark)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
                   {booking ? 'Processing…' : user ? 'BOOK NOW' : 'LOGIN TO BOOK'}
                 </button>
               </div>
 
               {/* Contact Box */}
-              <div className="bg-[var(--color-dark)] text-white p-6">
+              <div className="bg-[var(--color-dark)] text-slate-800 p-6">
                 <h4 className="text-lg font-[var(--font-heading)] mb-4">Need Help?</h4>
-                <p className="text-white/60 text-sm mb-4">Feel free to contact us if you have any questions.</p>
+                <p className="text-slate-800/60 text-sm mb-4">Feel free to contact us if you have any questions.</p>
                 <a href="tel:01334945375" className="text-[var(--color-primary)] font-[var(--font-heading)] text-lg block mb-2">
                   01334 945 375
                 </a>
-                <a href="mailto:hotelcrownbd@gmail.com" className="text-white/60 text-sm">
+                <a href="mailto:hotelcrownbd@gmail.com" className="text-slate-800/60 text-sm">
                   hotelcrownbd@gmail.com
                 </a>
               </div>

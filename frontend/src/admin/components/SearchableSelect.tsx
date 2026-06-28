@@ -146,10 +146,10 @@ export default function SearchableSelect({
           open ? 'border-blue-600 ring-[3px] ring-blue-500/35 bg-blue-50/40 shadow-[0_1px_4px_rgba(37,99,235,0.15)]' : '',
         ].join(' ')
       : [
-          'bg-[#111] border border-white/15 text-white',
+          'bg-gray-50 border border-white/15 text-slate-800',
           'placeholder:text-gray-600',
-          'focus:outline-none focus:border-[#aa8453] focus:ring-1 focus:ring-[#aa8453]/40',
-          open ? 'border-[#aa8453] ring-1 ring-[#aa8453]/40' : '',
+          'focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600/40',
+          open ? 'border-teal-600 ring-1 ring-[#aa8453]/40' : '',
         ].join(' '),
     className,
   ].join(' ');
@@ -185,7 +185,7 @@ export default function SearchableSelect({
           tabIndex={-1}
           aria-label="Toggle options"
           className={`absolute right-0 top-0 bottom-0 px-2 flex items-center transition-colors ${
-            isLight ? 'text-slate-400 hover:text-blue-600' : 'text-gray-400 hover:text-[#aa8453]'
+            isLight ? 'text-slate-400 hover:text-blue-600' : 'text-gray-500 hover:text-teal-700'
           }`}
           onMouseDown={e => {
             e.preventDefault();
@@ -222,7 +222,7 @@ export default function SearchableSelect({
             <li className={`px-3 py-1.5 text-[10px] border-b sticky top-0 ${
               isLight
                 ? 'text-slate-500 border-slate-200 bg-slate-50'
-                : 'text-gray-500 border-white/10 bg-[#1e1e1e]'
+                : 'text-gray-500 border-gray-200 bg-[#1e1e1e]'
             }`}>
               Type to search all {filtered.length} options…
             </li>
@@ -244,9 +244,9 @@ export default function SearchableSelect({
                         ? 'bg-amber-50 text-amber-800'
                         : 'text-slate-700 hover:bg-slate-100'
                     : i === highlight
-                      ? 'bg-[#aa8453]/25 text-white'
+                      ? 'bg-teal-700/25 text-slate-800'
                       : value === item.value
-                        ? 'bg-white/5 text-[#aa8453]'
+                        ? 'bg-gray-50 text-teal-700'
                         : 'text-gray-200 hover:bg-white/10',
                 ].join(' ')}
                 onMouseEnter={() => setHighlight(i)}
@@ -265,7 +265,7 @@ export default function SearchableSelect({
               className={`px-3 py-1.5 text-xs border-t cursor-pointer ${
                 isLight
                   ? 'text-slate-500 border-slate-200 hover:bg-slate-50'
-                  : 'text-gray-400 border-white/10 hover:bg-white/5'
+                  : 'text-gray-500 border-gray-200 hover:bg-gray-50'
               }`}
               onMouseDown={e => {
                 e.preventDefault();

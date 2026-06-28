@@ -205,7 +205,7 @@ export default function RoomManagement() {
     <div className="flex items-center gap-1 h-full">
       <button type="button" title="Edit"
         onClick={() => { setEditItem(params.data); setShowModal(true); }}
-        className="px-1.5 h-5 text-[10px] font-semibold text-[#8a6a3f] border border-[#aa8453]/35 bg-[#aa8453]/5 hover:bg-[#aa8453]/15 rounded transition">
+        className="px-1.5 h-5 text-[10px] font-semibold text-teal-700 border border-teal-600/35 bg-teal-50/50 hover:bg-teal-100 rounded transition">
         Edit
       </button>
       <button type="button" title="Delete" onClick={() => handleDelete(params.data.id)}
@@ -309,12 +309,12 @@ export default function RoomManagement() {
 
   return (
     <div className="space-y-2">
-      <div className="rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2">
+      <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex gap-0.5 p-0.5 rounded-md border border-white/5 shrink-0">
             {(['types', 'rooms'] as Tab[]).map(t => (
               <button key={t} onClick={() => { setTab(t); setTypeFilter('ALL'); }}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium transition ${tab === t ? 'bg-[#aa8453] text-white' : 'text-gray-400 hover:text-white'}`}>
+                className={`px-2.5 py-1 rounded text-[11px] font-medium transition ${tab === t ? 'bg-teal-700 text-white' : 'text-gray-500 hover:text-slate-800'}`}>
                 {t === 'types' ? 'Room Types' : 'Rooms'}
               </button>
             ))}
@@ -322,7 +322,7 @@ export default function RoomManagement() {
 
           {tab === 'rooms' && (
             <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
-              className="px-2 py-1.5 bg-[#111] border border-white/10 rounded-md text-xs text-white focus:outline-none focus:border-[#aa8453] shrink-0">
+              className="px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs text-slate-800 focus:outline-none focus:border-teal-600 shrink-0">
               <option value="ALL">All types</option>
               {roomTypes.map(rt => (
                 <option key={rt.id} value={rt.id}>{rt.name}</option>
@@ -331,24 +331,24 @@ export default function RoomManagement() {
           )}
 
           <div className="relative flex-1 min-w-[10rem]">
-            <MdSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+            <MdSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" size={15} />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder={tab === 'types' ? 'Search room types...' : 'Search room number...'}
-              className="pl-8 pr-3 py-1.5 w-full bg-[#111] border border-white/10 rounded-md text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#aa8453]" />
+              className="pl-8 pr-3 py-1.5 w-full bg-gray-50 border border-gray-200 rounded-md text-xs text-slate-800 placeholder-gray-500 focus:outline-none focus:border-teal-600" />
           </div>
 
           <button onClick={() => { setEditItem(null); setShowModal(true); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#aa8453] text-white rounded-md text-xs font-medium hover:bg-[#c49b63] transition shrink-0">
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-700 text-white rounded-md text-xs font-medium hover:bg-teal-600 transition shrink-0">
             <MdAdd size={16} /> Add {tab === 'types' ? 'Type' : 'Room'}
           </button>
         </div>
       </div>
 
-      <div className="rounded-xl overflow-hidden border border-white/10 bg-[#141414] shadow-lg">
+      <div className="rounded-xl overflow-hidden border border-gray-200 bg-[#141414] shadow-lg">
         <div className="ag-theme-quartz ag-theme-bookings w-full" style={{ height: 500 }}>
           {loading ? (
             <div className="flex items-center justify-center h-full bg-white">
-              <div className="w-8 h-8 border-4 border-[#aa8453] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
             <AgGridReact
@@ -372,20 +372,20 @@ export default function RoomManagement() {
             />
           )}
         </div>
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[#1a1a1a] border-t border-white/10">
-          <span className="text-xs text-gray-400">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-white border-t border-gray-200">
+          <span className="text-xs text-gray-500">
             {total !== null
               ? `${total} ${rowLabel}${total !== 1 ? 's' : ''} · showing page ${page} of ${totalPages}`
               : 'Loading...'}
           </span>
           <div className="flex items-center gap-2">
             <button type="button" disabled={page === 1 || loading} onClick={() => setPage(p => p - 1)}
-              className="px-3 py-1 text-xs font-medium rounded border border-white/10 text-gray-300 disabled:opacity-40 hover:border-[#aa8453]/50 hover:text-white transition">
+              className="px-3 py-1 text-xs font-medium rounded border border-gray-200 text-gray-600 disabled:opacity-40 hover:border-teal-600/50 hover:text-slate-800 transition">
               Previous
             </button>
             <span className="text-xs text-gray-500 min-w-[4.5rem] text-center">{page} / {totalPages}</span>
             <button type="button" disabled={page >= totalPages || loading} onClick={() => setPage(p => p + 1)}
-              className="px-3 py-1 text-xs font-medium rounded border border-white/10 text-gray-300 disabled:opacity-40 hover:border-[#aa8453]/50 hover:text-white transition">
+              className="px-3 py-1 text-xs font-medium rounded border border-gray-200 text-gray-600 disabled:opacity-40 hover:border-teal-600/50 hover:text-slate-800 transition">
               Next
             </button>
           </div>
@@ -484,7 +484,7 @@ function RoomTypeModal({ item, onClose, onSaved }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onMouseDown={onClose}>
       <div className="bg-slate-50 border border-slate-300 rounded shadow-xl w-full max-w-2xl max-h-[92vh] flex flex-col"
         onMouseDown={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-3 py-2 bg-slate-700 text-white shrink-0">
+        <div className="flex items-center justify-between px-3 py-2 bg-slate-700 text-slate-800 shrink-0">
           <h2 className="text-sm font-bold tracking-wide">
             {item ? 'Edit Room Type' : 'New Room Type'}
           </h2>
@@ -558,7 +558,7 @@ function RoomTypeModal({ item, onClose, onSaved }: {
                       await api.patch(`/admin/room-images/${img.id}/`, { is_primary: true });
                       const r = await api.get(`/admin/room-images/?room_type=${item!.id}`);
                       setExistingImages(r.data.results ?? r.data);
-                    }} className="px-1 text-[9px] bg-[#aa8453] text-white rounded">★</button>
+                    }} className="px-1 text-[9px] bg-teal-700 text-white rounded">★</button>
                     <button type="button" onClick={async () => {
                       if (!confirm('Delete image?')) return;
                       await api.delete(`/admin/room-images/${img.id}/`);
@@ -583,7 +583,7 @@ function RoomTypeModal({ item, onClose, onSaved }: {
               Cancel
             </button>
             <button type="submit" disabled={loading}
-              className="px-4 py-1.5 text-sm font-medium text-white bg-[#aa8453] hover:bg-[#c49b63] rounded-sm disabled:opacity-50">
+              className="px-4 py-1.5 text-sm font-medium text-white bg-teal-700 hover:bg-teal-600 rounded-sm disabled:opacity-50">
               {loading ? 'Saving…' : item ? 'Update' : 'Create'}
             </button>
           </div>
@@ -642,7 +642,7 @@ function RoomModal({ item, roomTypes, onClose, onSaved }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onMouseDown={onClose}>
       <div className="bg-slate-50 border border-slate-300 rounded shadow-xl w-full max-w-xl max-h-[92vh] flex flex-col"
         onMouseDown={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-3 py-2 bg-slate-700 text-white shrink-0">
+        <div className="flex items-center justify-between px-3 py-2 bg-slate-700 text-slate-800 shrink-0">
           <h2 className="text-sm font-bold tracking-wide">{item ? 'Edit Room' : 'New Room'}</h2>
           <button type="button" onClick={onClose} className="p-1 hover:bg-white/10 rounded"><MdClose size={18} /></button>
         </div>
@@ -712,7 +712,7 @@ function RoomModal({ item, roomTypes, onClose, onSaved }: {
               Cancel
             </button>
             <button type="submit" disabled={loading}
-              className="px-4 py-1.5 text-sm font-medium text-white bg-[#aa8453] hover:bg-[#c49b63] rounded-sm disabled:opacity-50">
+              className="px-4 py-1.5 text-sm font-medium text-white bg-teal-700 hover:bg-teal-600 rounded-sm disabled:opacity-50">
               {loading ? 'Saving…' : item ? 'Update' : 'Create'}
             </button>
           </div>

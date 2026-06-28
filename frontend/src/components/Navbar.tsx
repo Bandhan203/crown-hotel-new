@@ -76,7 +76,7 @@ export default function Navbar() {
         <Link to="/" className="flex items-center gap-2">
           <span
             className={`font-(--font-heading) text-[26px] font-bold tracking-[3px] capitalize transition-colors ${
-              isScrolled ? 'text-dark' : 'text-white'
+              isScrolled ? 'text-dark' : 'text-slate-800'
             }`}
           >
             {siteName}
@@ -101,7 +101,7 @@ export default function Navbar() {
                       : 'text-dark hover:text-primary'
                     : location.pathname === link.path
                     ? 'text-primary'
-                    : 'text-white hover:text-primary'
+                    : 'text-slate-800 hover:text-primary'
                 }`}
               >
                 {link.name}
@@ -129,7 +129,7 @@ export default function Navbar() {
           <a
             href={`tel:${contactPhoneHref}`}
             className={`flex items-center gap-2 text-sm transition-colors ${
-              isScrolled ? 'text-dark' : 'text-white'
+              isScrolled ? 'text-dark' : 'text-slate-800'
             }`}
           >
             <FiPhone className="text-primary" />
@@ -139,13 +139,13 @@ export default function Navbar() {
             <>
               <Link to="/my-bookings"
                 className={`text-[14px] tracking-wide capitalize font-body font-semibold transition-colors ${
-                  isScrolled ? 'text-dark hover:text-primary' : 'text-white hover:text-primary'
+                  isScrolled ? 'text-dark hover:text-primary' : 'text-slate-800 hover:text-primary'
                 }`}>
                 My Bookings
               </Link>
               <button onClick={logout}
                 className={`text-[14px] tracking-wide capitalize font-body font-semibold transition-colors ${
-                  isScrolled ? 'text-dark hover:text-primary' : 'text-white/70 hover:text-white'
+                  isScrolled ? 'text-dark hover:text-primary' : 'text-slate-800/70 hover:text-slate-800'
                 }`}>
                 Logout
               </button>
@@ -167,9 +167,9 @@ export default function Navbar() {
           aria-label="Toggle menu"
         >
           {isMobileOpen ? (
-            <HiX className={isScrolled ? 'text-dark' : 'text-white'} />
+            <HiX className={isScrolled ? 'text-dark' : 'text-slate-800'} />
           ) : (
-            <HiMenuAlt3 className={isScrolled ? 'text-dark' : 'text-white'} />
+            <HiMenuAlt3 className={isScrolled ? 'text-dark' : 'text-slate-800'} />
           )}
         </button>
       </div>

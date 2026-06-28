@@ -110,10 +110,10 @@ export default function Spa() {
             <div className="star-divider !justify-start mt-4 mb-4">
               <span>★ ★ ★ ★ ★</span>
             </div>
-            <h2 className="font-[var(--font-heading)] text-3xl md:text-4xl text-white mb-6">
+            <h2 className="font-[var(--font-heading)] text-3xl md:text-4xl text-slate-800 mb-6">
               The Health Club & Pool
             </h2>
-            <p className="text-white/70 leading-relaxed mb-8">
+            <p className="text-slate-800/70 leading-relaxed mb-8">
               Relax and unwind with health club access and premium comfort facilities at Hotel Crown.
               A peaceful space designed for rejuvenation during your stay in Padma Abasik, Rajshahi.
             </p>

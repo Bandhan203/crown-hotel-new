@@ -13,7 +13,8 @@ User = get_user_model()
 
 def get_admin_dashboard_stats():
     """Aggregate stats for the admin dashboard."""
-    today = date.today()
+    from .models import HotelConfig
+    today = HotelConfig.load().business_date
     month_start = today.replace(day=1)
 
     total_rooms = Room.objects.count()
@@ -105,7 +106,20 @@ def get_room_grid_data():
         'public_areas': []
     }
 
+    # Fetch active bookings mapped by room_id for O(1) lookup
+    active_bookings = {
+        b.room_id: b for b in Booking.objects.filter(status='CHECKED_IN').select_related('guest')
+    }
+
+    from .models import HotelConfig
+    business_date = HotelConfig.load().business_date
+
     for room in rooms:
+        booking = active_bookings.get(room.id)
+        nights_remaining = 0
+        if booking:
+            nights_remaining = (booking.check_out_date - business_date).days
+
         room_data = {
             'id': room.id,
             'room_number': room.room_number,
@@ -114,6 +128,8 @@ def get_room_grid_data():
             'housekeeping_status': room.housekeeping_status,
             'is_public_area': room.is_public_area,
             'area_type': room.area_type,
+            'guest_name': booking.guest.full_name if booking else None,
+            'nights_remaining': max(0, nights_remaining) if booking else None,
         }
         if room.is_public_area:
             grid_data['public_areas'].append(room_data)
@@ -130,7 +146,8 @@ def get_room_grid_data():
 def get_night_audit_preview(audit_date=None):
     """Preview what the night audit will process for the given date."""
     if audit_date is None:
-        audit_date = date.today()
+        from .models import HotelConfig
+        audit_date = HotelConfig.load().business_date
 
     from .models import NightAuditLog
     already_run = NightAuditLog.objects.filter(audit_date=audit_date).exists()
@@ -304,6 +321,12 @@ def run_night_audit(audit_date, performed_by):
         check_outs=check_outs,
         performed_by=performed_by,
     )
+
+    # 6. Advance business date in HotelConfig
+    from .models import HotelConfig
+    config = HotelConfig.load()
+    config.business_date = audit_date + timedelta(days=1)
+    config.save(update_fields=['business_date'])
 
     return log
 

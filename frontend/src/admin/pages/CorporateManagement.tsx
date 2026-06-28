@@ -82,8 +82,8 @@ export default function CorporateManagement() {
   return (
     <div className="space-y-4 max-w-[1600px] mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-          <MdBusiness className="text-[#aa8453]" size={24} /> Corporate CRM
+        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+          <MdBusiness className="text-teal-700" size={24} /> Corporate CRM
         </h1>
       </div>
 
@@ -92,7 +92,7 @@ export default function CorporateManagement() {
         <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-4 py-2.5 flex items-center gap-2 text-xs">
           <MdCake size={14} className="text-yellow-400" />
           <span className="text-yellow-400 font-semibold">Birthday Today: </span>
-          <span className="text-white">{birthdaysToday.map(c => `${c.contactPerson} (${c.name})`).join(', ')}</span>
+          <span className="text-slate-800">{birthdaysToday.map(c => `${c.contactPerson} (${c.name})`).join(', ')}</span>
         </div>
       )}
       {pendingCommissions.length > 0 && (
@@ -106,7 +106,7 @@ export default function CorporateManagement() {
       <div className="flex gap-2">
         {tabs.map(t => (
           <button key={t.key} onClick={() => setTab(t.key as any)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium transition ${tab === t.key ? 'bg-[#aa8453] text-white' : 'bg-[#1a1a1a] text-gray-400 border border-white/10 hover:border-white/20'}`}>
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium transition ${tab === t.key ? 'bg-teal-700 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-300'}`}>
             {t.icon} {t.label}
           </button>
         ))}
@@ -116,12 +116,12 @@ export default function CorporateManagement() {
       {tab === 'companies' && (
         <div className="space-y-3">
           <div className="flex justify-end">
-            <button onClick={() => setShowCompanyForm(true)} className="flex items-center gap-1.5 bg-[#aa8453] text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-[#8c6c44] transition">
+            <button onClick={() => setShowCompanyForm(true)} className="flex items-center gap-1.5 bg-teal-700 text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-teal-800 transition">
               <MdAdd size={14} /> Add Company
             </button>
           </div>
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden">
-            <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_0.8fr_80px] px-4 py-2.5 bg-white/5 text-[10px] text-gray-500 uppercase tracking-wider gap-3">
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_0.8fr_80px] px-4 py-2.5 bg-gray-50 text-[10px] text-gray-500 uppercase tracking-wider gap-3">
               <span>Company</span><span>Contact Person</span><span>Phone</span><span>Discount</span><span>Credit Limit</span><span>Action</span>
             </div>
             {companies.map((co, i) => {
@@ -129,20 +129,20 @@ export default function CorporateManagement() {
               return (
                 <div key={co.id} className={`grid grid-cols-[2fr_1.5fr_1fr_1fr_0.8fr_80px] px-4 py-2.5 border-t border-white/5 gap-3 items-center text-xs ${i % 2 === 1 ? 'bg-white/[0.02]' : ''}`}>
                   <div>
-                    <div className="text-white font-semibold">{co.name}</div>
+                    <div className="text-slate-800 font-semibold">{co.name}</div>
                     {co.notes && <div className="text-[10px] text-gray-500">{co.notes}</div>}
                   </div>
                   <div>
-                    <div className="text-gray-400 flex items-center gap-1">
+                    <div className="text-gray-500 flex items-center gap-1">
                       {isBirthday && <MdCake size={10} className="text-yellow-400" />}
                       {co.contactPerson}
                     </div>
                     {co.contactPersonBirthday && <div className="text-[10px] text-gray-500">🎂 {co.contactPersonBirthday}</div>}
                   </div>
-                  <span className="text-gray-400 font-mono text-[11px]">{co.personalPhone}</span>
+                  <span className="text-gray-500 font-mono text-[11px]">{co.personalPhone}</span>
                   <span className="text-green-400 font-bold">{co.discountRate}% off</span>
-                  <span className="text-white font-mono text-[11px]">৳{co.creditLimit.toLocaleString()}</span>
-                  <button onClick={() => openEditCompany(co)} className="flex items-center gap-1 bg-[#aa8453]/20 text-[#aa8453] rounded px-2 py-1 text-[10px] hover:bg-[#aa8453]/30 transition">
+                  <span className="text-slate-800 font-mono text-[11px]">৳{co.creditLimit.toLocaleString()}</span>
+                  <button onClick={() => openEditCompany(co)} className="flex items-center gap-1 bg-teal-50 text-teal-700 rounded px-2 py-1 text-[10px] hover:bg-teal-700/30 transition">
                     <MdEdit size={10} /> Edit
                   </button>
                 </div>
@@ -154,19 +154,19 @@ export default function CorporateManagement() {
 
       {/* AGENTS */}
       {tab === 'agents' && (
-        <div className="bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden">
-          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] px-4 py-2.5 bg-white/5 text-[10px] text-gray-500 uppercase tracking-wider gap-3">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] px-4 py-2.5 bg-gray-50 text-[10px] text-gray-500 uppercase tracking-wider gap-3">
             <span>Agent</span><span>Type</span><span>Commission Rate</span><span>Total Bookings</span><span>Total Commission</span>
           </div>
           {agents.map((a, i) => (
             <div key={a.id} className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr] px-4 py-2.5 border-t border-white/5 gap-3 items-center text-xs ${i % 2 === 1 ? 'bg-white/[0.02]' : ''}`}>
               <div>
-                <div className="text-white font-semibold">{a.name}</div>
+                <div className="text-slate-800 font-semibold">{a.name}</div>
                 <div className="text-[10px] text-gray-500">{a.email}</div>
               </div>
               <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded w-fit">{a.type}</span>
               <span className="text-green-400 font-bold">{a.commissionRate}%</span>
-              <span className="text-white font-mono">{a.totalBookings}</span>
+              <span className="text-slate-800 font-mono">{a.totalBookings}</span>
               <span className="text-yellow-400 font-mono font-bold">৳{a.totalCommission.toLocaleString()}</span>
             </div>
           ))}
@@ -175,8 +175,8 @@ export default function CorporateManagement() {
 
       {/* COMMISSIONS */}
       {tab === 'commissions' && (
-        <div className="bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden">
-          <div className="grid grid-cols-[1fr_1.5fr_1fr_1fr_1fr_100px] px-4 py-2.5 bg-white/5 text-[10px] text-gray-500 uppercase tracking-wider gap-3">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="grid grid-cols-[1fr_1.5fr_1fr_1fr_1fr_100px] px-4 py-2.5 bg-gray-50 text-[10px] text-gray-500 uppercase tracking-wider gap-3">
             <span>Date</span><span>Agent</span><span>Booking Amt</span><span>Commission</span><span>Status</span><span>Action</span>
           </div>
           {commissions.slice().reverse().map((cm, i) => {
@@ -184,8 +184,8 @@ export default function CorporateManagement() {
             return (
               <div key={cm.id} className={`grid grid-cols-[1fr_1.5fr_1fr_1fr_1fr_100px] px-4 py-2.5 border-t border-white/5 gap-3 items-center text-xs ${i % 2 === 1 ? 'bg-white/[0.02]' : ''}`}>
                 <span className="text-gray-500">{cm.date}</span>
-                <span className="text-white">{agent?.name || '—'}</span>
-                <span className="text-white font-mono">৳{cm.amount.toLocaleString()}</span>
+                <span className="text-slate-800">{agent?.name || '—'}</span>
+                <span className="text-slate-800 font-mono">৳{cm.amount.toLocaleString()}</span>
                 <span className="text-yellow-400 font-mono font-bold">৳{cm.commissionAmount.toLocaleString()}</span>
                 <span className={`text-[10px] px-2 py-0.5 rounded w-fit font-semibold ${cm.status === 'pending' ? 'bg-orange-500/10 text-orange-400' : 'bg-green-500/10 text-green-400'}`}>
                   {cm.status === 'pending' ? 'Pending' : `Paid ${cm.paidDate}`}
@@ -206,10 +206,10 @@ export default function CorporateManagement() {
       {/* Company Form Modal */}
       {showCompanyForm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl w-[540px] max-h-[90vh] overflow-auto p-6">
+          <div className="bg-white border border-gray-200 rounded-xl w-[540px] max-h-[90vh] overflow-auto p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-semibold text-lg">{editCompany ? 'Edit Company' : 'Add Company'}</h3>
-              <button onClick={() => { setShowCompanyForm(false); setEditCompany(null); }} className="text-gray-500 hover:text-white transition"><MdClose size={18} /></button>
+              <h3 className="text-slate-800 font-semibold text-lg">{editCompany ? 'Edit Company' : 'Add Company'}</h3>
+              <button onClick={() => { setShowCompanyForm(false); setEditCompany(null); }} className="text-gray-500 hover:text-slate-800 transition"><MdClose size={18} /></button>
             </div>
             <div className="space-y-3">
               <FormField label="Company Name *" value={companyForm.name} onChange={v => setCompanyForm(p => ({ ...p, name: v }))} />
@@ -230,8 +230,8 @@ export default function CorporateManagement() {
               <FormField label="Notes" value={companyForm.notes} onChange={v => setCompanyForm(p => ({ ...p, notes: v }))} />
             </div>
             <div className="flex gap-2 mt-4">
-              <button onClick={() => { setShowCompanyForm(false); setEditCompany(null); }} className="flex-1 bg-white/10 text-gray-400 rounded-lg py-2.5 text-sm hover:bg-white/15 transition">Cancel</button>
-              <button onClick={saveCompany} className="flex-[2] bg-[#aa8453] text-white rounded-lg py-2.5 text-sm font-bold hover:bg-[#8c6c44] transition">Save</button>
+              <button onClick={() => { setShowCompanyForm(false); setEditCompany(null); }} className="flex-1 bg-white/10 text-gray-500 rounded-lg py-2.5 text-sm hover:bg-white/15 transition">Cancel</button>
+              <button onClick={saveCompany} className="flex-[2] bg-teal-700 text-white rounded-lg py-2.5 text-sm font-bold hover:bg-teal-800 transition">Save</button>
             </div>
           </div>
         </div>
@@ -245,7 +245,7 @@ function FormField({ label, value, onChange, type = 'text' }: { label: string; v
     <div className="flex-1">
       <label className="text-[11px] text-gray-500 block mb-1">{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
-        className="w-full bg-[#0f0f0f] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#aa8453]/30" />
+        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600/30" />
     </div>
   );
 }

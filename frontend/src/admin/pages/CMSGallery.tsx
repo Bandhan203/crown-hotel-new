@@ -192,7 +192,7 @@ export default function CMSGallery() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="text-2xl font-bold text-white" style={{ fontFamily: '"Gilda Display", serif' }}>
+        <h1 className="text-2xl font-bold text-slate-800" style={{ fontFamily: '"Gilda Display", serif' }}>
           <span className="inline mr-2 text-primary"><MdPhotoLibrary size={24} /></span>
           Gallery Management
         </h1>
@@ -218,8 +218,8 @@ export default function CMSGallery() {
             onClick={() => setFilter(cat.key)}
             className={`px-4 py-2 text-xs uppercase tracking-wide border rounded-md transition-colors ${
               filter === cat.key
-                ? 'bg-[#8B6F3E] border-[#8B6F3E] text-white'
-                : 'bg-[#121212] border-white/15 text-gray-300 hover:border-[#8B6F3E] hover:text-white'
+                ? 'bg-[#8B6F3E] border-[#8B6F3E] text-slate-800'
+                : 'bg-[#121212] border-white/15 text-gray-600 hover:border-[#8B6F3E] hover:text-slate-800'
             }`}
           >
             {cat.label}
@@ -228,13 +228,13 @@ export default function CMSGallery() {
       </div>
 
       {loading ? (
-        <div className="text-gray-400">Loading gallery...</div>
+        <div className="text-gray-500">Loading gallery...</div>
       ) : filteredImages.length === 0 ? (
-        <div className="text-gray-400">No images in this category yet.</div>
+        <div className="text-gray-500">No images in this category yet.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredImages.map((item) => (
-            <div key={item.id} className="bg-[#161616] border border-white/10 rounded-xl overflow-hidden">
+            <div key={item.id} className="bg-[#161616] border border-gray-200 rounded-xl overflow-hidden">
               <img
                 src={toAbsoluteMediaUrl(item.image)}
                 alt={item.alt_text || item.title || 'Gallery image'}
@@ -251,9 +251,9 @@ export default function CMSGallery() {
                   </span>
                 </div>
 
-                <h3 className="text-white font-semibold line-clamp-1">{item.title || 'Untitled Image'}</h3>
+                <h3 className="text-slate-800 font-semibold line-clamp-1">{item.title || 'Untitled Image'}</h3>
                 <p
-                  className="text-sm text-gray-400"
+                  className="text-sm text-gray-500"
                   style={{
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
@@ -290,8 +290,8 @@ export default function CMSGallery() {
 
       {showFormModal && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowFormModal(false)}>
-          <div className="w-full max-w-2xl bg-[#161616] border border-white/10 rounded-2xl p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-semibold text-white mb-5">{editing ? 'Edit Image' : 'Add New Image'}</h2>
+          <div className="w-full max-w-2xl bg-[#161616] border border-gray-200 rounded-2xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-semibold text-slate-800 mb-5">{editing ? 'Edit Image' : 'Add New Image'}</h2>
 
             <div className="space-y-4">
               <UploadZone
@@ -301,33 +301,33 @@ export default function CMSGallery() {
               />
 
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Image Title *</label>
+                <label className="block text-sm text-gray-600 mb-1">Image Title *</label>
                 <input
                   value={form.title}
                   onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg bg-[#101010] border border-white/10 text-white text-sm outline-none focus:border-primary"
+                  className="w-full px-3 py-2 rounded-lg bg-[#101010] border border-gray-200 text-slate-800 text-sm outline-none focus:border-primary"
                   placeholder="Deluxe Room Sunset View"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Description</label>
+                <label className="block text-sm text-gray-600 mb-1">Description</label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
                   rows={3}
-                  className="w-full px-3 py-2 rounded-lg bg-[#101010] border border-white/10 text-white text-sm outline-none focus:border-primary resize-none"
+                  className="w-full px-3 py-2 rounded-lg bg-[#101010] border border-gray-200 text-slate-800 text-sm outline-none focus:border-primary resize-none"
                   placeholder="Shown on the public gallery card..."
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Category</label>
+                  <label className="block text-sm text-gray-600 mb-1">Category</label>
                   <select
                     value={form.category}
                     onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value as Category }))}
-                    className="w-full px-3 py-2 rounded-lg bg-[#101010] border border-white/10 text-white text-sm outline-none focus:border-primary"
+                    className="w-full px-3 py-2 rounded-lg bg-[#101010] border border-gray-200 text-slate-800 text-sm outline-none focus:border-primary"
                   >
                     {CATEGORIES.filter((c) => c.key !== 'ALL').map((c) => (
                       <option key={c.key} value={c.key}>{c.label}</option>
@@ -336,18 +336,18 @@ export default function CMSGallery() {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Alt text</label>
+                  <label className="block text-sm text-gray-600 mb-1">Alt text</label>
                   <input
                     value={form.alt_text}
                     onChange={(e) => setForm((prev) => ({ ...prev, alt_text: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg bg-[#101010] border border-white/10 text-white text-sm outline-none focus:border-primary"
+                    className="w-full px-3 py-2 rounded-lg bg-[#101010] border border-gray-200 text-slate-800 text-sm outline-none focus:border-primary"
                     placeholder="Guest room with king bed"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                <label className="inline-flex items-center gap-2 text-sm text-gray-300">
+                <label className="inline-flex items-center gap-2 text-sm text-gray-600">
                   <input
                     type="checkbox"
                     checked={form.is_published}
@@ -358,20 +358,20 @@ export default function CMSGallery() {
                 </label>
 
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Display order</label>
+                  <label className="block text-sm text-gray-600 mb-1">Display order</label>
                   <input
                     type="number"
                     value={form.order}
                     onChange={(e) => setForm((prev) => ({ ...prev, order: Number(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 rounded-lg bg-[#101010] border border-white/10 text-white text-sm outline-none focus:border-primary"
+                    className="w-full px-3 py-2 rounded-lg bg-[#101010] border border-gray-200 text-slate-800 text-sm outline-none focus:border-primary"
                   />
                 </div>
               </div>
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setShowFormModal(false)} className="px-4 py-2 text-gray-300 hover:text-white">Cancel</button>
-              <button onClick={() => void saveImage()} className="px-4 py-2 rounded-lg bg-primary hover:bg-[#9c7c47] text-white">Save</button>
+              <button onClick={() => setShowFormModal(false)} className="px-4 py-2 text-gray-600 hover:text-slate-800">Cancel</button>
+              <button onClick={() => void saveImage()} className="px-4 py-2 rounded-lg bg-primary hover:bg-[#9c7c47] text-slate-800">Save</button>
             </div>
           </div>
         </div>
@@ -379,14 +379,14 @@ export default function CMSGallery() {
 
       {showDeleteModal && deleting && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowDeleteModal(false)}>
-          <div className="w-full max-w-md bg-[#161616] border border-white/10 rounded-xl p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg text-white font-semibold mb-2">Delete Image?</h3>
-            <p className="text-sm text-gray-400 mb-2">You are deleting: <span className="text-white">{deleting.title || 'Untitled Image'}</span></p>
+          <div className="w-full max-w-md bg-[#161616] border border-gray-200 rounded-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg text-slate-800 font-semibold mb-2">Delete Image?</h3>
+            <p className="text-sm text-gray-500 mb-2">You are deleting: <span className="text-slate-800">{deleting.title || 'Untitled Image'}</span></p>
             <p className="text-sm text-red-300 mb-6">This action is permanent and cannot be undone.</p>
 
             <div className="flex justify-end gap-3">
-              <button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 text-gray-300 hover:text-white">Cancel</button>
-              <button onClick={() => void confirmDelete()} className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white">Yes, delete</button>
+              <button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 text-gray-600 hover:text-slate-800">Cancel</button>
+              <button onClick={() => void confirmDelete()} className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-slate-800">Yes, delete</button>
             </div>
           </div>
         </div>
@@ -397,9 +397,9 @@ export default function CMSGallery() {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="bg-[#151515] border border-white/10 rounded-xl p-4">
-      <p className="text-sm text-gray-400">{label}</p>
-      <p className="text-2xl font-semibold text-white mt-1">{value}</p>
+    <div className="bg-[#151515] border border-gray-200 rounded-xl p-4">
+      <p className="text-sm text-gray-500">{label}</p>
+      <p className="text-2xl font-semibold text-slate-800 mt-1">{value}</p>
     </div>
   );
 }
@@ -431,10 +431,10 @@ function UploadZone({
 
   return (
     <div>
-      <label className="block text-sm text-gray-300 mb-1">Image upload</label>
+      <label className="block text-sm text-gray-600 mb-1">Image upload</label>
       {existingImageUrl && (
-        <div className="mb-3 p-3 rounded-lg border border-white/10 bg-[#101010]">
-          <p className="text-xs text-gray-400 mb-2">Existing image</p>
+        <div className="mb-3 p-3 rounded-lg border border-gray-200 bg-[#101010]">
+          <p className="text-xs text-gray-500 mb-2">Existing image</p>
           <img
             src={existingImageUrl}
             alt="Existing gallery image"
@@ -456,13 +456,13 @@ function UploadZone({
         }}
         className={`border-2 border-dashed rounded-lg p-4 text-center ${dragOver ? 'border-primary bg-primary/10' : 'border-white/15 bg-[#101010]'}`}
       >
-        <p className="text-sm text-gray-300">Drag & drop image here or browse</p>
+        <p className="text-sm text-gray-600">Drag & drop image here or browse</p>
         <p className="text-xs text-gray-500 mt-1">Accept: JPG, PNG, WEBP (max 5 MB)</p>
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp"
           onChange={(e) => validateAndSet(e.target.files?.[0] || null)}
-          className="mt-3 text-sm text-gray-300"
+          className="mt-3 text-sm text-gray-600"
         />
         {selectedFileName && <p className="text-xs text-emerald-300 mt-2">Selected replacement: {selectedFileName}</p>}
       </div>

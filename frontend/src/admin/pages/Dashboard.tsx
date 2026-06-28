@@ -90,7 +90,7 @@ export default function Dashboard() {
   if (loading || !data || !gridData) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="w-7 h-7 border-2 border-[#aa8453] border-t-transparent rounded-full animate-spin" />
+        <div className="w-7 h-7 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -102,13 +102,10 @@ export default function Dashboard() {
       {/* KPI Stats Grid — shrink-0 keeps it pinned */}
       <StatsBar data={data} gridData={gridData} />
 
-      {/* Quick Actions operational hub */}
-      <div className="shrink-0 px-5 pb-3">
+      {/* Quick Actions action bar */}
+      <div className="shrink-0 px-5 py-3 bg-white border-b border-gray-200">
         <QuickActions />
       </div>
-
-      {/* Thin divider */}
-      <div className="h-px bg-white/[0.04] shrink-0" />
 
       {/* ── 12-Column CSS Grid: Room Grid + Drawer ── */}
       <div className="flex-1 grid grid-cols-12 overflow-hidden h-full min-h-0 gap-0">

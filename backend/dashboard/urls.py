@@ -20,4 +20,10 @@ urlpatterns = [
     path('admin/reports/cancellations/', views.CancellationReportView.as_view(), name='report-cancellations'),
     path('admin/reports/guest-ledger/', views.GuestLedgerReportView.as_view(), name='report-guest-ledger'),
     path('admin/reports/recent-bookings/', views.RecentBookingsReportView.as_view(), name='report-recent-bookings'),
+    # ERP Features
+    path('admin/config/', views.HotelConfigView.as_view(), name='hotel-config'),
+    path('admin/bookings/<int:booking_id>/folio-windows/', views.FolioWindowView.as_view(), name='folio-windows'),
+    path('admin/bookings/<int:booking_id>/folio-transfer/', views.FolioTransferView.as_view(), name='folio-transfer'),
+    path('admin/folio/<int:charge_id>/adjust/', views.FolioAdjustmentView.as_view(), name='folio-adjust'),
+    path('admin/dashboard/queue/', views.QueueManagementView.as_view(), name='dashboard-queue'),
 ]

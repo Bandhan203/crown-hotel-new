@@ -18,11 +18,11 @@ export default function PageHero({ title, breadcrumbs, backgroundImage }: PageHe
       }}
     >
       <div className="overlay" />
-      <div className="relative z-10 text-white">
+      <div className="relative z-10 text-slate-800">
         <div className="star-divider mb-4">
           <span>★ ★ ★ ★ ★</span>
         </div>
-        <h1 className="text-4xl md:text-5xl font-[var(--font-heading)] text-white mb-4">
+        <h1 className="text-4xl md:text-5xl font-[var(--font-heading)] text-slate-800 mb-4">
           {title}
         </h1>
         <div className="flex items-center justify-center gap-2 text-sm">

@@ -303,11 +303,11 @@ export default function BookingViewModal({
 
         {/* title bar */}
         <div className="flex items-center justify-between px-3 py-1.5 bg-gradient-to-r from-slate-700 to-slate-600 shrink-0">
-          <span id="booking-view-title" className="text-sm font-semibold text-white tracking-wide">
+          <span id="booking-view-title" className="text-sm font-semibold text-slate-800 tracking-wide">
             Booking View — <span className="font-mono text-amber-200">#{booking?.booking_ref ?? '…'}</span>
           </span>
           <button type="button" onClick={onClose} aria-label="Close"
-            className="text-white/70 hover:text-white rounded-sm p-0.5 transition-colors">
+            className="text-slate-800/70 hover:text-white rounded-sm p-0.5 transition-colors">
             <MdClose size={16} />
           </button>
         </div>
@@ -507,7 +507,7 @@ export default function BookingViewModal({
                       className={`flex items-center gap-1 px-3 py-1.5 rounded-sm text-xs font-semibold border transition ${
                         s === 'CANCELLED'
                           ? 'bg-red-50 text-red-700 border-red-300 hover:bg-red-100'
-                          : 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
+                          : 'bg-blue-600 text-slate-800 border-blue-700 hover:bg-blue-700'
                       }`}>
                       {s === 'CHECKED_IN' && <MdLogin size={14} />}
                       {s === 'CHECKED_OUT' && <MdLogout size={14} />}
@@ -538,7 +538,7 @@ export default function BookingViewModal({
                       ))}
                     </select>
                     <button type="button" onClick={handleAssignRoom}
-                      className="px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded-sm hover:bg-blue-700">
+                      className="px-3 py-1 bg-blue-600 text-slate-800 text-xs font-semibold rounded-sm hover:bg-blue-700">
                       Assign
                     </button>
                   </div>
@@ -620,7 +620,7 @@ export default function BookingViewModal({
                         className="w-full h-7 bg-white border border-slate-300 rounded-sm px-2 text-sm focus:outline-none focus:border-blue-600" />
                     </div>
                     <button type="button" onClick={handlePaymentSubmit}
-                      className="w-full py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-sm hover:bg-blue-700">
+                      className="w-full py-1.5 bg-blue-600 text-slate-800 text-xs font-semibold rounded-sm hover:bg-blue-700">
                       Record Payment
                     </button>
                   </div>

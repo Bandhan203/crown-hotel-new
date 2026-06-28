@@ -11,8 +11,9 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useSiteSettings } from '../../contexts/SiteSettingsContext';
 
-const linkBase = 'flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors';
-const linkInactive = 'text-gray-300 hover:bg-white/5 hover:text-white';
+const linkBase = 'flex items-center gap-3 px-4 rounded-lg text-sm font-medium transition-colors';
+const linkInactive = 'py-2.5 text-gray-600 hover:bg-gray-50';
+const linkActive = 'py-3 bg-teal-700 text-white';
 
 interface NavItem {
   to?: string;
@@ -72,16 +73,16 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
       {open && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />}
 
       <aside className={`
-        fixed top-0 left-0 z-50 h-full w-64 bg-[#1a1a1a] border-r border-white/10 flex flex-col
+        fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0
         transition-transform duration-300 lg:translate-x-0 lg:static lg:z-auto
         ${open ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        {/* Logo */}
-        <div className="p-5 border-b border-white/10">
-          <h1 className="text-xl font-bold text-white" style={{ fontFamily: '"Gilda Display", serif' }}>
-            <span style={{ color: accentColor }}>{hotelName}</span>
+        {/* Logo Branding */}
+        <div className="p-6 border-b border-gray-100">
+          <h1 className="text-xl font-bold text-teal-900 leading-none">
+            {hotelName}
           </h1>
-          <p className="text-xs text-gray-500 mt-1">{adminTagline}</p>
+          <p className="text-[10px] uppercase tracking-widest text-gray-500 mt-1 font-semibold">{adminTagline}</p>
         </div>
 
         {/* Navigation */}
@@ -91,7 +92,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
               <div key={item.label}>
                 <button
                   onClick={() => setCmsOpen(!cmsOpen)}
-                  className={`${linkBase} w-full text-gray-300 hover:bg-white/5 hover:text-white`}
+                  className={`${linkBase} ${linkInactive} w-full`}
                 >
                   {item.icon}
                   <span className="flex-1 text-left">{item.label}</span>
@@ -105,9 +106,8 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                         to={child.to}
                         onClick={onClose}
                         className={({ isActive }) =>
-                          `${linkBase} text-xs ${isActive ? 'text-white' : linkInactive}`
+                          `${linkBase} text-xs ${isActive ? linkActive : linkInactive}`
                         }
-                        style={({ isActive }) => isActive ? { backgroundColor: accentColor } : {}}
                       >
                         {child.icon}
                         {child.label}
@@ -122,8 +122,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                 to={item.to!}
                 end={item.to === '/admin'}
                 onClick={onClose}
-                className={({ isActive }) => `${linkBase} ${isActive ? 'text-white' : linkInactive}`}
-                style={({ isActive }) => isActive ? { backgroundColor: accentColor } : {}}
+                className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}
               >
                 {item.icon}
                 {item.label}
@@ -133,8 +132,8 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
         </nav>
 
         {/* Logout */}
-        <div className="p-3 border-t border-white/10">
-          <button onClick={logout} className={`${linkBase} w-full text-red-400 hover:bg-red-500/10 hover:text-red-300`}>
+        <div className="p-4 border-t border-gray-100">
+          <button onClick={logout} className="flex items-center gap-3 px-4 py-2 w-full text-red-600 hover:bg-red-50 rounded-lg transition-colors font-semibold text-sm">
             <MdLogout size={20} />
             Logout
           </button>

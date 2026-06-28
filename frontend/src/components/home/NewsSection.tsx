@@ -89,7 +89,7 @@ export default function NewsSection() {
                     className="w-full h-[250px] object-cover group-hover:scale-105 transition-transform duration-700"
                   />
                   <div className="absolute bottom-4 left-4 flex gap-2">
-                    <span className="bg-gradient-primary text-white text-xs px-3 py-1 font-bold rounded shadow-sm">
+                    <span className="bg-teal-700 text-white text-xs px-3 py-1 font-bold rounded shadow-sm">
                       {formatDateShort(post.published_at)}
                     </span>
                     <span className="bg-white/90 backdrop-blur-sm text-dark text-xs px-3 py-1 font-bold rounded">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { MdClose, MdEventAvailable } from 'react-icons/md';
 import api from '../../services/api';
@@ -21,6 +21,7 @@ import {
   ratePlanHint,
   type RatePlan,
 } from '../utils/ratePlanPricing';
+import { useEnterNav } from '../../hooks/useEnterNav';
 
 interface RoomType { id: number; name: string; price_per_night: string; max_guests: number; }
 interface Props { onClose: () => void; onSuccess: () => void; }
@@ -199,6 +200,9 @@ export default function ReservationModal({ onClose, onSuccess }: Props) {
   const [loading,        setLoading]        = useState(false);
   const [nights,         setNights]         = useState(0);
   const [grandTotal,     setGrandTotal]     = useState(0);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEnterNav(formRef);
 
   const isForeigner = form.country.trim() !== '' &&
     !form.country.toLowerCase().includes('bangladesh');
@@ -527,22 +531,7 @@ export default function ReservationModal({ onClose, onSuccess }: Props) {
     } finally { setLoading(false); }
   };
 
-  const roomReady = canPickRoom(form.room_type, form.check_in_date, form.check_out_date);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
-    if (e.key === 'Enter') {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON') return;
-      e.preventDefault();
-      const formElements = Array.from(
-        e.currentTarget.querySelectorAll('input, select, textarea, button[type="submit"]')
-      ) as HTMLElement[];
-      const index = formElements.indexOf(target);
-      if (index > -1 && index < formElements.length - 1) {
-        formElements[index + 1].focus();
-      }
-    }
-  };
+  const roomReady = !!(form.room_type && form.check_in_date && form.check_out_date);
 
   /* ─────────────────────────────── RENDER ──────────────────────────────── */
   return (
@@ -560,12 +549,12 @@ export default function ReservationModal({ onClose, onSuccess }: Props) {
 
         {/* ── title bar (classic PMS) ── */}
         <div className="flex items-center justify-between px-3 py-1.5 bg-gradient-to-r from-slate-700 to-slate-600 shrink-0">
-          <span id="reservation-modal-title" className="text-sm font-semibold text-white tracking-wide">
+          <span id="reservation-modal-title" className="text-sm font-semibold text-slate-800 tracking-wide">
             Reservation Entry
           </span>
           <button
             type="button" onClick={onClose} aria-label="Close"
-            className="text-white/70 hover:text-white rounded-sm focus:outline-none focus:ring-2 focus:ring-white/50 p-0.5 transition-colors"
+            className="text-slate-800/70 hover:text-white rounded-sm focus:outline-none focus:ring-2 focus:ring-white/50 p-0.5 transition-colors"
           >
             <MdClose size={16} />
           </button>
@@ -617,7 +606,7 @@ export default function ReservationModal({ onClose, onSuccess }: Props) {
 
         {/* ── scrollable body ── */}
         <div className="overflow-y-auto overflow-x-hidden flex-1">
-          <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="px-3 pb-3 pt-2 min-w-0 [color-scheme:light]">
+          <form ref={formRef} onSubmit={handleSubmit} className="px-3 pb-3 pt-2 min-w-0 [color-scheme:light]">
 
             <Section title="Guest Information">
             {/* ══ Row 1 — Conf No + Title | Mode of Payment ══ */}
@@ -1127,7 +1116,7 @@ export default function ReservationModal({ onClose, onSuccess }: Props) {
               <button
                 type="submit" disabled={loading}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2
-                           bg-blue-600 border-2 border-blue-700 rounded-sm text-white text-sm font-semibold
+                           bg-blue-600 border-2 border-blue-700 rounded-sm text-slate-800 text-sm font-semibold
                            hover:bg-blue-700 hover:border-blue-800
                            focus:outline-none focus:ring-4 focus:ring-blue-400/50 focus:border-blue-800
                            transition disabled:opacity-50 shadow-sm"

@@ -23,16 +23,16 @@ export default function StatsBar({ data, gridData }: StatsBarProps) {
   const inHouseCount = data?.in_house_count || 0;
 
   const stats = [
-    { label: 'Total Rooms', value: total, icon: MdHotel, accent: '#aa8453' },
-    { label: 'Occupied', value: occupied, icon: MdPeople, accent: '#ef4444' },
-    { label: 'Vacant', value: vacant, icon: MdHotel, accent: '#22c55e' },
-    { label: 'Dirty', value: dirty, icon: FaWrench, accent: '#f97316' },
-    { label: 'OOO / Maint', value: maintenance, icon: TbWifiOff, accent: '#a78bfa' },
-    { label: 'Occupancy', value: `${occupancyPct}%`, icon: MdTrendingUp, accent: '#38bdf8' },
-    { label: 'In-House', value: inHouseCount, icon: MdPeople, accent: '#3b82f6' },
-    { label: 'Arrivals', value: arrivalsToday, icon: MdFlightLand, accent: '#22c55e' },
-    { label: 'Departures', value: departuresToday, icon: MdFlightTakeoff, accent: '#f97316' },
-    { label: 'MTD Revenue', value: `৳${revenueMonth.toLocaleString()}`, icon: MdAttachMoney, accent: '#aa8453' },
+    { label: 'Total Rooms', value: total,                            icon: MdHotel,        accent: '#0f766e' },
+    { label: 'Occupied',    value: occupied,                         icon: MdPeople,       accent: '#dc2626' },
+    { label: 'Vacant',      value: vacant,                           icon: MdHotel,        accent: '#16a34a' },
+    { label: 'Dirty',       value: dirty,                            icon: FaWrench,       accent: '#ea580c' },
+    { label: 'OOO / Maint', value: maintenance,                      icon: TbWifiOff,      accent: '#7c3aed' },
+    { label: 'Occupancy %', value: `${occupancyPct}%`,               icon: MdTrendingUp,   accent: '#0284c7' },
+    { label: 'In-House',    value: inHouseCount,                     icon: MdPeople,       accent: '#2563eb' },
+    { label: 'Arrivals',    value: arrivalsToday,                    icon: MdFlightLand,   accent: '#16a34a' },
+    { label: 'Departures',  value: departuresToday,                  icon: MdFlightTakeoff,accent: '#ea580c' },
+    { label: 'MTD Revenue', value: `৳${revenueMonth.toLocaleString()}`, icon: MdAttachMoney, accent: '#0f766e' },
   ];
 
   return (
@@ -41,14 +41,15 @@ export default function StatsBar({ data, gridData }: StatsBarProps) {
         {stats.map(stat => (
           <div
             key={stat.label}
-            className="bg-[#141416] rounded-lg px-3 py-2.5 flex items-center gap-2.5 border-l-[3px] transition-colors hover:bg-[#1a1a1e]"
-            style={{ borderLeftColor: stat.accent }}
+            className="bg-white p-3 rounded-md border border-gray-200 min-w-[90px]"
           >
-            <stat.icon size={15} style={{ color: stat.accent }} className="shrink-0 opacity-70" />
-            <div className="min-w-0">
-              <div className="text-[13px] font-bold leading-tight font-mono text-white truncate">{stat.value}</div>
-              <div className="text-[9px] text-gray-500 mt-0.5 whitespace-nowrap tracking-wider uppercase truncate">{stat.label}</div>
-            </div>
+            <p className="text-[9px] font-bold text-gray-500 uppercase">{stat.label}</p>
+            <p
+              className="text-xl font-bold mt-0.5"
+              style={{ color: stat.label === 'MTD Revenue' ? '#0f766e' : '#1e293b' }}
+            >
+              {stat.value}
+            </p>
           </div>
         ))}
       </div>

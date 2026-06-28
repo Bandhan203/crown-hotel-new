@@ -9,7 +9,7 @@ import {
   MdCleaningServices,
   MdNightsStay,
   MdReceipt,
-  MdBarChart,
+  MdAdd,
 } from 'react-icons/md';
 import { FaWrench } from 'react-icons/fa';
 
@@ -32,101 +32,87 @@ export default function QuickActions() {
   const coreFrontDesk: ActionBtn[] = [
     {
       label: 'New Reservation',
-      icon: <MdEventAvailable size={14} />,
+      icon: <MdAdd size={18} />,
       onClick: frontDesk('reservation'),
-      className: 'bg-[#aa8453] hover:bg-[#c49b63] text-white border-[#aa8453]/40',
+      className: 'bg-[#784018] text-white',
     },
     {
       label: 'Walk-in',
-      icon: <MdPersonAdd size={14} />,
+      icon: <MdPersonAdd size={16} />,
       onClick: frontDesk('walkin'),
-      className: 'bg-blue-600 hover:bg-blue-500 text-white border-blue-600/40',
+      className: 'bg-[#1f56b9] text-white',
     },
     {
       label: 'Quick Check-in',
-      icon: <MdLogin size={14} />,
+      icon: <MdLogin size={16} />,
       onClick: go('/admin/front-desk?tab=arrivals'),
-      className: 'bg-emerald-600/80 hover:bg-emerald-600 text-white border-emerald-600/40',
+      className: 'bg-[#0f8a48] text-white',
     },
     {
       label: 'Quick Check-out',
-      icon: <MdLogout size={14} />,
+      icon: <MdLogout size={16} />,
       onClick: go('/admin/front-desk?tab=departures'),
-      className: 'bg-red-600/70 hover:bg-red-600 text-white border-red-600/40',
+      className: 'bg-[#bc2323] text-white',
     },
   ];
 
-  /* ── Group 2: Operational & Housekeeping ── */
-  const operational: ActionBtn[] = [
+  /* ── Group 2: Operational & Views ── */
+  const secondaryActions: ActionBtn[] = [
     {
       label: 'Housekeeping',
-      icon: <MdCleaningServices size={14} />,
+      icon: <MdCleaningServices size={16} />,
       onClick: go('/admin/housekeeping'),
-      className: 'bg-[#1a1a1e] hover:bg-[#222226] text-gray-300 border-gray-700/60',
+      className: 'bg-[#e4e9f0] text-gray-700 hover:bg-gray-200',
     },
     {
       label: 'Maintenance',
-      icon: <FaWrench size={12} />,
+      icon: <FaWrench size={14} />,
       onClick: go('/admin/rooms'),
-      className: 'bg-[#1a1a1e] hover:bg-[#222226] text-gray-300 border-gray-700/60',
+      className: 'bg-[#e4e9f0] text-gray-700 hover:bg-gray-200',
     },
     {
       label: 'Night Audit',
-      icon: <MdNightsStay size={14} />,
+      icon: <MdNightsStay size={16} />,
       onClick: go('/admin/night-audit'),
-      className: 'bg-[#1a1a1e] hover:bg-[#222226] text-gray-300 border-gray-700/60',
+      className: 'bg-[#e4e9f0] text-gray-700 hover:bg-gray-200',
     },
-  ];
-
-  /* ── Group 3: Quick Views & Logs ── */
-  const quickViews: ActionBtn[] = [
     {
       label: 'Calendar',
-      icon: <MdCalendarMonth size={14} />,
+      icon: <MdCalendarMonth size={16} />,
       onClick: go('/admin/reservations/calendar'),
-      className: 'bg-transparent hover:bg-white/[0.04] text-gray-500 hover:text-gray-300 border-white/[0.06]',
+      className: 'bg-[#e4e9f0] text-gray-700 hover:bg-gray-200',
     },
     {
       label: 'Billing',
-      icon: <MdReceipt size={14} />,
+      icon: <MdReceipt size={16} />,
       onClick: go('/admin/service-entry'),
-      className: 'bg-transparent hover:bg-white/[0.04] text-gray-500 hover:text-gray-300 border-white/[0.06]',
-    },
-    {
-      label: 'Reports',
-      icon: <MdBarChart size={14} />,
-      onClick: go('/admin/reports'),
-      className: 'bg-transparent hover:bg-white/[0.04] text-gray-500 hover:text-gray-300 border-white/[0.06]',
+      className: 'bg-[#e4e9f0] text-gray-700 hover:bg-gray-200',
     },
   ];
 
-  const renderGroup = (items: ActionBtn[]) => (
-    <div className="flex flex-wrap gap-1.5 items-center">
-      {items.map(btn => (
+  return (
+    <div className="flex flex-wrap gap-3 items-center">
+      {coreFrontDesk.map(btn => (
         <button
           key={btn.label}
-          type="button"
           onClick={btn.onClick}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-[11px] font-medium transition-all duration-150 shrink-0 ${btn.className}`}
+          className={`px-5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium hover:opacity-90 ${btn.className}`}
         >
-          {btn.icon}
-          <span>{btn.label}</span>
+          {btn.icon} <span>{btn.label}</span>
         </button>
       ))}
-    </div>
-  );
 
-  return (
-    <div className="flex flex-wrap gap-4 items-center justify-between">
-      {/* Core actions always prominent */}
-      <div className="flex flex-wrap gap-3 items-center">
-        {renderGroup(coreFrontDesk)}
-        {/* Visual separator */}
-        <div className="hidden sm:block w-px h-5 bg-white/[0.06]" />
-        {renderGroup(operational)}
+      <div className="flex items-center gap-2 ml-auto flex-wrap mt-2 sm:mt-0">
+        {secondaryActions.map(btn => (
+          <button
+            key={btn.label}
+            onClick={btn.onClick}
+            className={`px-4 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors ${btn.className}`}
+          >
+            {btn.icon} <span>{btn.label}</span>
+          </button>
+        ))}
       </div>
-      {/* Quick views pushed to right on wide screens, wraps underneath on narrow */}
-      {renderGroup(quickViews)}
     </div>
   );
 }

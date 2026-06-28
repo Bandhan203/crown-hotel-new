@@ -106,7 +106,7 @@ export default function News() {
                 type="button"
                 onClick={() => setSelectedCategory(category)}
                 className={`px-4 py-2 text-xs tracking-wide border transition-colors ${selectedCategory === category
-                  ? 'bg-gradient-primary text-white border-transparent shadow-sm'
+                  ? 'bg-teal-700 text-white border-transparent shadow-sm'
                   : 'bg-white text-dark border-gray-200 hover:border-primary'
                 }`}
               >
@@ -138,7 +138,7 @@ export default function News() {
                     className="w-full h-[250px] object-cover group-hover:scale-105 transition-transform duration-700"
                   />
                   <div className="absolute bottom-4 left-4 flex gap-2">
-                    <span className="bg-gradient-primary text-white text-xs px-3 py-1 font-bold rounded shadow-sm">
+                    <span className="bg-teal-700 text-white text-xs px-3 py-1 font-bold rounded shadow-sm">
                       {formatPublishedDate(post.published_at)}
                     </span>
                     {post.category && (

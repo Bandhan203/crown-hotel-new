@@ -72,7 +72,7 @@ const STATUS_COLORS: Record<string, string> = {
   PENDING: 'bg-yellow-500/20 text-yellow-400',
   CONFIRMED: 'bg-blue-500/20 text-blue-400',
   CHECKED_IN: 'bg-green-500/20 text-green-400',
-  CHECKED_OUT: 'bg-gray-500/20 text-gray-400',
+  CHECKED_OUT: 'bg-gray-500/20 text-gray-500',
   CANCELLED: 'bg-red-500/20 text-red-400',
 };
 
@@ -206,7 +206,7 @@ export default function GuestManagement() {
     return (
       <div className="flex items-center gap-1 h-full">
         <button type="button" title="View guest" onClick={() => openDetail(params.data)}
-          className={`${btn} px-1.5 h-5 text-[10px] font-semibold text-[#8a6a3f] border-[#aa8453]/35 bg-[#aa8453]/5 hover:bg-[#aa8453]/15`}>
+          className={`${btn} px-1.5 h-5 text-[10px] font-semibold text-teal-700 border-teal-600/35 bg-teal-50/50 hover:bg-teal-100`}>
           View
         </button>
       </div>
@@ -243,37 +243,37 @@ export default function GuestManagement() {
 
   return (
     <div className="space-y-2">
-      <div className="rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2">
+      <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap gap-0.5 p-0.5 rounded-md border border-white/5 flex-1 min-w-[12rem]">
             {(['all', 'active', 'inactive'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setFilter(tab)}
-                className={`px-2 py-1 rounded text-[11px] font-medium capitalize transition ${filter === tab ? 'bg-[#aa8453] text-white' : 'text-gray-400 hover:text-white'}`}
+                className={`px-2 py-1 rounded text-[11px] font-medium capitalize transition ${filter === tab ? 'bg-teal-700 text-white' : 'text-gray-500 hover:text-slate-800'}`}
               >
                 {tab}
               </button>
             ))}
           </div>
           <div className="relative shrink-0">
-            <MdSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+            <MdSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" size={15} />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search name, email, mobile..."
-              className="pl-8 pr-3 py-1.5 bg-[#111] border border-white/10 rounded-md text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#aa8453] w-48"
+              className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs text-slate-800 placeholder-gray-500 focus:outline-none focus:border-teal-600 w-48"
             />
           </div>
         </div>
       </div>
 
-      <div className="rounded-xl overflow-hidden border border-white/10 bg-[#141414] shadow-lg">
+      <div className="rounded-xl overflow-hidden border border-gray-200 bg-[#141414] shadow-lg">
         <div className="ag-theme-quartz ag-theme-bookings w-full" style={{ height: 500 }}>
           {loading ? (
             <div className="flex items-center justify-center h-full bg-white">
-              <div className="w-8 h-8 border-4 border-[#aa8453] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
             <AgGridReact
@@ -296,20 +296,20 @@ export default function GuestManagement() {
             />
           )}
         </div>
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[#1a1a1a] border-t border-white/10">
-          <span className="text-xs text-gray-400">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-white border-t border-gray-200">
+          <span className="text-xs text-gray-500">
             {total !== null
               ? `${total} guest${total !== 1 ? 's' : ''} · showing page ${page} of ${totalPages}`
               : 'Loading...'}
           </span>
           <div className="flex items-center gap-2">
             <button type="button" disabled={page === 1 || loading} onClick={() => setPage(p => p - 1)}
-              className="px-3 py-1 text-xs font-medium rounded border border-white/10 text-gray-300 disabled:opacity-40 hover:border-[#aa8453]/50 hover:text-white transition">
+              className="px-3 py-1 text-xs font-medium rounded border border-gray-200 text-gray-600 disabled:opacity-40 hover:border-teal-600/50 hover:text-slate-800 transition">
               Previous
             </button>
             <span className="text-xs text-gray-500 min-w-[4.5rem] text-center">{page} / {totalPages}</span>
             <button type="button" disabled={page >= totalPages || loading} onClick={() => setPage(p => p + 1)}
-              className="px-3 py-1 text-xs font-medium rounded border border-white/10 text-gray-300 disabled:opacity-40 hover:border-[#aa8453]/50 hover:text-white transition">
+              className="px-3 py-1 text-xs font-medium rounded border border-gray-200 text-gray-600 disabled:opacity-40 hover:border-teal-600/50 hover:text-slate-800 transition">
               Next
             </button>
           </div>
@@ -319,12 +319,12 @@ export default function GuestManagement() {
       {/* Detail Modal */}
       {detail && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setDetail(null)}>
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl w-full max-w-2xl overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
+          <div className="bg-white border border-gray-200 rounded-xl w-full max-w-2xl overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
             {/* Modal Header */}
-            <div className="p-6 border-b border-white/10 flex items-start justify-between">
+            <div className="p-6 border-b border-gray-200 flex items-start justify-between">
               <div>
-                <h2 className="text-lg font-bold text-white">{detail.full_name}</h2>
-                <p className="text-sm text-gray-400 mt-0.5">{detail.email}</p>
+                <h2 className="text-lg font-bold text-slate-800">{detail.full_name}</h2>
+                <p className="text-sm text-gray-500 mt-0.5">{detail.email}</p>
               </div>
               <span className={`px-3 py-1 rounded-full text-xs font-medium ${detail.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                 {detail.is_active ? 'Active' : 'Inactive'}
@@ -332,10 +332,10 @@ export default function GuestManagement() {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-white/10">
+            <div className="flex border-b border-gray-200">
               {(['info', 'profile', 'history'] as const).map(tab => (
                 <button key={tab} onClick={() => handleTabChange(tab)}
-                  className={`px-6 py-3 text-sm font-medium capitalize transition-colors ${detailTab === tab ? 'text-[#aa8453] border-b-2 border-[#aa8453]' : 'text-gray-400 hover:text-white'}`}>
+                  className={`px-6 py-3 text-sm font-medium capitalize transition-colors ${detailTab === tab ? 'text-teal-700 border-b-2 border-teal-600' : 'text-gray-500 hover:text-slate-800'}`}>
                   {tab === 'history' ? 'Stay History' : tab}
                 </button>
               ))}
@@ -359,22 +359,22 @@ export default function GuestManagement() {
                   </button>
 
                   <div>
-                    <h3 className="text-sm font-semibold text-white mb-3">Recent Bookings</h3>
+                    <h3 className="text-sm font-semibold text-slate-800 mb-3">Recent Bookings</h3>
                     {bookingsLoading ? (
-                      <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-[#aa8453] border-t-transparent rounded-full animate-spin" /></div>
+                      <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
                     ) : guestBookings.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-4 bg-white/5 rounded-lg">No bookings yet</p>
+                      <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">No bookings yet</p>
                     ) : (
                       <div className="space-y-2">
                         {guestBookings.map(b => (
-                          <div key={b.id} className="bg-white/5 rounded-lg p-3">
+                          <div key={b.id} className="bg-gray-50 rounded-lg p-3">
                             <div className="flex items-start justify-between">
-                              <span className="font-mono text-xs text-[#aa8453]">{b.booking_ref}</span>
+                              <span className="font-mono text-xs text-teal-700">{b.booking_ref}</span>
                               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[b.status] || ''}`}>{b.status.replace('_', ' ')}</span>
                             </div>
-                            <p className="text-gray-300 text-sm mt-1">{b.room_type_name}</p>
+                            <p className="text-gray-600 text-sm mt-1">{b.room_type_name}</p>
                             <p className="text-gray-500 text-xs mt-0.5">{b.check_in_date} → {b.check_out_date}</p>
-                            <p className="text-white text-sm font-medium mt-1">BDT {Number(b.total_price).toLocaleString()}</p>
+                            <p className="text-slate-800 text-sm font-medium mt-1">BDT {Number(b.total_price).toLocaleString()}</p>
                           </div>
                         ))}
                       </div>
@@ -386,23 +386,23 @@ export default function GuestManagement() {
               {/* PROFILE TAB */}
               {detailTab === 'profile' && (
                 profileLoading ? (
-                  <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-[#aa8453] border-t-transparent rounded-full animate-spin" /></div>
+                  <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
                 ) : profile ? (
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <h3 className="text-sm font-semibold text-white">Guest Profile</h3>
+                      <h3 className="text-sm font-semibold text-slate-800">Guest Profile</h3>
                       {profileEditing ? (
                         <div className="flex gap-2">
                           <button onClick={saveProfile} disabled={profileSaving}
-                            className="flex items-center gap-1 px-3 py-1 text-xs bg-[#aa8453] text-white rounded-lg hover:bg-[#c4a472] disabled:opacity-50">
+                            className="flex items-center gap-1 px-3 py-1 text-xs bg-teal-700 text-white rounded-lg hover:bg-teal-600 disabled:opacity-50">
                             <MdSave size={14} />{profileSaving ? 'Saving…' : 'Save'}
                           </button>
                           <button onClick={() => { setProfileEditing(false); setProfileForm(profile); }}
-                            className="px-3 py-1 text-xs text-gray-400 border border-white/10 rounded-lg hover:text-white">Cancel</button>
+                            className="px-3 py-1 text-xs text-gray-500 border border-gray-200 rounded-lg hover:text-slate-800">Cancel</button>
                         </div>
                       ) : (
                         <button onClick={() => setProfileEditing(true)}
-                          className="flex items-center gap-1 px-3 py-1 text-xs text-[#aa8453] hover:bg-[#aa8453]/10 rounded-lg">
+                          className="flex items-center gap-1 px-3 py-1 text-xs text-teal-700 hover:bg-teal-50 rounded-lg">
                           <MdEdit size={14} />Edit
                         </button>
                       )}
@@ -412,7 +412,7 @@ export default function GuestManagement() {
                     <div className="flex gap-2 flex-wrap">
                       {profile.vip && <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-500/20 text-yellow-400 font-medium">VIP</span>}
                       {profile.blacklisted && <span className="px-2 py-0.5 rounded-full text-xs bg-red-500/20 text-red-400 font-medium">Blacklisted</span>}
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${profile.loyalty_tier === 'PLATINUM' ? 'bg-purple-500/20 text-purple-400' : profile.loyalty_tier === 'GOLD' ? 'bg-yellow-500/20 text-yellow-400' : profile.loyalty_tier === 'SILVER' ? 'bg-gray-400/20 text-gray-300' : 'bg-white/5 text-gray-500'}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${profile.loyalty_tier === 'PLATINUM' ? 'bg-purple-500/20 text-purple-400' : profile.loyalty_tier === 'GOLD' ? 'bg-yellow-500/20 text-yellow-400' : profile.loyalty_tier === 'SILVER' ? 'bg-gray-400/20 text-gray-600' : 'bg-gray-50 text-gray-500'}`}>
                         {profile.loyalty_tier} · {profile.loyalty_points} pts
                       </span>
                     </div>
@@ -424,7 +424,7 @@ export default function GuestManagement() {
                         <div>
                           <label className="text-xs text-gray-500 mb-1 block">Gender</label>
                           <select value={profileForm.gender || ''} onChange={e => setProfileForm(p => ({ ...p, gender: e.target.value }))}
-                            className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded text-white text-sm focus:outline-none focus:border-[#aa8453]">
+                            className="w-full px-2 py-1.5 bg-gray-50 border border-gray-200 rounded text-slate-800 text-sm focus:outline-none focus:border-teal-600">
                             <option value="">—</option>
                             <option value="MALE">Male</option>
                             <option value="FEMALE">Female</option>
@@ -437,7 +437,7 @@ export default function GuestManagement() {
                         <div>
                           <label className="text-xs text-gray-500 mb-1 block">ID Type</label>
                           <select value={profileForm.id_type || ''} onChange={e => setProfileForm(p => ({ ...p, id_type: e.target.value }))}
-                            className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded text-white text-sm focus:outline-none focus:border-[#aa8453]">
+                            className="w-full px-2 py-1.5 bg-gray-50 border border-gray-200 rounded text-slate-800 text-sm focus:outline-none focus:border-teal-600">
                             <option value="">—</option>
                             <option value="PASSPORT">Passport</option>
                             <option value="NID">National ID</option>
@@ -449,7 +449,7 @@ export default function GuestManagement() {
                         <div>
                           <label className="text-xs text-gray-500 mb-1 block">Loyalty Tier</label>
                           <select value={profileForm.loyalty_tier || 'NONE'} onChange={e => setProfileForm(p => ({ ...p, loyalty_tier: e.target.value }))}
-                            className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded text-white text-sm focus:outline-none focus:border-[#aa8453]">
+                            className="w-full px-2 py-1.5 bg-gray-50 border border-gray-200 rounded text-slate-800 text-sm focus:outline-none focus:border-teal-600">
                             <option value="NONE">None</option>
                             <option value="SILVER">Silver</option>
                             <option value="GOLD">Gold</option>
@@ -458,19 +458,19 @@ export default function GuestManagement() {
                         </div>
                         <PField label="Loyalty Points" value={String(profileForm.loyalty_points || 0)} onChange={v => setProfileForm(p => ({ ...p, loyalty_points: Number(v) }))} type="number" />
                         <div className="col-span-2 flex gap-4">
-                          <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                             <input type="checkbox" checked={profileForm.vip || false} onChange={e => setProfileForm(p => ({ ...p, vip: e.target.checked }))}
-                              className="w-4 h-4 rounded bg-white/10 border-white/20 text-[#aa8453]" />VIP
+                              className="w-4 h-4 rounded bg-white/10 border-gray-300 text-teal-700" />VIP
                           </label>
-                          <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                             <input type="checkbox" checked={profileForm.blacklisted || false} onChange={e => setProfileForm(p => ({ ...p, blacklisted: e.target.checked }))}
-                              className="w-4 h-4 rounded bg-white/10 border-white/20 text-red-400" />Blacklisted
+                              className="w-4 h-4 rounded bg-white/10 border-gray-300 text-red-400" />Blacklisted
                           </label>
                         </div>
                         <div className="col-span-2">
                           <label className="text-xs text-gray-500 mb-1 block">Notes</label>
                           <textarea value={profileForm.notes || ''} onChange={e => setProfileForm(p => ({ ...p, notes: e.target.value }))}
-                            rows={2} className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded text-white text-sm focus:outline-none focus:border-[#aa8453]" />
+                            rows={2} className="w-full px-2 py-1.5 bg-gray-50 border border-gray-200 rounded text-slate-800 text-sm focus:outline-none focus:border-teal-600" />
                         </div>
                       </div>
                     ) : (
@@ -492,24 +492,24 @@ export default function GuestManagement() {
               {/* STAY HISTORY TAB */}
               {detailTab === 'history' && (
                 historyLoading ? (
-                  <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-[#aa8453] border-t-transparent rounded-full animate-spin" /></div>
+                  <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
                 ) : stayHistory.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-8 bg-white/5 rounded-lg">No stay history</p>
+                  <p className="text-sm text-gray-500 text-center py-8 bg-gray-50 rounded-lg">No stay history</p>
                 ) : (
                   <div className="space-y-3">
                     {stayHistory.map(s => (
-                      <div key={s.id} className="bg-white/5 rounded-lg p-4">
+                      <div key={s.id} className="bg-gray-50 rounded-lg p-4">
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <span className="font-mono text-xs text-[#aa8453]">{s.booking_ref}</span>
-                            <p className="text-white text-sm mt-1">{s.room_type_name}{s.room_number ? ` · Room ${s.room_number}` : ''}</p>
+                            <span className="font-mono text-xs text-teal-700">{s.booking_ref}</span>
+                            <p className="text-slate-800 text-sm mt-1">{s.room_type_name}{s.room_number ? ` · Room ${s.room_number}` : ''}</p>
                           </div>
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[s.status] || ''}`}>{s.status.replace('_', ' ')}</span>
                         </div>
-                        <div className="grid grid-cols-3 gap-2 text-xs text-gray-400">
+                        <div className="grid grid-cols-3 gap-2 text-xs text-gray-500">
                           <div>{s.check_in_date} → {s.check_out_date}</div>
                           <div>{s.nights} night{s.nights !== 1 ? 's' : ''}</div>
-                          <div className="text-right text-white">BDT {Number(s.total_price).toLocaleString()}</div>
+                          <div className="text-right text-slate-800">BDT {Number(s.total_price).toLocaleString()}</div>
                         </div>
                         {s.actual_check_in && (
                           <p className="text-xs text-gray-600 mt-1">Checked in: {new Date(s.actual_check_in).toLocaleString()}</p>
@@ -523,7 +523,7 @@ export default function GuestManagement() {
 
             {/* Modal Footer */}
             <div className="p-6 pt-0">
-              <button onClick={() => setDetail(null)} className="w-full py-2 text-gray-400 hover:text-white text-sm border border-white/10 rounded-lg">Close</button>
+              <button onClick={() => setDetail(null)} className="w-full py-2 text-gray-500 hover:text-slate-800 text-sm border border-gray-200 rounded-lg">Close</button>
             </div>
           </div>
         </div>
@@ -536,7 +536,7 @@ function GField({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-gray-500 text-xs mb-0.5">{label}</p>
-      <p className="text-white text-sm">{value}</p>
+      <p className="text-slate-800 text-sm">{value}</p>
     </div>
   );
 }
@@ -546,7 +546,7 @@ function PField({ label, value, onChange, type = 'text' }: { label: string; valu
     <div>
       <label className="text-xs text-gray-500 mb-1 block">{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
-        className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded text-white text-sm focus:outline-none focus:border-[#aa8453]" />
+        className="w-full px-2 py-1.5 bg-gray-50 border border-gray-200 rounded text-slate-800 text-sm focus:outline-none focus:border-teal-600" />
     </div>
   );
 }

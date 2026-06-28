@@ -31,7 +31,7 @@ const statusBadge: Record<string, string> = {
   PENDING: 'bg-yellow-500/20 text-yellow-400',
   CONFIRMED: 'bg-blue-500/20 text-blue-400',
   CHECKED_IN: 'bg-green-500/20 text-green-400',
-  CHECKED_OUT: 'bg-gray-500/20 text-gray-400',
+  CHECKED_OUT: 'bg-gray-500/20 text-gray-500',
   CANCELLED: 'bg-red-500/20 text-red-400',
 };
 
@@ -115,30 +115,30 @@ export default function FrontDesk() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white" style={{ fontFamily: '"Gilda Display", serif' }}>Front Desk</h1>
-          <p className="text-sm text-gray-400 mt-1">Manage arrivals, departures, and in-house guests</p>
+          <h1 className="text-2xl font-bold text-slate-800" style={{ fontFamily: '"Gilda Display", serif' }}>Front Desk</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage arrivals, departures, and in-house guests</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={fetchData} className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:bg-white/10 transition text-sm">
+          <button onClick={fetchData} className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 hover:bg-white/10 transition text-sm">
             <MdRefresh size={18} /> Refresh
           </button>
-          <button onClick={() => setShowReservation(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-lg text-white hover:bg-blue-700 transition text-sm">
+          <button onClick={() => setShowReservation(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-lg text-slate-800 hover:bg-blue-700 transition text-sm">
             <MdEventAvailable size={18} /> Reservation
           </button>
-          <button onClick={() => setShowWalkIn(true)} className="flex items-center gap-2 px-4 py-2 bg-[#aa8453] rounded-lg text-white hover:bg-[#8a6a3f] transition text-sm">
+          <button onClick={() => setShowWalkIn(true)} className="flex items-center gap-2 px-4 py-2 bg-teal-700 rounded-lg text-white hover:bg-teal-800 transition text-sm">
             <MdPersonAdd size={18} /> New Registration
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-[#1a1a1a] border border-white/10 rounded-xl p-1">
+      <div className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1">
         {tabs.map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              tab === t.key ? 'bg-[#aa8453] text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
+              tab === t.key ? 'bg-teal-700 text-white' : 'text-gray-500 hover:text-slate-800 hover:bg-gray-50'
             }`}
           >
             {t.icon} {t.label}
@@ -152,18 +152,18 @@ export default function FrontDesk() {
       {/* Content */}
       {loading ? (
         <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-4 border-[#aa8453] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : currentList.length === 0 ? (
         <div className="text-center py-20 text-gray-500">
           No {tab === 'arrivals' ? 'expected arrivals' : tab === 'departures' ? 'expected departures' : 'in-house guests'} today
         </div>
       ) : (
-        <div className="bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-white/5">
-                <tr className="text-gray-400 text-left">
+              <thead className="bg-gray-50">
+                <tr className="text-gray-500 text-left">
                   <th className="px-4 py-3 font-medium">Ref</th>
                   <th className="px-4 py-3 font-medium">Guest</th>
                   <th className="px-4 py-3 font-medium">Room Type</th>
@@ -177,8 +177,8 @@ export default function FrontDesk() {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {currentList.map(b => (
-                  <tr key={b.id} className="text-gray-300 hover:bg-white/5">
-                    <td className="px-4 py-3 font-mono text-xs text-[#aa8453]">{b.booking_ref}</td>
+                  <tr key={b.id} className="text-gray-600 hover:bg-gray-50">
+                    <td className="px-4 py-3 font-mono text-xs text-teal-700">{b.booking_ref}</td>
                     <td className="px-4 py-3">{b.guest_name}</td>
                     <td className="px-4 py-3">{b.room_type_detail?.name ?? '—'}</td>
                     <td className="px-4 py-3">{b.room_number ?? '—'}</td>

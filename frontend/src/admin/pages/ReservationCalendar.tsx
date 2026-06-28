@@ -131,29 +131,29 @@ export default function ReservationCalendar() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white" style={{ fontFamily: '"Gilda Display", serif' }}>Reservation Calendar</h1>
-          <p className="text-sm text-gray-400 mt-1">Room availability overview</p>
+          <h1 className="text-2xl font-bold text-slate-800" style={{ fontFamily: '"Gilda Display", serif' }}>Reservation Calendar</h1>
+          <p className="text-sm text-gray-500 mt-1">Room availability overview</p>
         </div>
         <div className="flex items-center gap-2">
           <select
             value={viewDays}
             onChange={e => setViewDays(Number(e.target.value))}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none"
+            className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:outline-none"
           >
             <option value={7}>7 Days</option>
             <option value={14}>14 Days</option>
             <option value={30}>30 Days</option>
           </select>
-          <button onClick={goToToday} className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-300 text-sm hover:bg-white/10 transition">
+          <button onClick={goToToday} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 text-sm hover:bg-white/10 transition">
             Today
           </button>
-          <button onClick={() => navigate(-1)} className="p-2 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:bg-white/10 transition">
+          <button onClick={() => navigate(-1)} className="p-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 hover:bg-white/10 transition">
             <MdChevronLeft size={20} />
           </button>
-          <button onClick={() => navigate(1)} className="p-2 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:bg-white/10 transition">
+          <button onClick={() => navigate(1)} className="p-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 hover:bg-white/10 transition">
             <MdChevronRight size={20} />
           </button>
-          <button onClick={fetchData} className="p-2 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:bg-white/10 transition">
+          <button onClick={fetchData} className="p-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 hover:bg-white/10 transition">
             <MdRefresh size={20} />
           </button>
         </div>
@@ -164,33 +164,33 @@ export default function ReservationCalendar() {
         {Object.entries(statusColors).map(([s, c]) => (
           <div key={s} className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: c }} />
-            <span className="text-gray-400">{s.replace('_', ' ')}</span>
+            <span className="text-gray-500">{s.replace('_', ' ')}</span>
           </div>
         ))}
         <div className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-sm bg-gray-600" style={{ backgroundImage: 'repeating-linear-gradient(45deg,transparent,transparent 2px,rgba(255,255,255,0.1) 2px,rgba(255,255,255,0.1) 4px)' }} />
-          <span className="text-gray-400">Maintenance</span>
+          <span className="text-gray-500">Maintenance</span>
         </div>
       </div>
 
       {/* Calendar Grid */}
       {loading ? (
         <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-4 border-[#aa8453] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="bg-[#1a1a1a] border border-white/10 rounded-xl overflow-auto">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-auto">
           <div className="min-w-max">
             {/* Date header */}
-            <div className="flex sticky top-0 z-10 bg-[#1a1a1a] border-b border-white/10">
-              <div className="w-40 min-w-40 flex-shrink-0 px-3 py-2 text-xs text-gray-400 font-medium border-r border-white/10">
+            <div className="flex sticky top-0 z-10 bg-white border-b border-gray-200">
+              <div className="w-40 min-w-40 flex-shrink-0 px-3 py-2 text-xs text-gray-500 font-medium border-r border-gray-200">
                 Room
               </div>
               {dates.map((d, i) => (
                 <div
                   key={i}
                   className={`w-24 min-w-24 flex-shrink-0 px-2 py-2 text-center text-xs border-r border-white/5 ${
-                    isSameDay(d, today) ? 'bg-[#aa8453]/20 text-[#aa8453] font-bold' : 'text-gray-400'
+                    isSameDay(d, today) ? 'bg-teal-50 text-teal-700 font-bold' : 'text-gray-500'
                   } ${d.getDay() === 0 || d.getDay() === 6 ? 'bg-white/3' : ''}`}
                 >
                   {formatShortDate(d)}
@@ -204,8 +204,8 @@ export default function ReservationCalendar() {
               return (
                 <div key={room.id} className="flex border-b border-white/5 relative" style={{ minHeight: '40px' }}>
                   {/* Room label */}
-                  <div className="w-40 min-w-40 flex-shrink-0 px-3 py-2 border-r border-white/10 flex items-center gap-2">
-                    <span className="text-white text-xs font-medium">{room.room_number}</span>
+                  <div className="w-40 min-w-40 flex-shrink-0 px-3 py-2 border-r border-gray-200 flex items-center gap-2">
+                    <span className="text-slate-800 text-xs font-medium">{room.room_number}</span>
                     <span className="text-gray-500 text-xs truncate">{room.room_type}</span>
                     {room.status === 'MAINTENANCE' && (
                       <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px]">OOS</span>
@@ -219,7 +219,7 @@ export default function ReservationCalendar() {
                         key={i}
                         className={`w-24 min-w-24 flex-shrink-0 border-r border-white/5 ${
                           room.status === 'MAINTENANCE' ? 'bg-gray-800/50' : ''
-                        } ${isSameDay(d, today) ? 'bg-[#aa8453]/5' : ''}`}
+                        } ${isSameDay(d, today) ? 'bg-teal-50/50' : ''}`}
                       />
                     ))}
 
@@ -231,7 +231,7 @@ export default function ReservationCalendar() {
                       return (
                         <div
                           key={booking.id}
-                          className="absolute top-1 h-7 rounded-md flex items-center px-2 text-white text-[10px] font-medium overflow-hidden cursor-pointer hover:brightness-110 transition-all"
+                          className="absolute top-1 h-7 rounded-md flex items-center px-2 text-slate-800 text-[10px] font-medium overflow-hidden cursor-pointer hover:brightness-110 transition-all"
                           style={{
                             left: `${bar.startCol * 96}px`,
                             width: `${bar.span * 96 - 4}px`,

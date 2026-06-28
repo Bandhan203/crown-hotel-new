@@ -3,20 +3,20 @@
 @import "ag-grid-community/styles/ag-theme-quartz.css";
 
 @theme {
-  --color-primary: #1e40af;
-  --color-primary-dark: #1e3a8a;
-  --color-primary-light: #3b82f6;
-  --gradient-primary: linear-gradient(135deg, #2563eb, #1e3a8a);
-  --color-dark: #1b1b1b;
-  --color-dark-2: #222222;
-  --color-dark-3: #272727;
-  --color-body: #666666;
-  --color-light: #f8f5f0;
-  --color-light-2: #f4f0ea;
+  --color-primary: #0f766e; /* teal-700 */
+  --color-primary-dark: #115e59; /* teal-800 */
+  --color-primary-light: #14b8a6; /* teal-500 */
+  --gradient-primary: var(--color-primary);
+  --color-dark: #1e293b; /* slate-800 */
+  --color-dark-2: #334155; /* slate-700 */
+  --color-dark-3: #475569; /* slate-600 */
+  --color-body: #64748b; /* slate-500 */
+  --color-light: #f8fafc; /* slate-50 */
+  --color-light-2: #f1f5f9; /* slate-100 */
   --color-white: #ffffff;
-  --font-heading: "Gilda Display", serif;
-  --font-body: "Barlow", sans-serif;
-  --font-condensed: "Barlow Condensed", sans-serif;
+  --font-heading: "Inter", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-condensed: "Inter", sans-serif;
 }
 
 /* ── Base layer: resets & element defaults ── */
@@ -137,7 +137,7 @@
     padding: 12px 35px;
     border: none;
     color: var(--color-white);
-    background: var(--gradient-primary);
+    background-color: var(--color-primary);
     font-family: var(--font-body);
     font-weight: 500;
     font-size: 14px;
@@ -149,7 +149,8 @@
   }
 
   .btn-primary:hover {
-    box-shadow: 0 4px 15px rgba(30, 58, 138, 0.4);
+    box-shadow: 0 4px 15px rgba(15, 118, 110, 0.4);
+    background-color: var(--color-primary-dark);
     transform: translateY(-2px);
   }
 
@@ -216,17 +217,17 @@ select.text-white option {
 
 /* AG Grid — professional bookings table (light card on dark admin) */
 .ag-theme-bookings {
-  --ag-active-color: #aa8453;
+  --ag-active-color: #0f766e;
   --ag-background-color: #ffffff;
   --ag-foreground-color: #1e293b;
   --ag-secondary-foreground-color: #64748b;
-  --ag-header-background-color: #f1f5f9;
+  --ag-header-background-color: #f8fafc;
   --ag-header-foreground-color: #475569;
   --ag-border-color: #e2e8f0;
   --ag-secondary-border-color: #e2e8f0;
-  --ag-row-hover-color: #f8fafc;
-  --ag-selected-row-background-color: #fef7ed;
-  --ag-font-family: "Barlow", system-ui, sans-serif;
+  --ag-row-hover-color: #f1f5f9;
+  --ag-selected-row-background-color: #f0fdfa;
+  --ag-font-family: "Inter", system-ui, sans-serif;
   --ag-font-size: 13px;
   --ag-grid-size: 6px;
   --ag-row-height: 40px;
@@ -364,17 +365,17 @@ select.text-white option {
 
 /* Combined with ag-theme-quartz — force light bookings look (bookings, rooms, guests pages) */
 .ag-theme-quartz.ag-theme-bookings {
-  --ag-active-color: #aa8453;
+  --ag-active-color: #0f766e;
   --ag-background-color: #ffffff;
   --ag-foreground-color: #1e293b;
   --ag-secondary-foreground-color: #64748b;
-  --ag-header-background-color: #f1f5f9;
+  --ag-header-background-color: #f8fafc;
   --ag-header-foreground-color: #475569;
   --ag-border-color: #e2e8f0;
   --ag-secondary-border-color: #e2e8f0;
-  --ag-row-hover-color: #f8fafc;
-  --ag-selected-row-background-color: #fef7ed;
-  --ag-font-family: "Barlow", system-ui, sans-serif;
+  --ag-row-hover-color: #f1f5f9;
+  --ag-selected-row-background-color: #f0fdfa;
+  --ag-font-family: "Inter", system-ui, sans-serif;
   --ag-font-size: 13px;
   --ag-grid-size: 6px;
   --ag-row-height: 40px;

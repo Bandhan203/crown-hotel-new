@@ -16,11 +16,11 @@ export default function VideoSection() {
       style={{ backgroundImage: `url(${videoImage})` }}
     >
       <div className="overlay" />
-      <div className="relative z-10 text-center text-white">
+      <div className="relative z-10 text-center text-slate-800">
         <span className="font-[var(--font-condensed)] text-sm tracking-[6px] uppercase text-[var(--color-primary)]">
           HOTEL CROWN
         </span>
-        <h2 className="font-[var(--font-heading)] text-3xl md:text-5xl text-white mt-4 mb-8">
+        <h2 className="font-[var(--font-heading)] text-3xl md:text-5xl text-slate-800 mt-4 mb-8">
           {videoTitle}
         </h2>
         <a
@@ -29,7 +29,7 @@ export default function VideoSection() {
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center w-20 h-20 rounded-full border-2 border-white/50 hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)] transition-all group"
         >
-          <FaPlay className="text-white ml-1 group-hover:scale-110 transition-transform" size={20} />
+          <FaPlay className="text-slate-800 ml-1 group-hover:scale-110 transition-transform" size={20} />
         </a>
       </div>
     </section>

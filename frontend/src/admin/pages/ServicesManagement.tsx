@@ -77,7 +77,7 @@ export default function ServicesManagement() {
 
   return (
     <div className="space-y-2">
-      <div className="rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2">
+      <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex gap-0.5 p-0.5 rounded-md border border-white/5 shrink-0">
             {(['services', 'facilities'] as Tab[]).map(t => (
@@ -85,7 +85,7 @@ export default function ServicesManagement() {
                 key={t}
                 type="button"
                 onClick={() => setTab(t)}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium transition ${tab === t ? 'bg-[#aa8453] text-white' : 'text-gray-400 hover:text-white'}`}
+                className={`px-2.5 py-1 rounded text-[11px] font-medium transition ${tab === t ? 'bg-teal-700 text-white' : 'text-gray-500 hover:text-slate-800'}`}
               >
                 {t === 'services' ? 'Services' : 'Facilities'}
               </button>
@@ -94,7 +94,7 @@ export default function ServicesManagement() {
           <button
             type="button"
             onClick={() => { setEditItem(null); setShowModal(true); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#aa8453] text-white rounded-md text-xs font-medium hover:bg-[#c49b63] transition shrink-0 ml-auto"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-700 text-white rounded-md text-xs font-medium hover:bg-teal-600 transition shrink-0 ml-auto"
           >
             <MdAdd size={16} /> Add {tab === 'services' ? 'Service' : 'Facility'}
           </button>
@@ -111,8 +111,8 @@ export default function ServicesManagement() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => { setShowModal(false); setEditItem(null); }}>
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-white mb-4">{editItem ? 'Edit' : 'Add'} {tab === 'services' ? 'Service' : 'Facility'}</h2>
+          <div className="bg-white border border-gray-200 rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-slate-800 mb-4">{editItem ? 'Edit' : 'Add'} {tab === 'services' ? 'Service' : 'Facility'}</h2>
             <ServiceForm initial={editItem} isService={tab === 'services'} onSave={handleSave} />
           </div>
         </div>
@@ -141,11 +141,11 @@ function ServiceForm({ initial, isService, onSave }: { initial: any; isService: 
       {!isService && (
         <>
           <div>
-            <label className="block text-sm text-gray-300 mb-1">Category</label>
+            <label className="block text-sm text-gray-600 mb-1">Category</label>
             <select
               value={form.category}
               onChange={(e) => set('category', e.target.value)}
-              className="w-full px-3 py-2 bg-[#0f0f0f] border border-white/10 rounded-lg text-white text-sm focus:border-[#aa8453] outline-none"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-slate-800 text-sm focus:border-teal-600 outline-none"
             >
               <option value="COMPLIMENTARY">Complimentary Services</option>
               <option value="GENERAL">General Facilities</option>
@@ -160,11 +160,11 @@ function ServiceForm({ initial, isService, onSave }: { initial: any; isService: 
           )}
         </>
       )}
-      <label className="flex items-center gap-2 text-sm text-gray-300">
+      <label className="flex items-center gap-2 text-sm text-gray-600">
         <input type="checkbox" checked={form.is_active} onChange={e => set('is_active', e.target.checked)}
-          className="w-4 h-4 rounded border-white/10 bg-[#0f0f0f]" />Active
+          className="w-4 h-4 rounded border-gray-200 bg-gray-50" />Active
       </label>
-      <button onClick={() => onSave(form)} className="w-full py-2 bg-[#aa8453] hover:bg-[#c49b63] text-white rounded-lg text-sm font-medium">Save</button>
+      <button onClick={() => onSave(form)} className="w-full py-2 bg-teal-700 hover:bg-teal-600 text-white rounded-lg text-sm font-medium">Save</button>
     </div>
   );
 }
@@ -172,9 +172,9 @@ function ServiceForm({ initial, isService, onSave }: { initial: any; isService: 
 function FI({ label, value, onChange, placeholder = '' }: { label: string; value: any; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <div>
-      <label className="block text-sm text-gray-300 mb-1">{label}</label>
+      <label className="block text-sm text-gray-600 mb-1">{label}</label>
       <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full px-3 py-2 bg-[#0f0f0f] border border-white/10 rounded-lg text-white text-sm focus:border-[#aa8453] outline-none" />
+        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-slate-800 text-sm focus:border-teal-600 outline-none" />
     </div>
   );
 }

@@ -82,7 +82,7 @@ export default function RoomsSection() {
                     <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm text-[var(--color-dark)] px-3 py-1 text-xs font-bold rounded-md">
                       {room.max_guests} Guests
                     </div>
-                    <div className="absolute top-4 right-4 bg-[var(--color-dark)] text-white px-4 py-1.5 text-sm font-semibold rounded-full shadow-lg">
+                    <div className="absolute top-4 right-4 bg-[var(--color-dark)] text-slate-800 px-4 py-1.5 text-sm font-semibold rounded-full shadow-lg">
                       BDT {bdt.toLocaleString()} / USD {usd}
                     </div>
                   </div>

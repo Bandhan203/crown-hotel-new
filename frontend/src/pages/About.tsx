@@ -128,7 +128,7 @@ export default function About() {
               { number: '100%', label: 'Guest Focused' },
             ].map((stat, i) => (
               <div key={i}>
-                <h3 className="text-4xl md:text-5xl font-[var(--font-heading)] text-white mb-2">
+                <h3 className="text-4xl md:text-5xl font-[var(--font-heading)] text-slate-800 mb-2">
                   {stat.number}
                 </h3>
                 <p className="text-[var(--color-primary)] font-[var(--font-condensed)] uppercase tracking-[3px] text-sm">

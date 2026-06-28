@@ -21,6 +21,6 @@ export const gridDefaultColDef: ColDef = {
 };
 
 export const actionBtn = 'inline-flex items-center justify-center rounded border transition shrink-0';
-export const goldBtn = `${actionBtn} px-1.5 h-5 text-[10px] font-semibold text-[#8a6a3f] border-[#aa8453]/35 bg-[#aa8453]/5 hover:bg-[#aa8453]/15`;
+export const goldBtn = `${actionBtn} px-1.5 h-5 text-[10px] font-semibold text-teal-700 border-teal-600/35 bg-teal-50/50 hover:bg-teal-100`;
 export const editBtn = `${actionBtn} w-5 h-5 text-blue-700 border-blue-200 bg-blue-50 hover:bg-blue-100`;
 export const deleteBtn = `${actionBtn} w-5 h-5 text-red-700 border-red-200 bg-red-50 hover:bg-red-100`;
