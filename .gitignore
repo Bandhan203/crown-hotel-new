@@ -1,0 +1,29 @@
+# Ignore environment files anywhere in the repo
+*.env
+
+# Virtual environments
+venv/
+**/venv/
+
+# Node and build outputs
+node_modules/
+dist/
+!frontend/dist/
+dist-ssr/
+
+# Editor dirs
+.vscode/
+.idea/
+
+# Python bytecode
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyc
+
+# cPanel / server generated files
+.htaccess
+.well-known/
+
+# Collected static files
+staticfiles/
