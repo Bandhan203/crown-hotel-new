@@ -40,11 +40,21 @@ export default function AdminLayout() {
   }, [navigate]);
 
   return (
-    <div className="flex h-screen w-full bg-gray-50 text-slate-700 overflow-hidden font-inter">
+    <div className={`flex h-screen w-full overflow-hidden ${isDashboard ? 'bg-surface text-on-surface font-[Manrope,Inter,sans-serif]' : 'bg-gray-50 text-slate-700 font-inter'}`}>
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <AdminHeader onMenuClick={() => setSidebarOpen(true)} />
-        <main className={`flex-1 overflow-hidden ${isDashboard ? '' : 'overflow-y-auto overflow-x-hidden p-4 lg:p-6'}`}>
+        {!isDashboard && <AdminHeader onMenuClick={() => setSidebarOpen(true)} />}
+        {isDashboard && (
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden fixed top-4 left-4 z-30 p-2 bg-white border border-outline-variant rounded-lg shadow-sm"
+            aria-label="Open menu"
+          >
+            ☰
+          </button>
+        )}
+        <main className={`flex-1 min-h-0 ${isDashboard ? 'overflow-y-auto overflow-x-hidden custom-scrollbar' : 'overflow-y-auto overflow-x-hidden p-4 lg:p-6'}`}>
           <Outlet />
         </main>
       </div>

@@ -3,9 +3,30 @@
 @import "ag-grid-community/styles/ag-theme-quartz.css";
 
 @theme {
-  --color-primary: #0f766e; /* teal-700 */
-  --color-primary-dark: #115e59; /* teal-800 */
-  --color-primary-light: #14b8a6; /* teal-500 */
+  --color-primary: #004349;
+  --color-primary-dark: #003338;
+  --color-primary-light: #0d5c63;
+  --color-primary-container: #0d5c63;
+  --color-on-primary-container: #90d2da;
+  --color-surface: #f8fafa;
+  --color-on-surface: #191c1d;
+  --color-on-surface-variant: #3f484a;
+  --color-outline-variant: #bfc8c9;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f2f4f4;
+  --color-surface-container: #eceeee;
+  --color-surface-container-high: #e6e8e8;
+  --color-surface-container-highest: #e1e3e3;
+  --color-primary-fixed: #abeef6;
+  --color-on-primary-fixed-variant: #004f55;
+  --color-on-primary-fixed: #002023;
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-status-available: #4CAF50;
+  --color-status-occupied: #0D5C63;
+  --color-status-dirty: #FF9800;
+  --color-status-ooo: #F44336;
+  --color-outline: #6f797a;
   --gradient-primary: var(--color-primary);
   --color-dark: #1e293b; /* slate-800 */
   --color-dark-2: #334155; /* slate-700 */
@@ -14,9 +35,9 @@
   --color-light: #f8fafc; /* slate-50 */
   --color-light-2: #f1f5f9; /* slate-100 */
   --color-white: #ffffff;
-  --font-heading: "Inter", sans-serif;
-  --font-body: "Inter", sans-serif;
-  --font-condensed: "Inter", sans-serif;
+  --font-heading: "Manrope", "Inter", sans-serif;
+  --font-body: "Manrope", "Inter", sans-serif;
+  --font-condensed: "Manrope", "Inter", sans-serif;
 }
 
 /* ── Base layer: resets & element defaults ── */
@@ -195,6 +216,26 @@
 @layer utilities {
   .animate-kenburns {
     animation: kenburns 20s ease-in-out infinite alternate;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #bfc8c9;
+    border-radius: 10px;
+  }
+
+  .room-card {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .room-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
 }
 

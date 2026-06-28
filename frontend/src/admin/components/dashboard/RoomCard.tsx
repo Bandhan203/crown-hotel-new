@@ -1,65 +1,78 @@
-import { MdInfoOutline } from 'react-icons/md';
+import {
+  MdPerson, MdCheckCircle, MdCleaningServices, MdConstruction,
+} from 'react-icons/md';
 
 interface RoomCardProps {
-  room: any;
+  room: {
+    id: number;
+    room_number: string;
+    status: string;
+    housekeeping_status: string;
+    guest_name?: string | null;
+  };
   selected: boolean;
   onClick: () => void;
 }
 
-const getStatusConfig = (status: string, hkStatus: string) => {
-  if (status === 'MAINTENANCE' || hkStatus === 'OUT_OF_ORDER') {
-    return { label: 'OOO',      labelClass: 'text-violet-600', rowClass: 'bg-violet-50 hover:bg-violet-100' };
-  }
-  if (status === 'OCCUPIED') {
-    return { label: 'OCCUPIED', labelClass: 'text-red-600',    rowClass: 'bg-red-50 hover:bg-red-100' };
-  }
-  if (['DIRTY', 'OD', 'VD'].includes(hkStatus)) {
-    return { label: 'DIRTY',    labelClass: 'text-orange-600', rowClass: 'hover:bg-gray-50' };
-  }
-  if (status === 'RESERVED') {
-    return { label: 'RESV',     labelClass: 'text-blue-600',   rowClass: 'bg-blue-50 hover:bg-blue-100' };
-  }
-  return   { label: 'VAC',      labelClass: 'text-green-600',  rowClass: 'hover:bg-gray-50' };
+type VisualStatus = 'available' | 'occupied' | 'dirty' | 'ooo' | 'reserved';
+
+function resolveStatus(status: string, hkStatus: string): VisualStatus {
+  if (status === 'MAINTENANCE' || hkStatus === 'OUT_OF_ORDER') return 'ooo';
+  if (status === 'OCCUPIED') return 'occupied';
+  if (['DIRTY', 'OD', 'VD'].includes(hkStatus)) return 'dirty';
+  if (status === 'RESERVED') return 'reserved';
+  return 'available';
+}
+
+const BORDER: Record<VisualStatus, string> = {
+  available: 'border-status-available',
+  occupied: 'border-status-occupied',
+  dirty: 'border-status-dirty',
+  ooo: 'border-status-ooo',
+  reserved: 'border-primary',
 };
 
+const ICON: Record<VisualStatus, React.ReactNode> = {
+  available: <MdCheckCircle className="text-sm text-status-available" />,
+  occupied: <MdPerson className="text-sm text-primary" />,
+  dirty: <MdCleaningServices className="text-sm text-status-dirty" />,
+  ooo: <MdConstruction className="text-sm text-error" />,
+  reserved: <MdPerson className="text-sm text-primary" />,
+};
+
+function guestLabel(name: string | null | undefined) {
+  if (!name) return '-';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  return `${parts[0][0]}. ${parts[parts.length - 1]}`;
+}
+
 export default function RoomCard({ room, selected, onClick }: RoomCardProps) {
-  const cfg = getStatusConfig(room.status, room.housekeeping_status);
+  const visual = resolveStatus(room.status, room.housekeeping_status);
+  const border = BORDER[visual];
+  const isOoo = visual === 'ooo';
 
   return (
     <button
       type="button"
       onClick={onClick}
       className={`
-        w-full p-4 border-b border-gray-100 last:border-b-0 relative group cursor-pointer text-left
-        transition-colors
-        ${selected ? 'bg-teal-50 ring-1 ring-inset ring-teal-400' : cfg.rowClass}
+        room-card group cursor-pointer p-2 border-t-4 rounded-lg shadow-sm
+        border-x border-b border-outline-variant/30 bg-white text-left w-full
+        ${border}
+        ${selected ? 'ring-2 ring-primary ring-offset-1' : ''}
+        ${isOoo ? 'opacity-60' : ''}
       `}
     >
-      <div className="flex justify-between items-start">
-        <span className={`text-sm font-bold ${selected ? 'text-teal-700' : 'text-slate-700'}`}>
-          {room.room_number}
-        </span>
-        <MdInfoOutline className="w-3 h-3 text-gray-600 group-hover:text-gray-500" />
+      <div className="flex justify-between items-start mb-1">
+        <span className="font-bold text-sm text-on-surface">{room.room_number}</span>
+        {ICON[visual]}
       </div>
-
-      {room.status === 'OCCUPIED' ? (
-        <div className="mt-1">
-          {room.guest_name && (
-            <p className={`text-[9px] font-extrabold tracking-wider uppercase ${cfg.labelClass}`}>
-              {room.guest_name.split(' ')[0]}
-            </p>
-          )}
-          {room.nights_remaining !== undefined && (
-            <p className="text-[8px] text-gray-500 mt-0.5">
-              {room.nights_remaining === 0 ? 'Dpt Today' : `${room.nights_remaining} Nts`}
-            </p>
-          )}
-        </div>
-      ) : (
-        <p className={`text-[9px] font-extrabold mt-4 tracking-wider ${cfg.labelClass}`}>
-          {cfg.label}
-        </p>
-      )}
+      <p className="text-[10px] font-bold text-on-surface-variant truncate uppercase">
+        {visual === 'occupied' || visual === 'reserved'
+          ? guestLabel(room.guest_name)
+          : visual === 'ooo' ? 'Maint.' : '-'}
+      </p>
     </button>
   );
 }

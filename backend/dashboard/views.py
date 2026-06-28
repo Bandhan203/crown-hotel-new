@@ -66,7 +66,9 @@ class RoomGridContextView(APIView):
         }
 
         # Find current occupant
-        booking = Booking.objects.filter(room=room, status='CHECKED_IN').first()
+        booking = Booking.objects.filter(room=room, status='CHECKED_IN').select_related(
+            'guest', 'parent_booking', 'guest__guest_profile'
+        ).first()
         if booking:
             # Calculate balance
             from bookings.models import FolioCharge, Payment
@@ -74,14 +76,46 @@ class RoomGridContextView(APIView):
             payments_total = Payment.objects.filter(booking=booking, status='COMPLETED').aggregate(total=Sum('amount'))['total'] or 0
             balance = float(booking.total_price) + float(folio_total) - float(payments_total)
 
+            guest = booking.guest
+            profile = getattr(guest, 'guest_profile', None)
+
+            dob_str = None
+            id_expiry_str = None
+            if profile:
+                if profile.date_of_birth:
+                    dob_str = profile.date_of_birth.isoformat()
+                if profile.id_expiry:
+                    id_expiry_str = profile.id_expiry.isoformat()
+
             context['occupant'] = {
                 'booking_id': booking.id,
-                'guest_name': booking.guest.full_name,
+                'guest_name': guest.full_name,
+                'phone': guest.phone or '',
+                'company_name': booking.company_name or '',
+                'dob': dob_str,
+                'gender': profile.gender if profile else '',
+                'adults': booking.adults,
+                'children': booking.children,
+                'infants': booking.infants,
+                'place_of_issue': profile.place_of_issue if profile else '',
+                'visa_no': profile.visa_no if profile else '',
+                'id_expiry': id_expiry_str,
                 'check_in': booking.check_in_date.isoformat(),
                 'check_out': booking.check_out_date.isoformat(),
+                'arrival_time': booking.arrival_time.isoformat() if booking.arrival_time else None,
+                'departure_time': booking.departure_time.isoformat() if booking.departure_time else None,
                 'booking_ref': booking.booking_ref,
+                'parent_booking_ref': booking.parent_booking.booking_ref if booking.parent_booking else None,
+                'arrival_mode': booking.arrival_mode or '',
+                'vehicle_assigned': booking.vehicle_assigned or '',
+                'meal_plan': booking.meal_plan,
+                'meal_plan_label': booking.get_meal_plan_display(),
+                'market_code': booking.reference_source or booking.booking_source,
+                'advance_paid': float(payments_total or booking.deposit_amount or 0),
                 'balance_due': round(balance, 2),
                 'guest_preferences': booking.guest_preferences,
+                'special_requests': booking.special_requests,
+                'internal_notes': booking.notes_internal or booking.profile_note or '',
             }
 
         return Response(context)

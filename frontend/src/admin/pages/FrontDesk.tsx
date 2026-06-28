@@ -125,7 +125,7 @@ export default function FrontDesk() {
           <button onClick={() => setShowReservation(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-lg text-slate-800 hover:bg-blue-700 transition text-sm">
             <MdEventAvailable size={18} /> Reservation
           </button>
-          <button onClick={() => setShowWalkIn(true)} className="flex items-center gap-2 px-4 py-2 bg-teal-700 rounded-lg text-white hover:bg-teal-800 transition text-sm">
+          <button onClick={() => setShowWalkIn(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-container rounded-lg text-white hover:brightness-110 transition text-sm font-semibold shadow-sm">
             <MdPersonAdd size={18} /> New Registration
           </button>
         </div>
