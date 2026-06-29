@@ -136,9 +136,11 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             'drop_required', 'flight_drop_no', 'flight_etd',
             'profile_note',
             # Payment
-            'payment_status',
+            'payment_status', 'currency', 'billing_type',
             # Meal plan & arrival logistics
             'meal_plan', 'arrival_mode', 'vehicle_assigned',
+            'reference_source', 'guest_hobbies', 'guest_preferences',
+            'airport_details', 'transport_notes', 'parent_booking',
         ]
 
 
@@ -294,6 +296,16 @@ class ReservationCreateSerializer(serializers.Serializer):
     check_in_date = serializers.DateField()
     check_out_date = serializers.DateField()
     arrival_time = serializers.TimeField(required=False, allow_null=True, default=None)
+    departure_time = serializers.TimeField(required=False, allow_null=True, default=None)
+    parent_booking_id = serializers.IntegerField(required=False, allow_null=True, default=None)
+    currency = serializers.ChoiceField(
+        choices=[('BDT', 'BDT'), ('USD', 'USD')], required=False, default='BDT'
+    )
+    reference_source = serializers.CharField(max_length=50, required=False, allow_blank=True, default='')
+    guest_hobbies = serializers.CharField(required=False, allow_blank=True, default='')
+    guest_preferences = serializers.CharField(required=False, allow_blank=True, default='')
+    airport_details = serializers.CharField(required=False, allow_blank=True, default='')
+    transport_notes = serializers.CharField(required=False, allow_blank=True, default='')
     adults = serializers.IntegerField(default=1)
     children = serializers.IntegerField(default=0)
     infants = serializers.IntegerField(required=False, default=0)
@@ -368,6 +380,11 @@ class ReservationCreateSerializer(serializers.Serializer):
 class CheckInSerializer(serializers.Serializer):
     """Check-in form fields."""
     room_id = serializers.IntegerField(required=False, allow_null=True, default=None)
+    billing_type = serializers.ChoiceField(
+        choices=[('GUEST', 'Guest Payment'), ('COMPANY', 'Company Payment')],
+        required=False,
+        default='GUEST',
+    )
     id_type = serializers.ChoiceField(choices=Booking.IdType.choices, required=False, default='')
     id_number = serializers.CharField(max_length=50, required=False, default='')
     deposit_amount = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=0)
@@ -384,6 +401,9 @@ class CheckOutSerializer(serializers.Serializer):
     payment_amount = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=0)
     payment_method = serializers.ChoiceField(choices=Payment.Method.choices, required=False, default='CASH')
     notes_internal = serializers.CharField(required=False, default='')
+    password = serializers.CharField(required=False, default='', write_only=True)
+    authorization = serializers.CharField(required=False, default='', write_only=True)
+    checkout_phrase = serializers.CharField(required=False, default='', write_only=True)
 
 
 class CalendarBookingSerializer(serializers.ModelSerializer):
@@ -477,3 +497,73 @@ class GuestRegistrationSerializer(serializers.Serializer):
     occupation = serializers.CharField(max_length=100, required=False, allow_blank=True)
     place_of_issue = serializers.CharField(max_length=100, required=False, allow_blank=True)
     visa_no = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    guest_phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    billing_type = serializers.ChoiceField(
+        choices=[('GUEST', 'Guest Payment'), ('COMPANY', 'Company Payment')],
+        required=False,
+        allow_blank=True,
+    )
+
+
+class RegistrationCheckInSerializer(GuestRegistrationSerializer):
+    """Registration module: save guest data + check in atomically."""
+    room_id = serializers.IntegerField(required=False, allow_null=True, default=None)
+    billing_type = serializers.ChoiceField(
+        choices=[('GUEST', 'Guest Payment'), ('COMPANY', 'Company Payment')],
+        required=True,
+    )
+    notes_internal = serializers.CharField(required=False, allow_blank=True, default='')
+    guest_phone = serializers.CharField(max_length=20, required=False, allow_blank=True, default='')
+
+
+class RegistrationWriteSerializer(serializers.Serializer):
+    """Unified registration form — advance and walk-in."""
+    guest_email = serializers.EmailField(required=False, allow_blank=True)
+    guest_phone = serializers.CharField(max_length=20, required=False, allow_blank=True, default='')
+    first_name = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
+    last_name = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
+    designation = serializers.CharField(max_length=10, required=False, allow_blank=True, default='')
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+    gender = serializers.CharField(max_length=10, required=False, allow_blank=True, default='')
+    nationality = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
+    country = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
+    address = serializers.CharField(max_length=500, required=False, allow_blank=True, default='')
+    occupation = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
+    place_of_issue = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
+    visa_no = serializers.CharField(max_length=50, required=False, allow_blank=True, default='')
+    id_type = serializers.CharField(max_length=30, required=False, allow_blank=True, default='')
+    id_number = serializers.CharField(max_length=50, required=False, allow_blank=True, default='')
+    contact_person = serializers.CharField(max_length=200, required=False, allow_blank=True, default='')
+    room_type = serializers.IntegerField(required=False, allow_null=True)
+    room_type_id = serializers.IntegerField(required=False, allow_null=True)
+    room_id = serializers.IntegerField(required=False, allow_null=True)
+    check_in_date = serializers.DateField(required=False, allow_null=True)
+    check_out_date = serializers.DateField(required=False, allow_null=True)
+    arrival_time = serializers.TimeField(required=False, allow_null=True)
+    adults = serializers.IntegerField(required=False, default=1)
+    children = serializers.IntegerField(required=False, default=0)
+    infants = serializers.IntegerField(required=False, default=0)
+    extra_bed = serializers.IntegerField(required=False, default=0)
+    guest_type = serializers.CharField(max_length=20, required=False, allow_blank=True, default='')
+    purpose_of_visit = serializers.CharField(max_length=200, required=False, allow_blank=True, default='')
+    coming_from = serializers.CharField(max_length=200, required=False, allow_blank=True, default='')
+    company_name = serializers.CharField(max_length=200, required=False, allow_blank=True, default='')
+    booking_source = serializers.CharField(max_length=20, required=False, allow_blank=True, default='')
+    special_requests = serializers.CharField(required=False, allow_blank=True, default='')
+    rack_rate = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    offer_rate = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    discount_amount = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    deposit_amount = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    billing_type = serializers.ChoiceField(
+        choices=[('GUEST', 'Guest Payment'), ('COMPANY', 'Company Payment')],
+        required=False,
+        allow_blank=True,
+    )
+
+
+class RegistrationCheckInPayloadSerializer(RegistrationWriteSerializer):
+    billing_type = serializers.ChoiceField(
+        choices=[('GUEST', 'Guest Payment'), ('COMPANY', 'Company Payment')],
+        required=True,
+    )
+    notes_internal = serializers.CharField(required=False, allow_blank=True, default='')

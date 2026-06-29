@@ -122,28 +122,28 @@ export default function HeroSlider() {
       <div className="absolute bottom-0 left-0 right-0 z-20 bg-black/60 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap items-center justify-center gap-4">
           <div className="flex items-center gap-3">
-            <label className="text-slate-800 text-xs font-[var(--font-condensed)] uppercase tracking-[2px]">
+            <label className="text-white text-xs font-[var(--font-condensed)] uppercase tracking-[2px]">
               Check-in
             </label>
             <input
               type="date"
-              className="bg-transparent border border-white/30 text-slate-800 text-sm px-3 py-2 outline-none focus:border-[var(--color-primary)]"
+              className="bg-transparent border border-white/30 text-white text-sm px-3 py-2 outline-none focus:border-[var(--color-primary)] [color-scheme:dark]"
             />
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-slate-800 text-xs font-[var(--font-condensed)] uppercase tracking-[2px]">
+            <label className="text-white text-xs font-[var(--font-condensed)] uppercase tracking-[2px]">
               Check-out
             </label>
             <input
               type="date"
-              className="bg-transparent border border-white/30 text-slate-800 text-sm px-3 py-2 outline-none focus:border-[var(--color-primary)]"
+              className="bg-transparent border border-white/30 text-white text-sm px-3 py-2 outline-none focus:border-[var(--color-primary)] [color-scheme:dark]"
             />
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-slate-800 text-xs font-[var(--font-condensed)] uppercase tracking-[2px]">
+            <label className="text-white text-xs font-[var(--font-condensed)] uppercase tracking-[2px]">
               Adults
             </label>
-            <select className="bg-transparent border border-white/30 text-slate-800 text-sm px-3 py-2 outline-none">
+            <select className="bg-transparent border border-white/30 text-white text-sm px-3 py-2 outline-none">
               <option className="text-black">1</option>
               <option className="text-black">2</option>
               <option className="text-black">3</option>
@@ -151,10 +151,10 @@ export default function HeroSlider() {
             </select>
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-slate-800 text-xs font-[var(--font-condensed)] uppercase tracking-[2px]">
+            <label className="text-white text-xs font-[var(--font-condensed)] uppercase tracking-[2px]">
               Children
             </label>
-            <select className="bg-transparent border border-white/30 text-slate-800 text-sm px-3 py-2 outline-none">
+            <select className="bg-transparent border border-white/30 text-white text-sm px-3 py-2 outline-none">
               <option className="text-black">0</option>
               <option className="text-black">1</option>
               <option className="text-black">2</option>

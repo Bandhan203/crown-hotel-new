@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { MdLogin, MdLogout, MdPersonAdd, MdDoNotDisturb, MdRefresh, MdBadge, MdEventAvailable } from 'react-icons/md';
 import api from '../../services/api';
-import CheckInModal from '../components/CheckInModal';
 import CheckOutModal from '../components/CheckOutModal';
 import WalkInModal from '../components/WalkInModal';
-import GuestRegistrationModal from '../components/GuestRegistrationModal';
+import RegistrationModule from '../components/GuestRegistrationModal';
 import ReservationModal from '../components/ReservationModal';
 
 interface Booking {
@@ -36,6 +35,7 @@ const statusBadge: Record<string, string> = {
 };
 
 export default function FrontDesk() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [arrivals, setArrivals] = useState<Booking[]>([]);
   const [departures, setDepartures] = useState<Booking[]>([]);
@@ -47,11 +47,11 @@ export default function FrontDesk() {
   );
 
   // Modals
-  const [checkInBooking, setCheckInBooking] = useState<Booking | null>(null);
   const [checkOutBooking, setCheckOutBooking] = useState<Booking | null>(null);
   const [showWalkIn, setShowWalkIn] = useState(false);
   const [showReservation, setShowReservation] = useState(false);
   const [regBookingId, setRegBookingId] = useState<number | null>(null);
+  const [regCheckInMode, setRegCheckInMode] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -125,6 +125,9 @@ export default function FrontDesk() {
           <button onClick={() => setShowReservation(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-lg text-slate-800 hover:bg-blue-700 transition text-sm">
             <MdEventAvailable size={18} /> Reservation
           </button>
+          <button onClick={() => navigate('/admin/checkout')} className="flex items-center gap-2 px-4 py-2 bg-orange-600 rounded-lg text-white hover:bg-orange-700 transition text-sm font-medium">
+            <MdLogout size={18} /> Check-out
+          </button>
           <button onClick={() => setShowWalkIn(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-container rounded-lg text-white hover:brightness-110 transition text-sm font-semibold shadow-sm">
             <MdPersonAdd size={18} /> New Registration
           </button>
@@ -195,9 +198,9 @@ export default function FrontDesk() {
                         {(b.status === 'PENDING' || b.status === 'CONFIRMED') && (
                           <>
                             <button
-                              onClick={() => setCheckInBooking(b)}
+                              onClick={() => { setRegBookingId(b.id); setRegCheckInMode(true); }}
                               className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs hover:bg-green-500/30 transition"
-                              title="Check In"
+                              title="Check In (Registration)"
                             >
                               <MdLogin size={16} />
                             </button>
@@ -220,9 +223,9 @@ export default function FrontDesk() {
                           </button>
                         )}
                         <button
-                          onClick={() => setRegBookingId(b.id)}
+                          onClick={() => { setRegBookingId(b.id); setRegCheckInMode(false); }}
                           className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs hover:bg-purple-500/30 transition"
-                          title="Registration Card"
+                          title="Registration Module"
                         >
                           <MdBadge size={16} />
                         </button>
@@ -237,13 +240,6 @@ export default function FrontDesk() {
       )}
 
       {/* Modals */}
-      {checkInBooking && (
-        <CheckInModal
-          booking={checkInBooking}
-          onClose={() => setCheckInBooking(null)}
-          onSuccess={() => { setCheckInBooking(null); fetchData(); }}
-        />
-      )}
       {checkOutBooking && (
         <CheckOutModal
           booking={checkOutBooking}
@@ -264,10 +260,13 @@ export default function FrontDesk() {
         />
       )}
       {regBookingId && (
-        <GuestRegistrationModal
+        <RegistrationModule
+          mode="advance"
           bookingId={regBookingId}
-          onClose={() => setRegBookingId(null)}
-          onSuccess={() => { setRegBookingId(null); fetchData(); }}
+          checkInMode={regCheckInMode}
+          onClose={() => { setRegBookingId(null); setRegCheckInMode(false); }}
+          onRefresh={fetchData}
+          onSuccess={() => { setRegBookingId(null); setRegCheckInMode(false); fetchData(); }}
         />
       )}
     </div>

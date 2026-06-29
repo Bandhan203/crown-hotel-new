@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import toast from 'react-hot-toast';
 import ReservationFormView from './ReservationFormView';
+import ReservationWorkflowDialogs, { type WorkflowPhase } from './ReservationWorkflowDialogs';
 import api from '../../services/api';
 import {
   canPickRoom,
@@ -20,7 +21,18 @@ import {
 import { useEnterNav } from '../../hooks/useEnterNav';
 
 interface RoomType { id: number; name: string; price_per_night: string; max_guests: number; }
-interface Props { onClose: () => void; onSuccess: () => void; }
+
+export interface SavedReservation {
+  id: number;
+  booking_ref: string;
+  guest_name?: string;
+}
+
+interface Props {
+  onClose: () => void;
+  onSuccess: () => void;
+  initialValues?: Partial<typeof EMPTY_FORM>;
+}
 
 const TODAY    = new Date().toISOString().split('T')[0];
 const TOMORROW = new Date(Date.now() + 86400000).toISOString().split('T')[0];
@@ -83,15 +95,37 @@ function stayDiscountAmount(base: number, nights: number, rooms: number, pct: nu
   return (base * nights * rooms * pct / 100).toFixed(2);
 }
 
-export default function ReservationModal({ onClose, onSuccess }: Props) {
+const ROOM_FIELDS: (keyof typeof EMPTY_FORM)[] = [
+  'room_type', 'room_id', 'rate_plan', 'rack_rate', 'base_offer_rate', 'offer_rate',
+  'discount_pct', 'discount_amount', 'payment_amount', 'num_rooms', 'special_requests',
+];
+
+function clearRoomFields(form: typeof EMPTY_FORM): typeof EMPTY_FORM {
+  const next = { ...form };
+  for (const key of ROOM_FIELDS) {
+    if (key === 'discount_pct') next[key] = '0';
+    else if (key === 'discount_amount' || key === 'payment_amount') next[key] = '0';
+    else if (key === 'num_rooms') next[key] = '1';
+    else next[key] = '';
+  }
+  return next;
+}
+
+export default function ReservationModal({ onClose, onSuccess, initialValues }: Props) {
   const [roomTypes,      setRoomTypes]      = useState<RoomType[]>([]);
   const [ratePlans,      setRatePlans]      = useState<RatePlan[]>([]);
   const [availableRooms, setAvailableRooms] = useState<AvailableRoom[]>([]);
   const [roomsLoading,   setRoomsLoading]   = useState(false);
-  const [form,           setForm]           = useState(EMPTY_FORM);
+  const [form,           setForm]           = useState({ ...EMPTY_FORM, ...initialValues });
   const [loading,        setLoading]        = useState(false);
   const [nights,         setNights]         = useState(0);
   const [grandTotal,     setGrandTotal]     = useState(0);
+  const [workflowPhase,  setWorkflowPhase]  = useState<WorkflowPhase | null>(null);
+  const [primaryBooking, setPrimaryBooking] = useState<SavedReservation | null>(null);
+  const [sessionCount,   setSessionCount]   = useState(0);
+  const [lastBooking,    setLastBooking]    = useState<SavedReservation | null>(null);
+  const [finalizing,     setFinalizing]     = useState(false);
+  const [printing,       setPrinting]       = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEnterNav(formRef);
@@ -371,7 +405,7 @@ export default function ReservationModal({ onClose, onSuccess }: Props) {
     }
     setLoading(true);
     try {
-      await api.post('/admin/reservations/create/', {
+      const { data: booking } = await api.post<SavedReservation>('/admin/reservations/create/', {
         status: form.status, guest_email: form.guest_email, guest_phone: form.guest_phone,
         designation: form.designation, first_name: form.first_name, last_name: form.last_name,
         date_of_birth: form.date_of_birth || null, gender: form.gender,
@@ -413,11 +447,78 @@ export default function ReservationModal({ onClose, onSuccess }: Props) {
         transport_notes: form.transport_notes,
         parent_booking_id: form.parent_booking_id ? Number(form.parent_booking_id) : null,
       });
-      toast.success('Reservation created successfully');
-      onSuccess();
+      toast.success(`Reservation ${booking.booking_ref} saved`);
+      const saved: SavedReservation = {
+        id: booking.id,
+        booking_ref: booking.booking_ref,
+        guest_name: booking.guest_name,
+      };
+      if (!primaryBooking) setPrimaryBooking(saved);
+      setLastBooking(saved);
+      setSessionCount(c => c + 1);
+      setWorkflowPhase('multi');
     } catch (err: any) {
       toast.error(formatApiError(err?.response?.data));
     } finally { setLoading(false); }
+  };
+
+  const handleMultiYes = () => {
+    const rootId = primaryBooking?.id ?? lastBooking?.id;
+    setForm(f => ({
+      ...clearRoomFields(f),
+      parent_booking_id: rootId ? String(rootId) : '',
+    }));
+    setWorkflowPhase(null);
+  };
+
+  const handleMultiNo = () => {
+    setWorkflowPhase('currency');
+  };
+
+  const handleCurrency = async (currency: 'USD' | 'BDT') => {
+    const rootId = primaryBooking?.id ?? lastBooking?.id;
+    if (!rootId) return;
+    setFinalizing(true);
+    try {
+      await api.post(`/admin/reservations/${rootId}/finalize/`, { currency });
+      toast.success(`Billing currency set to ${currency}`);
+      setWorkflowPhase('voucher');
+    } catch (err: any) {
+      toast.error(formatApiError(err?.response?.data));
+    } finally {
+      setFinalizing(false);
+    }
+  };
+
+  const handlePrintVoucher = async () => {
+    const rootId = primaryBooking?.id ?? lastBooking?.id;
+    if (!rootId) return;
+    setPrinting(true);
+    try {
+      const res = await api.get(`/admin/reservations/${rootId}/confirmation/pdf/`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, '_blank');
+      if (win) win.focus();
+      else {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `confirmation_${primaryBooking?.booking_ref ?? 'reservation'}.pdf`;
+        a.click();
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      toast.error('Failed to generate confirmation voucher');
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  const finishWorkflow = () => {
+    setWorkflowPhase(null);
+    onSuccess();
   };
 
   const roomReady = !!(form.room_type && form.check_in_date && form.check_out_date);
@@ -432,33 +533,49 @@ export default function ReservationModal({ onClose, onSuccess }: Props) {
   const pickupOn = form.pickup_required === 'YES';
 
   return (
-    <ReservationFormView
-      formRef={formRef}
-      form={form}
-      set={(k, v) => set(k as keyof typeof EMPTY_FORM, v)}
-      setFullName={setFullName}
-      fullName={fullName}
-      toggle={toggle}
-      bool={bool}
-      isForeigner={isForeigner}
-      docType={docType}
-      statusLabel={statusLabel}
-      pickupOn={pickupOn}
-      nights={nights}
-      grandTotal={grandTotal}
-      overCapacity={overCapacity}
-      capacityWarning={capacityWarning}
-      roomReady={roomReady}
-      roomsLoading={roomsLoading}
-      roomLabel={roomLabel}
-      roomTypes={roomTypes}
-      ratePlans={ratePlans}
-      availableRooms={availableRooms}
-      paymentBalance={paymentBalance}
-      advanceAmount={advanceAmount}
-      loading={loading}
-      onClose={onClose}
-      onSubmit={handleSubmit}
-    />
+    <>
+      <ReservationFormView
+        formRef={formRef}
+        form={form}
+        set={(k, v) => set(k as keyof typeof EMPTY_FORM, v)}
+        setFullName={setFullName}
+        fullName={fullName}
+        toggle={toggle}
+        bool={bool}
+        isForeigner={isForeigner}
+        docType={docType}
+        statusLabel={statusLabel}
+        pickupOn={pickupOn}
+        nights={nights}
+        grandTotal={grandTotal}
+        overCapacity={overCapacity}
+        capacityWarning={capacityWarning}
+        roomReady={roomReady}
+        roomsLoading={roomsLoading}
+        roomLabel={roomLabel}
+        roomTypes={roomTypes}
+        ratePlans={ratePlans}
+        availableRooms={availableRooms}
+        paymentBalance={paymentBalance}
+        advanceAmount={advanceAmount}
+        loading={loading}
+        onClose={onClose}
+        onSubmit={handleSubmit}
+      />
+      {workflowPhase && (primaryBooking || lastBooking) && (
+        <ReservationWorkflowDialogs
+          phase={workflowPhase}
+          booking={(primaryBooking ?? lastBooking)!}
+          roomCount={sessionCount}
+          onMultiYes={handleMultiYes}
+          onMultiNo={handleMultiNo}
+          onCurrency={handleCurrency}
+          onPrintVoucher={handlePrintVoucher}
+          onFinish={finishWorkflow}
+          finalizing={finalizing}
+          printing={printing}
+        />
+      )}
+    </>
   );
 }

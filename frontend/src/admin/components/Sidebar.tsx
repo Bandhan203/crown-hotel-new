@@ -6,7 +6,7 @@ import {
   MdNewspaper, MdQuiz, MdStar, MdGroups, MdPhotoLibrary, MdViewCarousel,
   MdTune, MdRestaurant, MdSpa, MdRoomService, MdMessage,
   MdDesktopWindows, MdCalendarMonth, MdDiscount, MdCleaningServices,
-  MdNightsStay, MdBarChart, MdPalette, MdReceipt, MdInventory, MdBusiness,
+  MdNightsStay, MdBarChart, MdPalette, MdReceipt, MdInventory, MdBusiness, MdGridOn,
 } from 'react-icons/md';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSiteSettings } from '../../contexts/SiteSettingsContext';
@@ -25,7 +25,9 @@ interface NavItem {
 const navItems: NavItem[] = [
   { to: '/admin', icon: <MdDashboard size={20} />, label: 'Dashboard' },
   { to: '/admin/front-desk', icon: <MdDesktopWindows size={20} />, label: 'Front Desk' },
+  { to: '/admin/checkout', icon: <MdLogout size={20} />, label: 'Check-out' },
   { to: '/admin/reservations/calendar', icon: <MdCalendarMonth size={20} />, label: 'Calendar' },
+  { to: '/admin/reservation-control', icon: <MdGridOn size={20} />, label: 'Res. Control' },
   { to: '/admin/rooms', icon: <MdHotel size={20} />, label: 'Rooms' },
   { to: '/admin/bookings', icon: <MdBookOnline size={20} />, label: 'Bookings' },
   { to: '/admin/rate-plans', icon: <MdDiscount size={20} />, label: 'Rate Plans' },

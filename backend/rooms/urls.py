@@ -20,4 +20,5 @@ urlpatterns = [
     path('admin/housekeeping/board/', views.HousekeepingBoardView.as_view(), name='housekeeping-board'),
     path('admin/housekeeping/<int:pk>/', views.HousekeepingTaskDetailView.as_view(), name='housekeeping-detail'),
     path('admin/rooms/<int:pk>/housekeeping-status/', views.RoomHousekeepingStatusView.as_view(), name='room-hk-status'),
+    path('admin/rooms/<int:pk>/room-ready/', views.RoomReadyView.as_view(), name='room-ready'),
 ]

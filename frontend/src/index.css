@@ -25,6 +25,7 @@
   --color-status-available: #4CAF50;
   --color-status-occupied: #0D5C63;
   --color-status-dirty: #FF9800;
+  --color-status-reserved: #E65100;
   --color-status-ooo: #F44336;
   --color-outline: #6f797a;
   --gradient-primary: var(--color-primary);

@@ -77,13 +77,20 @@ def assign_room(room_type_id, check_in, check_out, exclude_booking_id=None):
 
 
 def sync_booking_payment_status(booking):
-    """Set payment_status from completed payments vs total_price."""
+    """Set payment_status from completed net payments vs total_price."""
     from bookings.models import Booking, Payment
-    from django.db.models import Sum
+    from django.db.models import Case, F, Sum, When
 
     paid = Payment.objects.filter(
-        booking=booking, status='COMPLETED'
-    ).aggregate(total=Sum('amount'))['total'] or 0
+        booking=booking, status='COMPLETED',
+    ).aggregate(
+        net=Sum(
+            Case(
+                When(is_refund=True, then=-F('amount')),
+                default=F('amount'),
+            )
+        )
+    )['net'] or 0
     paid = float(paid)
     total = float(booking.total_price)
 
@@ -137,3 +144,178 @@ def get_applicable_rate_plans(room_type_id, check_in_date, check_out_date):
         .distinct()
     )
     return qs
+
+
+def apply_registration_data(booking, profile, data):
+    """Apply registration form payload to booking + guest profile."""
+    booking_fields = [
+        'guest_type', 'purpose_of_visit', 'coming_from', 'extra_bed',
+        'rack_rate', 'offer_rate', 'discount_pct', 'discount_amount',
+        'service_charge_pct', 'vat_pct',
+        'special_requests', 'profile_note',
+        'company_name', 'booking_source', 'arrival_time', 'id_type', 'id_number',
+        'contact_person', 'infants', 'deposit_amount', 'num_rooms',
+        'dnm', 'no_post', 'is_travel_agency', 'non_smoking',
+        'pickup_required', 'flight_pickup_no', 'flight_eta',
+        'drop_required', 'flight_drop_no', 'flight_etd', 'billing_type',
+    ]
+    for field in booking_fields:
+        if field in data:
+            setattr(booking, field, data[field])
+
+    if any(k in data for k in (
+        'rack_rate', 'offer_rate', 'discount_pct', 'discount_amount',
+        'service_charge_pct', 'vat_pct',
+    )):
+        nights = booking.nights
+        num_rooms = max(1, int(booking.num_rooms or 1))
+        offer = float(booking.offer_rate or booking.rack_rate or booking.room_type.price_per_night)
+        disc = float(booking.discount_amount or 0)
+        subtotal = max(0, offer * nights * num_rooms - disc)
+        svc = subtotal * float(booking.service_charge_pct or 0) / 100
+        vat = subtotal * float(booking.vat_pct or 0) / 100
+        booking.total_price = subtotal
+        booking.tax_amount = round(svc + vat, 2)
+        booking.grand_total = round(subtotal + svc + vat, 2)
+
+    profile_map = {
+        'first_name': 'first_name',
+        'last_name': 'last_name',
+        'designation': 'designation',
+        'date_of_birth': 'date_of_birth',
+        'gender': 'gender',
+        'nationality': 'nationality',
+        'country': 'country',
+        'address': 'address_line1',
+        'occupation': 'occupation',
+        'place_of_issue': 'place_of_issue',
+        'visa_no': 'visa_no',
+    }
+    for src, dst in profile_map.items():
+        if src in data:
+            setattr(profile, dst, data[src])
+
+    if 'guest_phone' in data:
+        booking.guest.phone = data['guest_phone']
+
+    if 'first_name' in data or 'last_name' in data:
+        fn = data.get('first_name', profile.first_name)
+        ln = data.get('last_name', profile.last_name)
+        booking.guest.full_name = f"{fn} {ln}".strip() or fn or booking.guest.full_name
+
+    booking.save()
+    profile.save()
+    if 'guest_phone' in data or 'first_name' in data or 'last_name' in data:
+        booking.guest.save(update_fields=['phone', 'full_name'])
+
+
+def open_guest_folio(booking, posted_by):
+    """Create opening folio entries when a guest checks in."""
+    from bookings.models import FolioCharge
+
+    if booking.deposit_amount > 0 and not FolioCharge.objects.filter(
+        booking=booking, charge_type='DEPOSIT', is_void=False,
+    ).exists():
+        FolioCharge.objects.create(
+            booking=booking,
+            charge_type='DEPOSIT',
+            description='Security deposit',
+            amount=-booking.deposit_amount,
+            quantity=1,
+            total=-booking.deposit_amount,
+            charge_date=booking.check_in_date,
+            posted_by=posted_by,
+        )
+
+    nightly_rate = booking.total_price / max(booking.nights, 1)
+    if not FolioCharge.objects.filter(
+        booking=booking,
+        charge_type='ROOM',
+        charge_date=booking.check_in_date,
+        is_void=False,
+    ).exists():
+        FolioCharge.objects.create(
+            booking=booking,
+            charge_type='ROOM',
+            description=f'Room charge — {booking.check_in_date}',
+            amount=nightly_rate,
+            quantity=1,
+            total=nightly_rate,
+            charge_date=booking.check_in_date,
+            posted_by=posted_by,
+        )
+
+
+def perform_check_in(booking, data, user):
+    """
+    Assign room, mark booking CHECKED_IN, set room OCCUPIED, open folio.
+    `data` is validated check-in payload (room_id, billing_type, etc.).
+    """
+    from django.utils import timezone
+    from bookings.models import Booking
+
+    room_id = data.get('room_id')
+    if room_id:
+        room = check_availability(
+            booking.room_type_id,
+            booking.check_in_date,
+            booking.check_out_date,
+            exclude_booking_id=booking.id,
+        ).filter(pk=room_id).first()
+        if not room:
+            raise ValueError('Selected room is not available for these dates.')
+        booking.room = room
+    elif not booking.room:
+        room = assign_room(
+            booking.room_type_id,
+            booking.check_in_date,
+            booking.check_out_date,
+            exclude_booking_id=booking.id,
+        )
+        if not room:
+            raise ValueError('No rooms available for auto-assignment.')
+        booking.room = room
+    else:
+        still_ok = check_availability(
+            booking.room_type_id,
+            booking.check_in_date,
+            booking.check_out_date,
+            exclude_booking_id=booking.id,
+        ).filter(pk=booking.room_id).exists()
+        if not still_ok:
+            raise ValueError('Pre-assigned room is no longer available.')
+
+    if data.get('billing_type'):
+        booking.billing_type = data['billing_type']
+    if data.get('id_type'):
+        booking.id_type = data['id_type']
+    if data.get('id_number'):
+        booking.id_number = data['id_number']
+    if data.get('deposit_amount') is not None:
+        booking.deposit_amount = data['deposit_amount']
+    if data.get('notes_internal'):
+        booking.notes_internal = data['notes_internal']
+    if data.get('guest_type'):
+        booking.guest_type = data['guest_type']
+    if data.get('purpose_of_visit'):
+        booking.purpose_of_visit = data['purpose_of_visit']
+    if data.get('coming_from'):
+        booking.coming_from = data['coming_from']
+    if data.get('extra_bed') is not None:
+        booking.extra_bed = data['extra_bed']
+
+    if not booking.rack_rate:
+        booking.rack_rate = booking.room_type.price_per_night
+    if not booking.offer_rate:
+        booking.offer_rate = booking.rack_rate or booking.room_type.price_per_night
+
+    booking.status = Booking.Status.CHECKED_IN
+    booking.actual_check_in = timezone.now()
+    booking.checked_in_by = user
+    booking.save()
+
+    booking.room.status = 'OCCUPIED'
+    booking.room.save(update_fields=['status'])
+    open_guest_folio(booking, user)
+    sync_booking_payment_status(booking)
+    return booking

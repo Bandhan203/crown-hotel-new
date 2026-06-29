@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import checkout_views, registration_views, views
 
 urlpatterns = [
     # Public
@@ -29,9 +29,18 @@ urlpatterns = [
     path('admin/payments/', views.AdminPaymentListView.as_view(), name='admin-payment-list'),
     # Admin — reservations (front desk)
     path('admin/reservations/create/', views.ReservationCreateView.as_view(), name='reservation-create'),
+    path('admin/reservations/<int:pk>/finalize/', views.ReservationFinalizeView.as_view(), name='reservation-finalize'),
+    path('admin/reservations/<int:pk>/confirmation/pdf/', views.ReservationConfirmationPDFView.as_view(), name='reservation-confirmation-pdf'),
     path('admin/reservations/walk-in/', views.WalkInBookingView.as_view(), name='walk-in-booking'),
     path('admin/reservations/<int:pk>/check-in/', views.CheckInView.as_view(), name='check-in'),
     path('admin/reservations/<int:pk>/check-out/', views.CheckOutView.as_view(), name='check-out'),
+    # Admin — checkout module (Revenue Guard)
+    path('admin/checkout/lookup/', checkout_views.CheckoutLookupView.as_view(), name='checkout-lookup'),
+    path('admin/checkout/companies/', checkout_views.CheckoutCompaniesView.as_view(), name='checkout-companies'),
+    path('admin/checkout/<int:booking_id>/payment/', checkout_views.CheckoutPaymentView.as_view(), name='checkout-payment'),
+    path('admin/checkout/<int:booking_id>/execute/', checkout_views.CheckoutExecuteView.as_view(), name='checkout-execute'),
+    path('admin/checkout/<int:booking_id>/invoice-preview/', checkout_views.CheckoutInvoicePreviewView.as_view(), name='checkout-invoice-preview'),
+    path('admin/checkout/duplicate-bill/', checkout_views.CheckoutDuplicateBillView.as_view(), name='checkout-duplicate-bill'),
     path('admin/reservations/<int:pk>/no-show/', views.NoShowView.as_view(), name='no-show'),
     path('admin/reservations/arrivals/', views.ArrivalsListView.as_view(), name='arrivals'),
     path('admin/reservations/departures/', views.DeparturesListView.as_view(), name='departures'),
@@ -40,7 +49,14 @@ urlpatterns = [
     path('admin/reservations/available-rooms/', views.AvailableRoomsView.as_view(), name='available-rooms'),
     # Admin — registration
     path('admin/reservations/<int:pk>/registration/', views.GuestRegistrationView.as_view(), name='guest-registration'),
+    path('admin/reservations/<int:pk>/registration/check-in/', views.RegistrationCheckInView.as_view(), name='registration-check-in'),
+    path('admin/reservations/<int:pk>/registration/pdf/', views.RegistrationCardPDFView.as_view(), name='registration-card-pdf'),
     path('admin/reservations/<int:pk>/registration/upload/', views.RegistrationCardUploadView.as_view(), name='registration-card-upload'),
+    # Admin — unified registrations
+    path('admin/registrations/', registration_views.RegistrationCreateView.as_view(), name='registration-create'),
+    path('admin/registrations/by-booking/<int:booking_id>/', registration_views.RegistrationByBookingView.as_view(), name='registration-by-booking'),
+    path('admin/registrations/<int:pk>/', registration_views.RegistrationDetailView.as_view(), name='registration-detail'),
+    path('admin/registrations/<int:pk>/check-in/', registration_views.UnifiedRegistrationCheckInView.as_view(), name='unified-registration-check-in'),
     # Admin — folio
     path('admin/folio/<int:charge_id>/void/', views.FolioVoidView.as_view(), name='folio-void'),
     # Admin — rate plans

@@ -29,7 +29,7 @@ const BORDER: Record<VisualStatus, string> = {
   occupied: 'border-status-occupied',
   dirty: 'border-status-dirty',
   ooo: 'border-status-ooo',
-  reserved: 'border-primary',
+  reserved: 'border-status-reserved',
 };
 
 const ICON: Record<VisualStatus, React.ReactNode> = {
@@ -37,7 +37,7 @@ const ICON: Record<VisualStatus, React.ReactNode> = {
   occupied: <MdPerson className="text-sm text-primary" />,
   dirty: <MdCleaningServices className="text-sm text-status-dirty" />,
   ooo: <MdConstruction className="text-sm text-error" />,
-  reserved: <MdPerson className="text-sm text-primary" />,
+  reserved: <MdPerson className="text-sm text-status-reserved" />,
 };
 
 function guestLabel(name: string | null | undefined) {
@@ -70,7 +70,7 @@ export default function RoomCard({ room, selected, onClick }: RoomCardProps) {
       </div>
       <p className="text-[10px] font-bold text-on-surface-variant truncate uppercase">
         {visual === 'occupied' || visual === 'reserved'
-          ? guestLabel(room.guest_name)
+          ? (visual === 'reserved' ? `Exp. ${guestLabel(room.guest_name)}` : guestLabel(room.guest_name))
           : visual === 'ooo' ? 'Maint.' : '-'}
       </p>
     </button>

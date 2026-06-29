@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from common.utils import generate_booking_ref
+from common.utils import generate_booking_ref, generate_registration_ref
 
 
 class RatePlan(models.Model):
@@ -153,6 +153,13 @@ class Booking(models.Model):
         choices=PaymentStatus.choices,
         default=PaymentStatus.UNPAID,
     )
+    currency = models.CharField(max_length=3, blank=True, default='BDT')
+    billing_type = models.CharField(
+        max_length=10,
+        choices=[('GUEST', 'Guest Payment'), ('COMPANY', 'Company Payment')],
+        blank=True,
+        default='GUEST',
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -176,6 +183,7 @@ class Payment(models.Model):
         ONLINE_SSLCOMMERZ = 'ONLINE_SSLCOMMERZ', 'Online (SSLCommerz)'
         BANK_TRANSFER = 'BANK_TRANSFER', 'Bank Transfer'
         POS = 'POS', 'POS Terminal'
+        COMPANY_CREDIT = 'COMPANY_CREDIT', 'Company Credit'
 
     class Status(models.TextChoices):
         PENDING = 'PENDING', 'Pending'
@@ -187,6 +195,21 @@ class Payment(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     payment_method = models.CharField(max_length=50, choices=Method.choices, default=Method.ONLINE)
     transaction_id = models.CharField(max_length=255, blank=True, default='')
+    company_name = models.CharField(max_length=200, blank=True, default='')
+    is_refund = models.BooleanField(
+        default=False,
+        help_text='True when cash/card is returned to the guest at checkout',
+    )
+    business_date = models.DateField(
+        null=True, blank=True,
+        help_text='Hotel business date when payment/refund was posted',
+    )
+    posted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='posted_payments',
+    )
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.PENDING)
     paid_at = models.DateTimeField(null=True, blank=True)
 
@@ -289,3 +312,85 @@ class FolioCharge(models.Model):
         if not self.total:
             self.total = self.amount * self.quantity
         super().save(*args, **kwargs)
+
+
+class Registration(models.Model):
+    """Persistent guest registration — single source of truth for check-in data."""
+
+    class Mode(models.TextChoices):
+        ADVANCE = 'ADVANCE', 'Advance Booking'
+        WALK_IN = 'WALK_IN', 'Walk-in'
+
+    class Status(models.TextChoices):
+        DRAFT = 'DRAFT', 'Draft'
+        REGISTERED = 'REGISTERED', 'Registered'
+        CHECKED_IN = 'CHECKED_IN', 'Checked In'
+
+    registration_ref = models.CharField(max_length=20, unique=True, default=generate_registration_ref)
+    booking = models.OneToOneField(
+        Booking, on_delete=models.CASCADE, null=True, blank=True, related_name='registration_record',
+    )
+    guest = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='registrations',
+    )
+    mode = models.CharField(max_length=10, choices=Mode.choices, default=Mode.ADVANCE)
+    status = models.CharField(max_length=15, choices=Status.choices, default=Status.DRAFT)
+    billing_type = models.CharField(
+        max_length=10,
+        choices=[('GUEST', 'Guest Payment'), ('COMPANY', 'Company Payment')],
+        blank=True,
+        default='GUEST',
+    )
+
+    guest_email = models.EmailField(blank=True, default='')
+    guest_phone = models.CharField(max_length=20, blank=True, default='')
+    first_name = models.CharField(max_length=100, blank=True, default='')
+    last_name = models.CharField(max_length=100, blank=True, default='')
+    designation = models.CharField(max_length=10, blank=True, default='')
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=10, blank=True, default='')
+    nationality = models.CharField(max_length=100, blank=True, default='')
+    country = models.CharField(max_length=100, blank=True, default='')
+    address = models.CharField(max_length=500, blank=True, default='')
+    occupation = models.CharField(max_length=100, blank=True, default='')
+    place_of_issue = models.CharField(max_length=100, blank=True, default='')
+    visa_no = models.CharField(max_length=50, blank=True, default='')
+    id_type = models.CharField(max_length=30, blank=True, default='')
+    id_number = models.CharField(max_length=50, blank=True, default='')
+    contact_person = models.CharField(max_length=200, blank=True, default='')
+
+    room_type = models.ForeignKey('rooms.RoomType', on_delete=models.SET_NULL, null=True, blank=True)
+    room = models.ForeignKey('rooms.Room', on_delete=models.SET_NULL, null=True, blank=True)
+    check_in_date = models.DateField(null=True, blank=True)
+    check_out_date = models.DateField(null=True, blank=True)
+    arrival_time = models.TimeField(null=True, blank=True)
+    adults = models.PositiveIntegerField(default=1)
+    children = models.PositiveIntegerField(default=0)
+    infants = models.PositiveIntegerField(default=0)
+    extra_bed = models.PositiveIntegerField(default=0)
+    guest_type = models.CharField(max_length=20, blank=True, default='')
+    purpose_of_visit = models.CharField(max_length=200, blank=True, default='')
+    coming_from = models.CharField(max_length=200, blank=True, default='')
+    company_name = models.CharField(max_length=200, blank=True, default='')
+    booking_source = models.CharField(max_length=20, blank=True, default='WALK_IN')
+    special_requests = models.TextField(blank=True, default='')
+
+    rack_rate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    offer_rate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    deposit_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.registration_ref
+
+    @property
+    def nights(self):
+        if self.check_in_date and self.check_out_date:
+            return (self.check_out_date - self.check_in_date).days
+        return 0

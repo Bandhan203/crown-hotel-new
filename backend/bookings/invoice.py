@@ -1,6 +1,5 @@
 """Invoice PDF generation using ReportLab."""
 import io
-from datetime import date
 from decimal import Decimal
 
 from reportlab.lib import colors
@@ -9,13 +8,25 @@ from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
+from dashboard.models import HotelConfig
+
 from .models import Booking, FolioCharge, Payment
 
 
-def generate_invoice_pdf(booking: Booking) -> bytes:
+def _invoice_watermark(canv, doc, text='DUPLICATE'):
+    canv.saveState()
+    canv.setFont('Helvetica-Bold', 60)
+    canv.setFillColor(colors.Color(0.85, 0.85, 0.85, alpha=0.35))
+    canv.translate(A4[0] / 2, A4[1] / 2)
+    canv.rotate(45)
+    canv.drawCentredString(0, 0, text)
+    canv.restoreState()
+
+
+def generate_invoice_pdf(booking: Booking, *, preview: bool = False, duplicate: bool = False) -> bytes:
     """Generate a professional PDF invoice for a booking. Returns PDF bytes."""
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=20 * mm, bottomMargin=20 * mm,
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=20 * mm, bottomMargin=24 * mm,
                             leftMargin=20 * mm, rightMargin=20 * mm)
 
     styles = getSampleStyleSheet()
@@ -26,17 +37,24 @@ def generate_invoice_pdf(booking: Booking) -> bytes:
     normal = styles['Normal']
     small = ParagraphStyle('Small', parent=normal, fontSize=8, textColor=colors.grey)
 
+    config = HotelConfig.load()
+    invoice_date = config.business_date.strftime('%B %d, %Y')
+
     elements = []
 
-    # Header
-    elements.append(Paragraph("NAVY HOTEL", title_style))
-    elements.append(Paragraph("Tax Invoice", ParagraphStyle('Sub', parent=normal, fontSize=14,
+    header_label = 'Tax Invoice Preview' if preview else ('DUPLICATE TAX INVOICE' if duplicate else 'Tax Invoice')
+    elements.append(Paragraph("CROWN HOTEL", title_style))
+    elements.append(Paragraph(header_label, ParagraphStyle('Sub', parent=normal, fontSize=14,
                                                              textColor=colors.HexColor('#666666'))))
+    if preview:
+        elements.append(Paragraph("PREVIEW — NOT FOR SETTLEMENT", ParagraphStyle(
+            'PreviewWarn', parent=normal, fontSize=9, textColor=colors.HexColor('#c0392b'), spaceAfter=2 * mm,
+        )))
     elements.append(Spacer(1, 4 * mm))
 
     # Invoice info table
     invoice_data = [
-        ['Invoice #:', booking.booking_ref, 'Date:', date.today().strftime('%B %d, %Y')],
+        ['Invoice #:', booking.booking_ref, 'Business Date:', invoice_date],
         ['Guest:', booking.guest.full_name, 'Email:', booking.guest.email],
         ['Room Type:', booking.room_type.name, 'Room:', booking.room.room_number if booking.room else '—'],
         ['Check-in:', str(booking.check_in_date), 'Check-out:', str(booking.check_out_date)],
@@ -99,12 +117,10 @@ def generate_invoice_pdf(booking: Booking) -> bytes:
     elements.append(Spacer(1, 4 * mm))
 
     # Totals
-    folio_total = sum(c.total for c in charges) if charges.exists() else booking.total_price
-    from django.db.models import Sum as DjSum
-    payments_total = Payment.objects.filter(
-        booking=booking, status='COMPLETED'
-    ).aggregate(total=DjSum('amount'))['total'] or Decimal('0')
-
+    from .checkout_services import compute_folio_balance
+    balance_info = compute_folio_balance(booking)
+    folio_total = Decimal(str(balance_info['folio_total']))
+    payments_total = Decimal(str(balance_info['payments_total']))
     balance = folio_total - payments_total
 
     summary_data = [
@@ -136,11 +152,12 @@ def generate_invoice_pdf(booking: Booking) -> bytes:
         elements.append(Paragraph("Payments Received", heading_style))
         pay_data = [['Date', 'Method', 'Transaction ID', 'Amount']]
         for p in payments:
+            label = 'Refund' if getattr(p, 'is_refund', False) else p.get_payment_method_display()
             pay_data.append([
                 p.paid_at.strftime('%Y-%m-%d %H:%M') if p.paid_at else str(p.created_at.date()),
-                p.get_payment_method_display(),
+                label,
                 p.transaction_id or '—',
-                f"BDT {p.amount:,.2f}",
+                f"{'-' if getattr(p, 'is_refund', False) else ''}BDT {p.amount:,.2f}",
             ])
         pay_table = Table(pay_data, colWidths=[90, 80, 140, 80])
         pay_table.setStyle(TableStyle([
@@ -157,11 +174,36 @@ def generate_invoice_pdf(booking: Booking) -> bytes:
 
     # Footer
     elements.append(Spacer(1, 10 * mm))
-    elements.append(Paragraph("Thank you for choosing Navy Hotel. We hope to see you again!",
+    if duplicate:
+        sig_data = [
+            ['_________________________', '_________________________'],
+            ['Guest Signature', 'Front Office Manager'],
+        ]
+        sig_table = Table(sig_data, colWidths=[230, 230])
+        sig_table.setStyle(TableStyle([
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('TOPPADDING', (0, 0), (-1, 0), 12),
+        ]))
+        elements.append(sig_table)
+        elements.append(Spacer(1, 6 * mm))
+        elements.append(Paragraph(
+            "This is a computer-generated duplicate invoice. VAT Registration No: XXXXXXXX. "
+            "All disputes subject to Dhaka jurisdiction.",
+            small,
+        ))
+    elements.append(Paragraph("Thank you for choosing Crown Hotel. We hope to see you again!",
                               ParagraphStyle('Footer', parent=normal, fontSize=10,
                                              textColor=colors.HexColor('#aa8453'), alignment=1)))
     elements.append(Spacer(1, 2 * mm))
-    elements.append(Paragraph("This is a computer-generated invoice and does not require a signature.", small))
+    if not duplicate:
+        elements.append(Paragraph("This is a computer-generated invoice and does not require a signature.", small))
 
-    doc.build(elements)
+    def on_page(canv, doc):
+        if duplicate:
+            _invoice_watermark(canv, doc, 'DUPLICATE')
+        elif preview:
+            _invoice_watermark(canv, doc, 'PREVIEW')
+
+    doc.build(elements, onFirstPage=on_page, onLaterPages=on_page)
     return buf.getvalue()

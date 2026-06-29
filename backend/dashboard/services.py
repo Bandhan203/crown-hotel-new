@@ -114,22 +114,38 @@ def get_room_grid_data():
     from .models import HotelConfig
     business_date = HotelConfig.load().business_date
 
+    reserved_bookings = {
+        b.room_id: b for b in Booking.objects.filter(
+            room_id__isnull=False,
+            status__in=['PENDING', 'CONFIRMED'],
+            check_out_date__gt=business_date,
+        ).select_related('guest')
+    }
+
     for room in rooms:
-        booking = active_bookings.get(room.id)
+        booking = active_bookings.get(room.id) or reserved_bookings.get(room.id)
         nights_remaining = 0
+        display_status = room.status
         if booking:
             nights_remaining = (booking.check_out_date - business_date).days
+            if room.status != 'OCCUPIED' and booking.status in ('PENDING', 'CONFIRMED'):
+                display_status = 'RESERVED'
 
         room_data = {
             'id': room.id,
             'room_number': room.room_number,
             'floor': room.floor,
-            'status': room.status,
+            'status': display_status,
             'housekeeping_status': room.housekeeping_status,
             'is_public_area': room.is_public_area,
             'area_type': room.area_type,
             'guest_name': booking.guest.full_name if booking else None,
             'nights_remaining': max(0, nights_remaining) if booking else None,
+            'expected_arrival': (
+                booking is not None
+                and booking.status in ('PENDING', 'CONFIRMED')
+                and booking.check_in_date >= business_date
+            ),
         }
         if room.is_public_area:
             grid_data['public_areas'].append(room_data)
@@ -511,4 +527,192 @@ def get_guest_ledger_report():
         'count': len(rows),
         'total_outstanding': sum(r['balance'] for r in rows if r['balance'] > 0),
         'guests': rows,
+    }
+
+
+# ──────────────────────────────────────────────
+# Reservation Control Chart (Room Forecast Matrix)
+# ──────────────────────────────────────────────
+
+COMMITTED_BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'CHECKED_IN']
+DEFAULT_WEEKEND_WEEKDAYS = [4, 5]  # Fri–Sat (configurable later via HotelConfig)
+OVERBOOKING_PCT = 10  # extra sellable rooms when include_overbooking=true
+
+
+def _room_is_ooo(room):
+    return room.status == 'MAINTENANCE' or room.housekeeping_status == 'OUT_OF_ORDER'
+
+
+def _offer_rate_for_night(room_type, day):
+    """Best applicable offer rate for a single night stay starting on `day`."""
+    from bookings.services import calculate_rate_plan_price, get_applicable_rate_plans
+
+    next_day = day + timedelta(days=1)
+    rack = float(room_type.price_per_night)
+    plans = list(get_applicable_rate_plans(room_type.id, day, next_day))
+    if not plans:
+        return rack
+    best = rack
+    for plan in plans:
+        total, _ = calculate_rate_plan_price(rack, 1, plan)
+        per_night = float(total)
+        if per_night < best:
+            best = per_night
+    return round(best, 2)
+
+
+def get_reservation_control_report(start_date=None, end_date=None, include_overbooking=False):
+    """
+    Build room-type × date availability matrix anchored on HotelConfig.business_date.
+    Available = Physical - OOO - Committed (PENDING + CONFIRMED + CHECKED_IN).
+    """
+    from collections import defaultdict
+    from rooms.models import RoomType
+    from .models import HotelConfig
+
+    config = HotelConfig.load()
+    business_date = config.business_date
+
+    if start_date is None:
+        start_date = business_date
+    if end_date is None:
+        end_date = start_date + timedelta(days=13)
+
+    if end_date < start_date:
+        end_date = start_date
+
+    max_days = 30
+    if (end_date - start_date).days > max_days:
+        end_date = start_date + timedelta(days=max_days)
+
+    dates = []
+    d = start_date
+    while d <= end_date:
+        dates.append(d)
+        d += timedelta(days=1)
+
+    physical_qs = Room.objects.filter(is_public_area=False, room_type__isnull=False)
+    physical_by_type = dict(
+        physical_qs.values('room_type_id').annotate(c=Count('id')).values_list('room_type_id', 'c')
+    )
+    ooo_by_type = dict(
+        physical_qs.filter(
+            Q(status='MAINTENANCE') | Q(housekeeping_status='OUT_OF_ORDER')
+        ).values('room_type_id').annotate(c=Count('id')).values_list('room_type_id', 'c')
+    )
+
+    bookings = list(
+        Booking.objects.filter(
+            status__in=COMMITTED_BOOKING_STATUSES,
+            check_in_date__lte=end_date,
+            check_out_date__gt=start_date,
+        ).select_related('guest', 'room_type').prefetch_related('guest__guest_profile')
+    )
+
+    committed = defaultdict(lambda: defaultdict(int))
+    for b in bookings:
+        rooms_count = b.num_rooms or 1
+        day = max(b.check_in_date, start_date)
+        while day < b.check_out_date and day <= end_date:
+            committed[b.room_type_id][day.isoformat()] += rooms_count
+            day += timedelta(days=1)
+
+    total_physical_all = sum(physical_by_type.values())
+    total_ooo_all = sum(ooo_by_type.values())
+
+    daily_summary = {}
+    for day in dates:
+        day_str = day.isoformat()
+        day_committed = sum(committed[rt_id][day_str] for rt_id in physical_by_type)
+        sellable = total_physical_all - total_ooo_all
+        if include_overbooking:
+            sellable += int(total_physical_all * OVERBOOKING_PCT / 100)
+
+        arrivals = sum(
+            (b.num_rooms or 1) for b in bookings
+            if b.check_in_date == day
+        )
+        departures = sum(
+            (b.num_rooms or 1) for b in bookings
+            if b.check_out_date == day and b.status == 'CHECKED_IN'
+        )
+        stayovers = sum(
+            (b.num_rooms or 1) for b in bookings
+            if b.check_in_date < day < b.check_out_date and b.status == 'CHECKED_IN'
+        )
+        vip_count = sum(
+            (b.num_rooms or 1) for b in bookings
+            if b.check_in_date <= day < b.check_out_date and b.guest_type == 'VIP'
+        )
+        vvip_count = sum(
+            (b.num_rooms or 1) for b in bookings
+            if b.check_in_date <= day < b.check_out_date
+            and hasattr(b.guest, 'guest_profile')
+            and getattr(b.guest.guest_profile, 'vip', False)
+        )
+
+        occupancy = (day_committed / sellable * 100) if sellable else 0.0
+        daily_summary[day_str] = {
+            'occupancy_pct': round(occupancy, 1),
+            'arrivals': arrivals,
+            'departures': departures,
+            'stayovers': stayovers,
+            'vip_count': vip_count,
+            'vvip_count': vvip_count,
+            'rooms_sold': day_committed,
+            'physical_rooms': total_physical_all,
+        }
+
+    room_types_out = []
+    for rt in RoomType.objects.all().order_by('name'):
+        rt_id = rt.id
+        physical = physical_by_type.get(rt_id, 0)
+        ooo = ooo_by_type.get(rt_id, 0)
+        sellable = physical - ooo
+        if include_overbooking and physical > 0:
+            sellable += int(physical * OVERBOOKING_PCT / 100)
+
+        cells = []
+        for day in dates:
+            day_str = day.isoformat()
+            committed_count = committed[rt_id][day_str]
+            available = sellable - committed_count
+            if available < 0:
+                status = 'overbooked'
+            elif available == 0:
+                status = 'sold_out'
+            else:
+                status = 'available'
+
+            cells.append({
+                'date': day_str,
+                'physical': physical,
+                'ooo': ooo,
+                'committed': committed_count,
+                'available': available,
+                'status': status,
+                'offer_rate': _offer_rate_for_night(rt, day),
+                'is_weekend': day.weekday() in DEFAULT_WEEKEND_WEEKDAYS,
+            })
+
+        room_types_out.append({
+            'room_type_id': rt_id,
+            'room_type_name': rt.name,
+            'rack_rate': float(rt.price_per_night),
+            'physical_rooms': physical,
+            'ooo_rooms': ooo,
+            'sellable_rooms': sellable,
+            'cells': cells,
+        })
+
+    return {
+        'business_date': business_date.isoformat(),
+        'start_date': start_date.isoformat(),
+        'end_date': end_date.isoformat(),
+        'dates': [x.isoformat() for x in dates],
+        'weekend_weekdays': DEFAULT_WEEKEND_WEEKDAYS,
+        'include_overbooking': include_overbooking,
+        'overbooking_pct': OVERBOOKING_PCT,
+        'room_types': room_types_out,
+        'daily_summary': daily_summary,
     }

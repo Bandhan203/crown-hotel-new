@@ -28,14 +28,14 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-[var(--color-dark)] text-slate-800/70">
+    <footer className="bg-[var(--color-dark)] text-white/80">
       {/* Main Footer */}
       <div className="max-w-7xl mx-auto px-4 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {/* About Hotel */}
           <div>
-            <h3 className="text-slate-800 text-xl font-[var(--font-heading)] mb-6">About Hotel</h3>
-            <p className="text-sm leading-relaxed mb-6">
+            <h3 className="text-white text-xl font-[var(--font-heading)] mb-6">About Hotel</h3>
+            <p className="text-sm leading-relaxed mb-6 text-white/75">
               {siteTagline}
             </p>
             <div className="flex gap-3">
@@ -46,7 +46,7 @@ export default function Footer() {
                     target="_blank"
                     rel="noreferrer"
                     aria-label={label}
-                    className="w-10 h-10 border border-gray-300 flex items-center justify-center text-slate-800/50 hover:bg-[var(--color-primary)] hover:border-[var(--color-primary)] hover:text-slate-800 transition-all"
+                    className="w-10 h-10 border border-white/30 flex items-center justify-center text-white/80 hover:bg-[var(--color-primary)] hover:border-[var(--color-primary)] hover:text-white transition-all"
                   >
                     <Icon size={14} />
                   </a>
@@ -56,7 +56,7 @@ export default function Footer() {
 
           {/* Explore */}
           <div>
-            <h3 className="text-slate-800 text-xl font-[var(--font-heading)] mb-6">Explore</h3>
+            <h3 className="text-white text-xl font-[var(--font-heading)] mb-6">Explore</h3>
             <div className="grid grid-cols-2 gap-2">
               {[
                 { name: 'Home', path: '/' },
@@ -71,7 +71,7 @@ export default function Footer() {
                 <Link
                   key={link.name}
                   to={link.path}
-                  className="text-sm hover:text-[var(--color-primary)] transition-colors py-1"
+                  className="text-sm text-white/75 hover:text-[var(--color-primary-light)] transition-colors py-1"
                 >
                   {link.name}
                 </Link>
@@ -81,31 +81,31 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
-            <h3 className="text-slate-800 text-xl font-[var(--font-heading)] mb-6">Contact</h3>
+            <h3 className="text-white text-xl font-[var(--font-heading)] mb-6">Contact</h3>
             <div className="flex flex-col gap-4">
               <div className="flex items-start gap-3">
-                <FiMapPin className="text-[var(--color-primary)] mt-1 shrink-0" />
-                <span className="text-sm whitespace-pre-line">{contactAddress}</span>
+                <FiMapPin className="text-[var(--color-primary-light)] mt-1 shrink-0" />
+                <span className="text-sm whitespace-pre-line text-white/75">{contactAddress}</span>
               </div>
               <div className="flex items-center gap-3">
-                <FiPhone className="text-[var(--color-primary)] shrink-0" />
-                <a href={`tel:${contactPhoneHref}`} className="text-sm hover:text-[var(--color-primary)]">
+                <FiPhone className="text-[var(--color-primary-light)] shrink-0" />
+                <a href={`tel:${contactPhoneHref}`} className="text-sm text-white/75 hover:text-[var(--color-primary-light)]">
                   {contactPhone}
                 </a>
               </div>
               <div className="flex items-center gap-3">
-                <FiMail className="text-[var(--color-primary)] shrink-0" />
-                <a href={`mailto:${contactEmail}`} className="text-sm hover:text-[var(--color-primary)]">
+                <FiMail className="text-[var(--color-primary-light)] shrink-0" />
+                <a href={`mailto:${contactEmail}`} className="text-sm text-white/75 hover:text-[var(--color-primary-light)]">
                   {contactEmail}
                 </a>
               </div>
               <div className="flex items-center gap-3">
-                <FiMapPin className="text-[var(--color-primary)] shrink-0 opacity-0" />
+                <FiMapPin className="text-[var(--color-primary-light)] shrink-0 opacity-0" />
                 <a
                   href="https://www.hotelcrownbd.com"
                   target="_blank"
                   rel="noreferrer"
-                  className="text-sm hover:text-[var(--color-primary)]"
+                  className="text-sm text-white/75 hover:text-[var(--color-primary-light)]"
                 >
                   www.hotelcrownbd.com
                 </a>
@@ -116,16 +116,16 @@ export default function Footer() {
       </div>
 
       {/* Bottom Footer */}
-      <div className="border-t border-gray-200">
+      <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-5 flex flex-col md:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-slate-800/40">
+          <p className="text-xs text-white/50">
             {copyrightText}
           </p>
           <div className="flex gap-6">
-            <Link to="/faq" className="text-xs text-slate-800/40 hover:text-[var(--color-primary)]">
+            <Link to="/faq" className="text-xs text-white/50 hover:text-[var(--color-primary-light)]">
               Terms & Conditions
             </Link>
-            <Link to="/contact" className="text-xs text-slate-800/40 hover:text-[var(--color-primary)]">
+            <Link to="/contact" className="text-xs text-white/50 hover:text-[var(--color-primary-light)]">
               Privacy Policy
             </Link>
           </div>

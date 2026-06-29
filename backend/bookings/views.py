@@ -32,13 +32,20 @@ from .serializers import (
     FolioChargeCreateSerializer,
     FolioChargeSerializer,
     GuestRegistrationSerializer,
+    RegistrationCheckInSerializer,
     InvoiceSerializer,
     PaymentSerializer,
     RatePlanSerializer,
     WalkInSerializer,
     ReservationCreateSerializer,
 )
-from .services import assign_room, check_availability, sync_booking_payment_status
+from .services import (
+    apply_registration_data,
+    assign_room,
+    check_availability,
+    perform_check_in,
+    sync_booking_payment_status,
+)
 
 User = get_user_model()
 
@@ -217,7 +224,7 @@ class AdminDeleteBookingView(generics.DestroyAPIView):
     def perform_destroy(self, instance):
         with transaction.atomic():
             # Release room if booking was active
-            if instance.room and instance.status in ('CONFIRMED', 'CHECKED_IN'):
+            if instance.room and instance.status in ('PENDING', 'CONFIRMED', 'CHECKED_IN'):
                 instance.room.status = 'AVAILABLE'
                 instance.room.save(update_fields=['status'])
             instance.delete()
@@ -242,6 +249,18 @@ class AdminBookingStatusView(APIView):
             )
 
         with transaction.atomic():
+            if new_status == 'CHECKED_IN' and booking.status in ('PENDING', 'CONFIRMED'):
+                return Response(
+                    {
+                        'detail': (
+                            'Use the Registration Module to check in guests '
+                            '(Front Desk → Check In or Registration). '
+                            'Direct status change is not allowed.'
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             booking.status = new_status
             booking.save(update_fields=['status', 'updated_at'])
 
@@ -251,6 +270,9 @@ class AdminBookingStatusView(APIView):
                     booking.room.save(update_fields=['status'])
                 elif new_status in ('CHECKED_OUT', 'CANCELLED'):
                     booking.room.status = 'AVAILABLE'
+                    booking.room.save(update_fields=['status'])
+                elif new_status == 'CONFIRMED':
+                    booking.room.status = 'RESERVED'
                     booking.room.save(update_fields=['status'])
 
         booking.refresh_from_db()
@@ -298,6 +320,9 @@ class AdminAssignRoomView(APIView):
 
         booking.room = room
         booking.save(update_fields=['room', 'updated_at'])
+        if booking.status in ('PENDING', 'CONFIRMED'):
+            room.status = 'RESERVED'
+            room.save(update_fields=['status'])
         return Response(BookingDetailSerializer(booking, context={'request': request}).data)
 
 
@@ -483,12 +508,22 @@ class ReservationCreateView(APIView):
             guest.save(update_fields=['full_name', 'phone'])
 
         nights = (data['check_out_date'] - data['check_in_date']).days
+        num_rooms = int(data.get('num_rooms', 1) or 1)
         rack = data.get('rack_rate') or room_type.price_per_night
         offer = data.get('offer_rate') or rack
         discount = data.get('discount_amount', 0)
-        total_price = max(0, (float(offer) * nights) - float(discount))
+        total_price = max(0, (float(offer) * nights * num_rooms) - float(discount))
         if total_price <= 0:
-            total_price = float(rack) * nights
+            total_price = float(rack) * nights * num_rooms
+
+        parent_booking = None
+        if data.get('parent_booking_id'):
+            parent_booking = Booking.objects.filter(pk=data['parent_booking_id']).first()
+            if not parent_booking:
+                return Response(
+                    {'detail': 'Parent booking not found for multi-reservation.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         with transaction.atomic():
             from accounts.models import GuestProfile
@@ -545,14 +580,16 @@ class ReservationCreateView(APIView):
                 room=room,
                 room_type=room_type,
                 rate_plan=rate_plan_obj,
+                parent_booking=parent_booking,
                 check_in_date=data['check_in_date'],
                 check_out_date=data['check_out_date'],
                 arrival_time=data.get('arrival_time'),
+                departure_time=data.get('departure_time'),
                 adults=data['adults'],
                 children=data['children'],
                 infants=data.get('infants', 0),
                 extra_bed=data.get('extra_bed', 0),
-                num_rooms=data.get('num_rooms', 1),
+                num_rooms=num_rooms,
                 total_price=total_price,
                 grand_total=grand,
                 rack_rate=rack,
@@ -565,6 +602,11 @@ class ReservationCreateView(APIView):
                 deposit_amount=data.get('deposit_amount', 0),
                 status=data.get('status', 'CONFIRMED'),
                 booking_source=data.get('booking_source', 'PHONE'),
+                reference_source=data.get('reference_source', ''),
+                guest_hobbies=data.get('guest_hobbies', ''),
+                guest_preferences=data.get('guest_preferences', ''),
+                airport_details=data.get('airport_details', ''),
+                transport_notes=data.get('transport_notes', ''),
                 id_type=data.get('id_type', ''),
                 id_number=data.get('id_number', ''),
                 company_name=data.get('company_name', ''),
@@ -574,6 +616,7 @@ class ReservationCreateView(APIView):
                 coming_from=data.get('coming_from', ''),
                 special_requests=data.get('special_requests', ''),
                 profile_note=data.get('profile_note', ''),
+                currency=data.get('currency', 'BDT'),
                 dnm=data.get('dnm', False),
                 no_post=data.get('no_post', False),
                 is_travel_agency=data.get('is_travel_agency', False),
@@ -589,6 +632,10 @@ class ReservationCreateView(APIView):
                 vehicle_assigned=data.get('vehicle_assigned', ''),
             )
 
+            if room and booking.status in ('PENDING', 'CONFIRMED'):
+                room.status = 'RESERVED'
+                room.save(update_fields=['status'])
+
             # Record advance payment if provided
             payment_amount = float(data.get('payment_amount', 0) or 0)
             if payment_amount > 0:
@@ -596,6 +643,7 @@ class ReservationCreateView(APIView):
                     booking=booking,
                     amount=payment_amount,
                     payment_method=data.get('payment_method', 'CASH'),
+                    currency=booking.currency,
                     status='COMPLETED',
                     paid_at=timezone.now(),
                 )
@@ -614,7 +662,62 @@ class ReservationCreateView(APIView):
                     posted_by=request.user,
                 )
 
+            from .registration_services import get_or_create_registration_for_booking
+            get_or_create_registration_for_booking(booking)
+
         return Response(BookingDetailSerializer(booking).data, status=status.HTTP_201_CREATED)
+
+
+class ReservationFinalizeView(APIView):
+    """POST /api/admin/reservations/{id}/finalize/ — set billing currency for group."""
+    permission_classes = [IsStaffUser]
+
+    def post(self, request, pk):
+        try:
+            booking = Booking.objects.get(pk=pk)
+        except Booking.DoesNotExist:
+            return Response({'detail': 'Booking not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        currency = request.data.get('currency', 'BDT')
+        if currency not in ('BDT', 'USD'):
+            return Response({'detail': 'Currency must be BDT or USD.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        root = booking.parent_booking or booking
+        with transaction.atomic():
+            ids = [root.id, *root.child_bookings.values_list('id', flat=True)]
+            Booking.objects.filter(pk__in=ids).update(currency=currency)
+            Payment.objects.filter(booking_id__in=ids).update(currency=currency)
+
+        root.refresh_from_db()
+        return Response(BookingDetailSerializer(root).data)
+
+
+class ReservationConfirmationPDFView(APIView):
+    """GET /api/admin/reservations/{id}/confirmation/pdf/ — reservation voucher PDF."""
+    permission_classes = [IsStaffUser]
+
+    def get(self, request, pk):
+        try:
+            booking = Booking.objects.select_related(
+                'guest', 'room_type', 'room'
+            ).get(pk=pk)
+        except Booking.DoesNotExist:
+            return Response({'detail': 'Booking not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if booking.status not in ('PENDING', 'CONFIRMED', 'CHECKED_IN'):
+            return Response(
+                {'detail': 'Confirmation voucher not available for this booking status.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from .reservation_voucher import generate_reservation_confirmation_pdf
+        pdf_bytes = generate_reservation_confirmation_pdf(booking)
+
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = (
+            f'inline; filename="confirmation_{booking.booking_ref}.pdf"'
+        )
+        return response
 
 
 # ── Check-in ─────────────────────────────────
@@ -635,89 +738,29 @@ class CheckInView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        from dashboard.models import HotelConfig
+        business_date = HotelConfig.load().business_date
+        if booking.check_in_date > business_date:
+            return Response(
+                {
+                    'detail': (
+                        f'Arrival date is {booking.check_in_date}. '
+                        f'Business date is {business_date}. '
+                        'Cannot check in before arrival date.'
+                    ),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = CheckInSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        with transaction.atomic():
-            # Assign room if provided or auto-assign (exclude this booking from overlap check)
-            if data.get('room_id'):
-                room = check_availability(
-                    booking.room_type_id,
-                    booking.check_in_date,
-                    booking.check_out_date,
-                    exclude_booking_id=booking.id,
-                ).filter(pk=data['room_id']).first()
-                if not room:
-                    return Response(
-                        {'detail': 'Selected room is not available for these dates.'},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                booking.room = room
-            elif not booking.room:
-                room = assign_room(
-                    booking.room_type_id,
-                    booking.check_in_date,
-                    booking.check_out_date,
-                    exclude_booking_id=booking.id,
-                )
-                if not room:
-                    return Response({'detail': 'No rooms available for auto-assignment.'}, status=status.HTTP_400_BAD_REQUEST)
-                booking.room = room
-            elif booking.room:
-                # Pre-assigned room: ensure still available
-                still_ok = check_availability(
-                    booking.room_type_id,
-                    booking.check_in_date,
-                    booking.check_out_date,
-                    exclude_booking_id=booking.id,
-                ).filter(pk=booking.room_id).exists()
-                if not still_ok:
-                    return Response(
-                        {'detail': 'Pre-assigned room is no longer available.'},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-            booking.status = 'CHECKED_IN'
-            booking.actual_check_in = timezone.now()
-            booking.checked_in_by = request.user
-            if data.get('id_type'):
-                booking.id_type = data['id_type']
-            if data.get('id_number'):
-                booking.id_number = data['id_number']
-            if data.get('deposit_amount'):
-                booking.deposit_amount = data['deposit_amount']
-            if data.get('notes_internal'):
-                booking.notes_internal = data['notes_internal']
-            if data.get('guest_type'):
-                booking.guest_type = data['guest_type']
-            if data.get('purpose_of_visit'):
-                booking.purpose_of_visit = data['purpose_of_visit']
-            if data.get('coming_from'):
-                booking.coming_from = data['coming_from']
-            if data.get('extra_bed'):
-                booking.extra_bed = data['extra_bed']
-            # Store rack rate from room type
-            booking.rack_rate = booking.room_type.price_per_night
-            booking.offer_rate = booking.room_type.price_per_night
-            booking.save()
-
-            # Set room to occupied
-            booking.room.status = 'OCCUPIED'
-            booking.room.save(update_fields=['status'])
-
-            # Post deposit to folio
-            if booking.deposit_amount > 0:
-                FolioCharge.objects.create(
-                    booking=booking,
-                    charge_type='DEPOSIT',
-                    description='Security deposit',
-                    amount=-booking.deposit_amount,
-                    quantity=1,
-                    total=-booking.deposit_amount,
-                    charge_date=booking.check_in_date,
-                    posted_by=request.user,
-                )
+        try:
+            with transaction.atomic():
+                perform_check_in(booking, data, request.user)
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         booking.refresh_from_db()
         return Response(BookingDetailSerializer(booking).data)
@@ -726,7 +769,7 @@ class CheckInView(APIView):
 # ── Check-out ────────────────────────────────
 
 class CheckOutView(APIView):
-    """POST /api/admin/reservations/{id}/check-out/"""
+    """POST /api/admin/reservations/{id}/check-out/ — legacy alias to Revenue Guard checkout."""
     permission_classes = [IsStaffUser]
 
     def post(self, request, pk):
@@ -745,61 +788,27 @@ class CheckOutView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        with transaction.atomic():
-            # Calculate folio balance
-            folio_total = FolioCharge.objects.filter(
-                booking=booking, is_void=False
-            ).aggregate(total=Sum('total'))['total'] or 0
+        from .checkout_services import execute_checkout, receive_checkout_payment
 
-            payments_total = Payment.objects.filter(
-                booking=booking, status='COMPLETED'
-            ).aggregate(total=Sum('amount'))['total'] or 0
-
-            room_charges = float(booking.total_price)
-            balance = room_charges + float(folio_total) - float(payments_total)
-
-            # Record payment if provided
+        try:
             payment_amount = float(data.get('payment_amount', 0))
             if payment_amount > 0:
-                Payment.objects.create(
-                    booking=booking,
-                    amount=payment_amount,
-                    payment_method=data.get('payment_method', 'CASH'),
-                    status='COMPLETED',
-                    paid_at=timezone.now(),
-                )
-                payments_total = float(payments_total) + payment_amount
-                balance = room_charges + float(folio_total) - float(payments_total)
+                receive_checkout_payment(booking, {
+                    'amount': payment_amount,
+                    'payment_method': data.get('payment_method', 'CASH'),
+                }, request.user)
 
-            if balance > 0.01:
-                from rest_framework.exceptions import ValidationError
-                raise ValidationError({'detail': 'Payment not clear. Full payment must be completed before check-out.'})
-
-            # Update booking
-            booking.status = 'CHECKED_OUT'
-            booking.actual_check_out = timezone.now()
-            booking.checked_out_by = request.user
-            if data.get('notes_internal'):
-                booking.notes_internal = (booking.notes_internal + '\n' + data['notes_internal']).strip()
-            booking.save()
-
-            # Release room and mark dirty
-            if booking.room:
-                booking.room.status = 'AVAILABLE'
-                booking.room.housekeeping_status = 'DIRTY'
-                booking.room.save(update_fields=['status', 'housekeeping_status'])
-
-        booking.refresh_from_db()
-
-        # Send checkout invoice email
-        from common.email import send_checkout_invoice
-        send_checkout_invoice(booking)
+            booking, balance_info, business_date = execute_checkout(booking, request.user, data)
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({
             'booking': BookingDetailSerializer(booking).data,
-            'folio_balance': round(balance, 2),
-            'total_charges': round(room_charges + float(folio_total), 2),
-            'total_payments': round(float(payments_total), 2),
+            'business_date': business_date,
+            'folio_balance': balance_info['balance'],
+            'total_charges': balance_info['folio_total'],
+            'total_payments': balance_info['payments_total'],
+            'folio': balance_info,
         })
 
 
@@ -993,19 +1002,17 @@ class FolioListCreateView(APIView):
             return Response({'detail': 'Booking not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         charges = FolioCharge.objects.filter(booking=booking).select_related('posted_by')
-        folio_total = charges.filter(is_void=False).aggregate(total=Sum('total'))['total'] or 0
-        payments_total = Payment.objects.filter(
-            booking=booking, status='COMPLETED'
-        ).aggregate(total=Sum('amount'))['total'] or 0
-        room_charges = float(booking.total_price)
+        from .checkout_services import compute_folio_balance
+        balance_info = compute_folio_balance(booking)
 
         return Response({
             'charges': FolioChargeSerializer(charges, many=True).data,
             'summary': {
-                'room_charges': room_charges,
-                'folio_total': float(folio_total),
-                'payments_total': float(payments_total),
-                'balance': round(room_charges + float(folio_total) - float(payments_total), 2),
+                'room_charges': float(booking.total_price),
+                'folio_total': balance_info['folio_total'],
+                'payments_total': balance_info['payments_total'],
+                'balance': balance_info['balance'],
+                'is_settled': balance_info['is_settled'],
             },
         })
 
@@ -1149,6 +1156,8 @@ class GuestRegistrationView(APIView):
             'guest_email': booking.guest.email,
             'guest_phone': booking.guest.phone,
             'room_type_name': booking.room_type.name if booking.room_type else '',
+            'room_type_id': booking.room_type_id,
+            'room_id': booking.room_id,
             'room_number': booking.room.room_number if booking.room else '',
             'check_in_date': booking.check_in_date,
             'check_out_date': booking.check_out_date,
@@ -1160,6 +1169,9 @@ class GuestRegistrationView(APIView):
             'contact_person': booking.contact_person,
             'deposit_amount': str(booking.deposit_amount),
             'total_price': str(booking.total_price),
+            'grand_total': str(booking.grand_total),
+            'currency': booking.currency,
+            'billing_type': booking.billing_type,
             'created_at': booking.created_at,
 
             # Editable booking fields
@@ -1221,64 +1233,12 @@ class GuestRegistrationView(APIView):
 
         from accounts.models import GuestProfile
         profile, _ = GuestProfile.objects.get_or_create(user=booking.guest)
+        apply_registration_data(booking, profile, d)
 
-        # Update booking fields
-        booking_fields = [
-            'guest_type', 'purpose_of_visit', 'coming_from', 'extra_bed',
-            'rack_rate', 'offer_rate', 'discount_pct', 'discount_amount',
-            'service_charge_pct', 'vat_pct',
-            'special_requests', 'profile_note',
-            'company_name', 'booking_source', 'arrival_time', 'id_type', 'id_number',
-            'contact_person', 'infants', 'deposit_amount', 'num_rooms',
-            'dnm', 'no_post', 'is_travel_agency', 'non_smoking',
-            'pickup_required', 'flight_pickup_no', 'flight_eta',
-            'drop_required', 'flight_drop_no', 'flight_etd',
-        ]
-        for f in booking_fields:
-            if f in d:
-                setattr(booking, f, d[f])
-
-        # Recalculate stay total when rates change
-        if any(k in d for k in ('rack_rate', 'offer_rate', 'discount_pct', 'discount_amount', 'service_charge_pct', 'vat_pct')):
-            nights = booking.nights
-            offer = float(booking.offer_rate or booking.rack_rate or booking.room_type.price_per_night)
-            disc = float(booking.discount_amount or 0)
-            subtotal = max(0, offer * nights - disc)
-            svc = subtotal * float(booking.service_charge_pct or 0) / 100
-            vat = subtotal * float(booking.vat_pct or 0) / 100
-            booking.total_price = subtotal
-            booking.tax_amount = round(svc + vat, 2)
-            booking.grand_total = round(subtotal + svc + vat, 2)
-
-        booking.save()
-
-        # Sync guest display name from profile
-        if 'first_name' in d or 'last_name' in d:
-            fn = d.get('first_name', profile.first_name)
-            ln = d.get('last_name', profile.last_name)
-            booking.guest.full_name = f"{fn} {ln}".strip() or fn or booking.guest.full_name
-            booking.guest.save(update_fields=['full_name'])
-
-        # Update guest profile fields
-        profile_map = {
-            'first_name': 'first_name',
-            'last_name': 'last_name',
-            'designation': 'designation',
-            'date_of_birth': 'date_of_birth',
-            'gender': 'gender',
-            'nationality': 'nationality',
-            'country': 'country',
-            'address': 'address_line1',
-            'occupation': 'occupation',
-            'place_of_issue': 'place_of_issue',
-            'visa_no': 'visa_no',
-        }
-        for src, dst in profile_map.items():
-            if src in d:
-                setattr(profile, dst, d[src])
-        profile.save()
-
-        return Response({'detail': 'Registration updated.'})
+        return Response({
+            'detail': 'Registration updated.',
+            'booking': BookingDetailSerializer(booking).data,
+        })
 
 
 class RegistrationCardUploadView(APIView):
@@ -1307,6 +1267,82 @@ class RegistrationCardUploadView(APIView):
         booking.save(update_fields=['registration_card'])
         url = request.build_absolute_uri(booking.registration_card.url) if booking.registration_card else None
         return Response({'registration_card': url})
+
+
+class RegistrationCheckInView(APIView):
+    """POST /api/admin/reservations/{id}/registration/check-in/ — registration + check-in."""
+    permission_classes = [IsStaffUser]
+
+    def post(self, request, pk):
+        try:
+            booking = Booking.objects.select_related('room', 'room_type', 'guest').get(pk=pk)
+        except Booking.DoesNotExist:
+            return Response({'detail': 'Booking not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if booking.status not in ('PENDING', 'CONFIRMED'):
+            return Response(
+                {'detail': f'Cannot check in a booking with status {booking.status}.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from dashboard.models import HotelConfig
+        business_date = HotelConfig.load().business_date
+        if booking.check_in_date > business_date:
+            return Response(
+                {
+                    'detail': (
+                        f'Arrival date is {booking.check_in_date}. '
+                        f'Business date is {business_date}. '
+                        'Cannot check in before arrival date.'
+                    ),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = RegistrationCheckInSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        from accounts.models import GuestProfile
+        profile, _ = GuestProfile.objects.get_or_create(user=booking.guest)
+
+        try:
+            with transaction.atomic():
+                apply_registration_data(booking, profile, data)
+                perform_check_in(booking, data, request.user)
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        booking.refresh_from_db()
+        return Response(BookingDetailSerializer(booking).data)
+
+
+class RegistrationCardPDFView(APIView):
+    """GET /api/admin/reservations/{id}/registration/pdf/ — printable registration card."""
+    permission_classes = [IsStaffUser]
+
+    def get(self, request, pk):
+        try:
+            booking = Booking.objects.select_related(
+                'guest', 'room_type', 'room'
+            ).get(pk=pk)
+        except Booking.DoesNotExist:
+            return Response({'detail': 'Booking not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if booking.status not in ('CHECKED_IN', 'CHECKED_OUT'):
+            return Response(
+                {'detail': 'Registration card available after check-in.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from .registration_card_pdf import generate_registration_card_pdf
+        pdf_bytes = generate_registration_card_pdf(booking)
+
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = (
+            f'inline; filename="registration_{booking.booking_ref}.pdf"'
+        )
+        return response
 
 
 # ── Rate Plans ───────────────────────────────

@@ -17,6 +17,7 @@ interface RoomGridProps {
 const LEGEND = [
   { label: 'Vacant', color: 'bg-status-available' },
   { label: 'Occupied', color: 'bg-status-occupied' },
+  { label: 'Expected', color: 'bg-status-reserved' },
   { label: 'Dirty', color: 'bg-status-dirty' },
   { label: 'OOO', color: 'bg-status-ooo' },
 ] as const;

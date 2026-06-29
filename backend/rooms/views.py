@@ -150,3 +150,41 @@ class RoomHousekeepingStatusView(APIView):
             room.last_cleaned_at = timezone.now()
         room.save(update_fields=['housekeeping_status', 'last_cleaned_at'])
         return Response(HousekeepingBoardRoomSerializer(room).data)
+
+
+class RoomReadyView(APIView):
+    """POST /api/admin/rooms/{id}/room-ready/ — advance Dirty → Inspected → Clean/Available."""
+    permission_classes = [IsStaffUser]
+
+    def post(self, request, pk):
+        try:
+            room = Room.objects.get(pk=pk)
+        except Room.DoesNotExist:
+            return Response({'detail': 'Room not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        dirty_states = {'DIRTY', 'VD', 'OD', 'CO'}
+        hk = room.housekeeping_status
+
+        if hk in dirty_states:
+            room.housekeeping_status = 'INSPECTED'
+            room.save(update_fields=['housekeeping_status'])
+            message = f'Room {room.room_number} marked Inspected.'
+        elif hk == 'INSPECTED':
+            room.housekeeping_status = 'CLEAN'
+            room.status = 'AVAILABLE'
+            room.last_cleaned_at = timezone.now()
+            room.save(update_fields=['housekeeping_status', 'status', 'last_cleaned_at'])
+            message = f'Room {room.room_number} is Ready (Available).'
+        else:
+            return Response(
+                {'detail': f'Room {room.room_number} is {hk}. Room Ready applies to Dirty or Inspected rooms only.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response({
+            'detail': message,
+            'room_id': room.id,
+            'room_number': room.room_number,
+            'status': room.status,
+            'housekeeping_status': room.housekeeping_status,
+        })

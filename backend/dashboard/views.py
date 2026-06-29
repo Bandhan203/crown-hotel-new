@@ -1,5 +1,6 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
+from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import permissions, status
 from rest_framework.response import Response
@@ -20,6 +21,7 @@ from .services import (
     get_cancellation_report,
     get_guest_ledger_report,
     get_room_grid_data,
+    get_reservation_control_report,
 )
 
 
@@ -311,6 +313,71 @@ class GuestLedgerReportView(APIView):
 
     def get(self, request):
         return Response(get_guest_ledger_report())
+
+
+def _parse_reservation_control_dates(request):
+    """Shared date-range parser for reservation control JSON + PDF."""
+    business_date = HotelConfig.load().business_date
+    start_str = request.query_params.get('start_date')
+    end_str = request.query_params.get('end_date')
+    days_param = request.query_params.get('days')
+
+    if start_str:
+        try:
+            start_date = datetime.strptime(start_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            return None, None, 'Invalid start_date. Use YYYY-MM-DD.'
+    else:
+        start_date = business_date
+
+    if end_str:
+        try:
+            end_date = datetime.strptime(end_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            return None, None, 'Invalid end_date. Use YYYY-MM-DD.'
+    elif days_param:
+        try:
+            num_days = max(1, min(30, int(days_param)))
+            end_date = start_date + timedelta(days=num_days - 1)
+        except (ValueError, TypeError):
+            return None, None, 'Invalid days parameter.'
+    else:
+        end_date = start_date + timedelta(days=13)
+
+    include_overbooking = request.query_params.get('include_overbooking', '').lower() in ('1', 'true', 'yes')
+    return start_date, end_date, include_overbooking
+
+
+class ReservationControlReportView(APIView):
+    """GET /api/admin/reports/reservation-control/?start_date=&end_date=&format=pdf"""
+    permission_classes = [IsStaffUser]
+
+    def get(self, request):
+        from .services import get_reservation_control_report
+        from .reservation_control_pdf import generate_reservation_control_pdf
+
+        parsed = _parse_reservation_control_dates(request)
+        if isinstance(parsed[2], str):
+            return Response({'detail': parsed[2]}, status=status.HTTP_400_BAD_REQUEST)
+        start_date, end_date, include_overbooking = parsed
+
+        if request.query_params.get('format', '').lower() == 'pdf':
+            pdf_bytes = generate_reservation_control_pdf(start_date, end_date, include_overbooking)
+            filename = f'reservation-control_{start_date}_{end_date}.pdf'
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'inline; filename="{filename}"'
+            return response
+
+        data = get_reservation_control_report(start_date, end_date, include_overbooking)
+        return Response(data)
+
+
+class ReservationControlPDFView(APIView):
+    """Legacy alias — GET /api/admin/reports/reservation-control/pdf/"""
+    permission_classes = [IsStaffUser]
+
+    def get(self, request):
+        return ReservationControlReportView().get(request)
 
 
 class RecentBookingsReportView(APIView):

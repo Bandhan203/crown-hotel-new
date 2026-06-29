@@ -51,7 +51,7 @@ export default function QuickActions() {
     {
       label: 'Quick Check-out',
       icon: <MdLogout size={16} />,
-      onClick: go('/admin/front-desk?tab=departures'),
+      onClick: go('/admin/checkout'),
       className: 'bg-[#bc2323] text-white',
     },
   ];

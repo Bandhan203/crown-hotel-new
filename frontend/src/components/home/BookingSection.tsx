@@ -77,34 +77,34 @@ export default function BookingSection() {
         </div>
 
         <div className="text-center mt-8">
-          <p className="text-slate-800 italic font-[var(--font-heading)] text-lg mb-3">{tagline}</p>
+          <p className="text-white italic font-[var(--font-heading)] text-lg mb-3 drop-shadow-md">{tagline}</p>
           <div className="flex flex-col items-center gap-2 mt-4">
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-[var(--color-primary)] text-sm font-[var(--font-condensed)] uppercase tracking-[3px]">
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <span className="text-[var(--color-primary-light)] text-sm font-[var(--font-condensed)] uppercase tracking-[3px]">
                 Front Office
               </span>
               <a
                 href={`tel:${frontHref}`}
-                className="flex items-center gap-2 text-lg font-[var(--font-heading)] text-slate-800 hover:text-[var(--color-primary)] transition-colors"
+                className="flex items-center gap-2 text-lg font-[var(--font-heading)] text-white hover:text-[var(--color-primary-light)] transition-colors"
               >
-                <FiPhone className="text-[var(--color-primary)]" />
+                <FiPhone className="text-[var(--color-primary-light)]" />
                 {frontPhone}
               </a>
             </div>
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-[var(--color-primary)] text-sm font-[var(--font-condensed)] uppercase tracking-[3px]">
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <span className="text-[var(--color-primary-light)] text-sm font-[var(--font-condensed)] uppercase tracking-[3px]">
                 Reservations
               </span>
               <a
                 href={`tel:${reservationsHref}`}
-                className="flex items-center gap-2 text-lg font-[var(--font-heading)] text-slate-800 hover:text-[var(--color-primary)] transition-colors"
+                className="flex items-center gap-2 text-lg font-[var(--font-heading)] text-white hover:text-[var(--color-primary-light)] transition-colors"
               >
-                <FiPhone className="text-[var(--color-primary)]" />
+                <FiPhone className="text-[var(--color-primary-light)]" />
                 {reservationsPhone}
               </a>
             </div>
           </div>
-          <p className="text-slate-800/60 text-sm mt-2">
+          <p className="text-white/80 text-sm mt-2">
             {email} | {website}
           </p>
         </div>

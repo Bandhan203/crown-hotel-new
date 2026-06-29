@@ -19,6 +19,8 @@ urlpatterns = [
     path('admin/reports/no-shows/', views.NoShowReportView.as_view(), name='report-no-shows'),
     path('admin/reports/cancellations/', views.CancellationReportView.as_view(), name='report-cancellations'),
     path('admin/reports/guest-ledger/', views.GuestLedgerReportView.as_view(), name='report-guest-ledger'),
+    path('admin/reports/reservation-control/pdf/', views.ReservationControlPDFView.as_view(), name='report-reservation-control-pdf'),
+    path('admin/reports/reservation-control/', views.ReservationControlReportView.as_view(), name='report-reservation-control'),
     path('admin/reports/recent-bookings/', views.RecentBookingsReportView.as_view(), name='report-recent-bookings'),
     # ERP Features
     path('admin/config/', views.HotelConfigView.as_view(), name='hotel-config'),

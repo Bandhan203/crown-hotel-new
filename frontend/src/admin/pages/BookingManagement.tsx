@@ -6,7 +6,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import api from '../../services/api';
 import GuestFolio from '../components/GuestFolio';
-import GuestRegistrationModal from '../components/GuestRegistrationModal';
+import RegistrationModule from '../components/GuestRegistrationModal';
 import BookingViewModal from '../components/BookingViewModal';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -70,6 +70,12 @@ export default function BookingManagement() {
   const [guestSearch, setGuestSearch] = useState('');
   const [folioBooking, setFolioBooking] = useState<Booking | null>(null);
   const [regBookingId, setRegBookingId] = useState<number | null>(null);
+  const [regCheckInMode, setRegCheckInMode] = useState(false);
+
+  const openRegistration = (id: number, checkIn = false) => {
+    setRegBookingId(id);
+    setRegCheckInMode(checkIn);
+  };
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState<number | null>(null);
   const PAGE_SIZE = 15;
@@ -165,7 +171,7 @@ export default function BookingManagement() {
           View
         </button>
         {nextStatuses.includes('CHECKED_IN') && (
-          <button type="button" title="Check in" onClick={() => updateStatus(b.id, 'CHECKED_IN')}
+          <button type="button" title="Check in (Registration)" onClick={() => openRegistration(b.id, true)}
             className={`${btn} w-5 h-5 text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100`}>
             <MdLogin size={12} />
           </button>
@@ -286,7 +292,7 @@ export default function BookingManagement() {
           onRefresh={() => fetchBookings(page)}
           onDeleted={() => { setViewBookingId(null); fetchBookings(page); }}
           onOpenFolio={(b) => setFolioBooking(b as Booking)}
-          onOpenRegistration={(id) => setRegBookingId(id)}
+          onOpenRegistration={(id) => openRegistration(id, false)}
         />
       )}
 
@@ -387,10 +393,13 @@ export default function BookingManagement() {
       )}
 
       {regBookingId && (
-        <GuestRegistrationModal
+        <RegistrationModule
+          mode="advance"
           bookingId={regBookingId}
-          onClose={() => setRegBookingId(null)}
-          onSuccess={() => { setRegBookingId(null); fetchBookings(page); }}
+          checkInMode={regCheckInMode}
+          onClose={() => { setRegBookingId(null); setRegCheckInMode(false); }}
+          onRefresh={() => fetchBookings(page)}
+          onSuccess={() => { setRegBookingId(null); setRegCheckInMode(false); fetchBookings(page); }}
         />
       )}
     </div>

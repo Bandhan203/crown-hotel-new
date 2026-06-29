@@ -47,7 +47,9 @@ import CMSPages from './admin/pages/CMSPages';
 import Branding from './admin/pages/Branding';
 import Settings from './admin/pages/Settings';
 import FrontDesk from './admin/pages/FrontDesk';
+import Checkout from './admin/pages/Checkout';
 import ReservationCalendar from './admin/pages/ReservationCalendar';
+import ReservationControl from './admin/pages/ReservationControl';
 import RatePlanManagement from './admin/pages/RatePlanManagement';
 import HousekeepingBoard from './admin/pages/HousekeepingBoard';
 import NightAudit from './admin/pages/NightAudit';
@@ -96,7 +98,9 @@ function App() {
           <Route element={<AdminLayout />}>
             <Route path="/admin" element={<Dashboard />} />
             <Route path="/admin/front-desk" element={<FrontDesk />} />
+            <Route path="/admin/checkout" element={<Checkout />} />
             <Route path="/admin/reservations/calendar" element={<ReservationCalendar />} />
+            <Route path="/admin/reservation-control" element={<ReservationControl />} />
             <Route path="/admin/rate-plans" element={<RatePlanManagement />} />
             <Route path="/admin/housekeeping" element={<HousekeepingBoard />} />
             <Route path="/admin/night-audit" element={<NightAudit />} />

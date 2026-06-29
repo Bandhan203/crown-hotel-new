@@ -21,7 +21,7 @@ export default function AdminLayout() {
       const shortcuts: Record<string, string> = {
         F1: '/admin',
         F2: '/admin/front-desk?action=walkin',
-        F3: '/admin/front-desk?action=reserve',
+        F3: '/admin/front-desk?action=reservation',
         F4: '/admin/night-audit',
         F5: '/admin/bookings',
         F6: '/admin/guests',
@@ -29,6 +29,7 @@ export default function AdminLayout() {
         F8: '/admin/reports',
         F9: '/admin/inventory',
         F10: '/admin/housekeeping',
+        F11: '/admin/reservation-control',
       };
       if (shortcuts[e.key]) {
         e.preventDefault();
