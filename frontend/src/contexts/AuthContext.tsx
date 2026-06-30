@@ -52,7 +52,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await api.post('/auth/login/', { email, password });
+    // Clear stale tokens so login is not rejected by invalid Bearer header
+    localStorage.removeItem('tokens');
+    localStorage.removeItem('user');
+    setUser(null);
+
+    const res = await api.post('/auth/login/', {
+      email: email.trim().toLowerCase(),
+      password,
+    });
     const { user: userData, tokens } = res.data;
     localStorage.setItem('tokens', JSON.stringify(tokens));
     localStorage.setItem('user', JSON.stringify(userData));

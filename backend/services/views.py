@@ -1,6 +1,6 @@
 from rest_framework import generics, permissions, viewsets
 
-from accounts.permissions import IsAdmin
+from accounts.permissions import IsStaffUser
 from .models import Facility, HotelService
 from .serializers import FacilitySerializer, HotelServiceSerializer
 
@@ -29,10 +29,12 @@ class FacilityListView(generics.ListAPIView):
 class AdminHotelServiceViewSet(viewsets.ModelViewSet):
     queryset = HotelService.objects.all()
     serializer_class = HotelServiceSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [IsStaffUser]
+    pagination_class = None
 
 
 class AdminFacilityViewSet(viewsets.ModelViewSet):
     queryset = Facility.objects.all()
     serializer_class = FacilitySerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [IsStaffUser]
+    pagination_class = None

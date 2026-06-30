@@ -14,7 +14,7 @@ class ItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Item
-        fields = ['id', 'category', 'category_name', 'name', 'unit', 'unit_price',
+        fields = ['id', 'category', 'category_name', 'code', 'name', 'unit', 'unit_price',
                   'current_stock', 'min_stock_level', 'low_stock']
 
     def get_low_stock(self, obj):
@@ -70,11 +70,19 @@ class StockTransactionSerializer(serializers.ModelSerializer):
 
 
 class StockInSerializer(serializers.ModelSerializer):
+    unit_price = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
+
     class Meta:
         model = StockTransaction
-        fields = ['item', 'quantity', 'reference']
+        fields = ['item', 'quantity', 'reference', 'unit_price']
 
     def validate_quantity(self, value):
         if value <= 0:
             raise serializers.ValidationError('Quantity must be positive.')
         return value
+
+
+class StockAdjustmentSerializer(serializers.Serializer):
+    item = serializers.PrimaryKeyRelatedField(queryset=Item.objects.all())
+    quantity = serializers.DecimalField(max_digits=10, decimal_places=2, help_text='Positive to add, negative to deduct')
+    reference = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')

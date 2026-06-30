@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MdExpandMore, MdHotel, MdEventAvailable } from 'react-icons/md';
+import { MdCleaningServices, MdExpandMore, MdHotel, MdEventAvailable } from 'react-icons/md';
+import { getHkLabel, isDirtyHk } from '../../utils/housekeepingStatus';
 import GuestFolio from '../GuestFolio';
 
 export interface OccupantContext {
@@ -34,11 +35,22 @@ export interface OccupantContext {
   internal_notes?: string;
 }
 
+interface PendingHkTask {
+  id: number;
+  status: string;
+  priority: string;
+  booking_ref?: string | null;
+  notes?: string;
+}
+
 interface RoomContext {
   room_id: number;
   room_number: string;
   status: string;
   housekeeping_status: string;
+  housekeeping_label?: string;
+  is_dirty?: boolean;
+  pending_hk_task?: PendingHkTask | null;
   notes: string;
   room_type: string;
   occupant: OccupantContext | null;
@@ -153,8 +165,12 @@ export default function GuestPanel({ roomContext, loading, onOpenFolio }: GuestP
 
   const occ = roomContext.occupant;
   const isOccupied = !!occ;
+  const isDirty = roomContext.is_dirty ?? isDirtyHk(roomContext.housekeeping_status);
   const nights = occ ? nightsBetween(occ.check_in, occ.check_out) : 0;
-  const statusLabel = roomContext.status.replace(/_/g, ' ');
+  const statusLabel = isDirty && !isOccupied
+    ? getHkLabel(roomContext.housekeeping_status)
+    : roomContext.status.replace(/_/g, ' ');
+  const hkTask = roomContext.pending_hk_task;
   const serviceTags = parseServiceTags(occ?.special_requests, occ?.guest_preferences);
 
   const openFolio = () => {
@@ -180,7 +196,9 @@ export default function GuestPanel({ roomContext, loading, onOpenFolio }: GuestP
                 {occ ? `Conf. No: ${occ.booking_ref}` : roomContext.room_type}
               </p>
             </div>
-            <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-bold backdrop-blur-md capitalize">
+            <span className={`px-3 py-1 rounded-full text-xs font-bold backdrop-blur-md capitalize ${
+              isDirty && !isOccupied ? 'bg-status-dirty/90 text-white' : 'bg-white/20'
+            }`}>
               {statusLabel}
             </span>
           </div>
@@ -303,6 +321,29 @@ export default function GuestPanel({ roomContext, loading, onOpenFolio }: GuestP
                   Modify Stay
                 </button>
               </div>
+            </div>
+          ) : isDirty ? (
+            <div className="text-center py-4 space-y-3">
+              <div className="flex items-center justify-center gap-2 text-status-dirty">
+                <MdCleaningServices size={28} />
+                <p className="text-sm font-bold">Room needs cleaning</p>
+              </div>
+              {hkTask ? (
+                <div className="text-left bg-white/10 border border-white/20 rounded-lg p-3 text-xs space-y-1">
+                  <p><span className="opacity-70">HK Task:</span> #{hkTask.id} — {hkTask.status.replace('_', ' ')}</p>
+                  {hkTask.booking_ref && <p><span className="opacity-70">From:</span> {hkTask.booking_ref}</p>}
+                  <p className="opacity-80 italic">{hkTask.notes || 'Post-checkout cleaning'}</p>
+                </div>
+              ) : (
+                <p className="text-xs opacity-70">Use the quick bar above to dispatch housekeeping</p>
+              )}
+              <button
+                type="button"
+                onClick={() => navigate('/admin/housekeeping')}
+                className="w-full py-2 text-xs font-semibold text-primary-fixed underline opacity-90"
+              >
+                Open Housekeeping Board →
+              </button>
             </div>
           ) : (
             <div className="text-center py-6 space-y-4">

@@ -3,7 +3,7 @@ import { MdPictureAsPdf, MdAdminPanelSettings, MdNightlight, MdDownload, MdSync 
 
 interface Props {
   businessDate: string;
-  auditReady?: boolean;
+  auditStatus?: 'ready' | 'pending' | 'completed';
 }
 
 function formatDate(iso: string) {
@@ -17,8 +17,15 @@ function formatDate(iso: string) {
   }
 }
 
-export default function CompliancePanel({ businessDate, auditReady = true }: Props) {
+export default function CompliancePanel({ businessDate, auditStatus = 'ready' }: Props) {
   const navigate = useNavigate();
+
+  const statusLabel = auditStatus === 'completed' ? 'COMPLETED' : auditStatus === 'pending' ? 'PENDING' : 'READY';
+  const statusClass = auditStatus === 'completed'
+    ? 'bg-green-500/10 text-green-700 border-green-500/20'
+    : auditStatus === 'pending'
+      ? 'bg-status-dirty/10 text-status-dirty border-status-dirty/20'
+      : 'bg-status-available/10 text-status-available border-status-available/20';
 
   return (
     <div className="p-4 bg-surface-container-low border border-outline-variant rounded-xl shadow-sm flex flex-col gap-4 shrink-0">
@@ -52,19 +59,16 @@ export default function CompliancePanel({ businessDate, auditReady = true }: Pro
             </div>
             <div className="text-right">
               <p className="text-[10px] text-outline font-bold uppercase">Audit Status</p>
-              <span className={`text-[10px] px-2 py-0.5 rounded font-bold border ${
-                auditReady
-                  ? 'bg-status-available/10 text-status-available border-status-available/20'
-                  : 'bg-status-dirty/10 text-status-dirty border-status-dirty/20'
-              }`}>
-                {auditReady ? 'READY' : 'PENDING'}
+              <span className={`text-[10px] px-2 py-0.5 rounded font-bold border ${statusClass}`}>
+                {statusLabel}
               </span>
             </div>
           </div>
           <button
             type="button"
             onClick={() => navigate('/admin/night-audit')}
-            className="w-full py-3 bg-status-occupied text-white rounded-lg font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:brightness-110 active:scale-[0.98] transition-all"
+            disabled={auditStatus === 'completed'}
+            className="w-full py-3 bg-status-occupied text-white rounded-lg font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <MdNightlight size={20} /> Run Night Audit
           </button>

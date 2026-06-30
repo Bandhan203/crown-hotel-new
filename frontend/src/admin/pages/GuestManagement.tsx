@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, type ColDef, type ICellRendererParams } from 'ag-grid-community';
-import { MdSearch, MdEdit, MdSave } from 'react-icons/md';
+import { MdSearch, MdEdit, MdSave, MdAdd } from 'react-icons/md';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 
@@ -17,6 +17,7 @@ interface Guest {
   is_active: boolean;
   date_joined: string;
   total_bookings: number;
+  blacklisted?: boolean;
 }
 
 interface GuestProfileData {
@@ -90,7 +91,10 @@ export default function GuestManagement() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState<number | null>(null);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [filter, setFilter] = useState<'all' | 'active' | 'inactive' | 'blacklisted'>('all');
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({ email: '', full_name: '', phone: '' });
+  const [creating, setCreating] = useState(false);
   const [detail, setDetail] = useState<Guest | null>(null);
   const [guestBookings, setGuestBookings] = useState<GuestBooking[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
@@ -111,6 +115,7 @@ export default function GuestManagement() {
       if (search) params.search = search;
       if (filter === 'active') params.is_active = 'true';
       if (filter === 'inactive') params.is_active = 'false';
+      if (filter === 'blacklisted') params.blacklisted = 'true';
       const res = await api.get('/admin/guests/', { params });
       setRowData(res.data.results ?? res.data);
       setTotal(res.data.count ?? null);
@@ -195,6 +200,31 @@ export default function GuestManagement() {
     setToggling(false);
   }
 
+  async function handleCreateGuest() {
+    if (!createForm.email || !createForm.full_name) {
+      toast.error('Email and name are required');
+      return;
+    }
+    setCreating(true);
+    try {
+      await api.post('/admin/guests/create/', createForm);
+      toast.success('Guest created');
+      setShowCreate(false);
+      setCreateForm({ email: '', full_name: '', phone: '' });
+      fetchGuests(1);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string; email?: string[] } } };
+      toast.error(err?.response?.data?.detail || err?.response?.data?.email?.[0] || 'Create failed');
+    }
+    setCreating(false);
+  }
+
+  const BlacklistRenderer = (params: ICellRendererParams) => (
+    params.value ? (
+      <span className={`${BADGE} bg-red-50 text-red-700 border border-red-200`}>Blacklisted</span>
+    ) : null
+  );
+
   const StatusRenderer = (params: ICellRendererParams) => (
     <span className={`${BADGE} ${activeStatusColors[String(params.value)] || 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
       {params.value ? 'Active' : 'Inactive'}
@@ -228,6 +258,7 @@ export default function GuestManagement() {
     { field: 'email', headerName: 'Email', flex: 1, minWidth: 180, cellClass: 'cell-ellipsis', tooltipField: 'email' },
     { field: 'phone', headerName: 'Mobile', width: 118, valueFormatter: p => p.value || '—' },
     { field: 'total_bookings', headerName: 'Bookings', width: 88, cellClass: 'cell-amount' },
+    { field: 'blacklisted', headerName: 'Flag', width: 90, cellRenderer: BlacklistRenderer, cellClass: '' },
     { field: 'is_active', headerName: 'Status', width: 90, cellRenderer: StatusRenderer, cellClass: '' },
     { field: 'date_joined', headerName: 'Joined', width: 108, valueFormatter: p => new Date(p.value).toLocaleDateString() },
     { headerName: 'Actions', width: 96, minWidth: 96, maxWidth: 96, pinned: 'right', lockPinned: true, cellRenderer: ActionsRenderer, sortable: false, filter: false, cellClass: 'cell-pin cell-actions', ...pinCol },
@@ -246,7 +277,7 @@ export default function GuestManagement() {
       <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap gap-0.5 p-0.5 rounded-md border border-white/5 flex-1 min-w-[12rem]">
-            {(['all', 'active', 'inactive'] as const).map(tab => (
+            {(['all', 'active', 'inactive', 'blacklisted'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setFilter(tab)}
@@ -266,8 +297,50 @@ export default function GuestManagement() {
               className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs text-slate-800 placeholder-gray-500 focus:outline-none focus:border-teal-600 w-48"
             />
           </div>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-700 text-white rounded-md text-xs font-medium hover:bg-teal-600 transition shrink-0"
+          >
+            <MdAdd size={16} /> New Guest
+          </button>
         </div>
       </div>
+
+      {showCreate && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowCreate(false)}>
+          <div className="bg-white border border-gray-200 rounded-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-slate-800 mb-4">New Guest</h2>
+            <div className="space-y-3 text-sm">
+              <div>
+                <label className="block text-gray-500 mb-1">Full Name *</label>
+                <input value={createForm.full_name} onChange={e => setCreateForm(f => ({ ...f, full_name: e.target.value }))}
+                  className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-slate-800 focus:outline-none focus:border-teal-600" />
+              </div>
+              <div>
+                <label className="block text-gray-500 mb-1">Email *</label>
+                <input type="email" value={createForm.email} onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))}
+                  className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-slate-800 focus:outline-none focus:border-teal-600" />
+              </div>
+              <div>
+                <label className="block text-gray-500 mb-1">Phone</label>
+                <input value={createForm.phone} onChange={e => setCreateForm(f => ({ ...f, phone: e.target.value }))}
+                  className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-slate-800 focus:outline-none focus:border-teal-600" />
+              </div>
+            </div>
+            <div className="mt-5 flex gap-3">
+              <button type="button" disabled={creating} onClick={handleCreateGuest}
+                className="flex-1 py-2 bg-teal-700 text-white text-sm font-medium rounded hover:bg-teal-600 disabled:opacity-50">
+                Create
+              </button>
+              <button type="button" onClick={() => setShowCreate(false)}
+                className="flex-1 py-2 border border-gray-200 text-gray-500 text-sm rounded hover:text-slate-800">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-xl overflow-hidden border border-gray-200 bg-[#141414] shadow-lg">
         <div className="ag-theme-quartz ag-theme-bookings w-full" style={{ height: 500 }}>

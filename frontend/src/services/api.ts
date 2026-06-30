@@ -2,17 +2,31 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
+/** Endpoints that must not send or refresh JWT (stale tokens would block login). */
+const AUTH_PUBLIC_PATHS = ['/auth/login/', '/auth/register/', '/auth/token/refresh/'];
+
+function isAuthPublicRequest(url?: string): boolean {
+  if (!url) return false;
+  return AUTH_PUBLIC_PATHS.some((path) => url.includes(path));
+}
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach access token to every request
+// Attach access token to every request (except public auth endpoints)
 api.interceptors.request.use((config) => {
+  if (isAuthPublicRequest(config.url)) {
+    delete config.headers.Authorization;
+    return config;
+  }
   const tokens = localStorage.getItem('tokens');
   if (tokens) {
     const { access } = JSON.parse(tokens);
-    config.headers.Authorization = `Bearer ${access}`;
+    if (access) {
+      config.headers.Authorization = `Bearer ${access}`;
+    }
   }
   return config;
 });
@@ -22,10 +36,17 @@ api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    if (
+      error.response?.status === 401 &&
+      !original._retry &&
+      !isAuthPublicRequest(original.url)
+    ) {
       original._retry = true;
       try {
         const tokens = JSON.parse(localStorage.getItem('tokens') || '{}');
+        if (!tokens.refresh) {
+          throw new Error('No refresh token');
+        }
         const res = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
           refresh: tokens.refresh,
         });

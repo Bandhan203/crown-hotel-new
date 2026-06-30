@@ -15,6 +15,7 @@ urlpatterns = [
     path('bookings/my/<int:pk>/invoice/pdf/', views.GuestInvoicePDFView.as_view(), name='guest-invoice-pdf'),
     # Admin — bookings
     path('admin/bookings/', views.AdminBookingListView.as_view(), name='admin-booking-list'),
+    path('admin/bookings/channel-stats/', views.AdminBookingChannelStatsView.as_view(), name='admin-booking-channel-stats'),
     path('admin/bookings/create/', views.AdminCreateBookingView.as_view(), name='admin-booking-create'),
     path('admin/bookings/<int:pk>/', views.AdminBookingDetailView.as_view(), name='admin-booking-detail'),
     path('admin/bookings/<int:pk>/edit/', views.AdminUpdateBookingView.as_view(), name='admin-booking-update'),

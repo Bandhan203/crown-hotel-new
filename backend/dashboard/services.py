@@ -50,10 +50,10 @@ def get_admin_dashboard_stats():
 
     # Room status breakdown
     room_status = {
-        'clean': Room.objects.filter(housekeeping_status='CLEAN').count(),
-        'dirty': Room.objects.filter(housekeeping_status='DIRTY').count(),
-        'inspected': Room.objects.filter(housekeeping_status='INSPECTED').count(),
-        'out_of_order': Room.objects.filter(housekeeping_status='OUT_OF_ORDER').count(),
+        'clean': Room.objects.filter(housekeeping_status__in=['OC', 'VC', 'ARR']).count(),
+        'dirty': Room.objects.filter(housekeeping_status__in=['OD', 'VD', 'CO']).count(),
+        'inspected': Room.objects.filter(housekeeping_status='ARR').count(),
+        'out_of_order': Room.objects.filter(status='MAINTENANCE').count(),
     }
 
     recent_bookings = Booking.objects.select_related('guest', 'room_type').order_by('-created_at')[:5]
@@ -156,195 +156,10 @@ def get_room_grid_data():
 
 
 # ──────────────────────────────────────────────
-# Night Audit
+# Night Audit (delegated to night_audit_services)
 # ──────────────────────────────────────────────
 
-def get_night_audit_preview(audit_date=None):
-    """Preview what the night audit will process for the given date."""
-    if audit_date is None:
-        from .models import HotelConfig
-        audit_date = HotelConfig.load().business_date
-
-    from .models import NightAuditLog
-    already_run = NightAuditLog.objects.filter(audit_date=audit_date).exists()
-
-    total_rooms = Room.objects.count()
-
-    # Rooms sold: bookings checked-in whose stay spans this date
-    in_house = Booking.objects.filter(
-        status='CHECKED_IN',
-        check_in_date__lte=audit_date,
-        check_out_date__gt=audit_date,
-    ).select_related('guest', 'room', 'room_type')
-
-    rooms_sold = in_house.count()
-    occupancy_rate = (rooms_sold / total_rooms * 100) if total_rooms else 0
-
-    # Room charges to post
-    room_charges = []
-    for booking in in_house:
-        nightly_rate = booking.total_price / max(booking.nights, 1)
-        # Check if room charge already posted for this date
-        existing = FolioCharge.objects.filter(
-            booking=booking, charge_type='ROOM', charge_date=audit_date, is_void=False
-        ).exists()
-        room_charges.append({
-            'booking_id': booking.id,
-            'booking_ref': booking.booking_ref,
-            'guest_name': booking.guest.full_name,
-            'room_number': booking.room.room_number if booking.room else '—',
-            'nightly_rate': float(nightly_rate),
-            'already_posted': existing,
-        })
-
-    # No-shows: confirmed for today that never checked in
-    no_shows = Booking.objects.filter(
-        check_in_date=audit_date,
-        status__in=['PENDING', 'CONFIRMED'],
-        no_show=False,
-    ).select_related('guest', 'room_type')
-
-    # Overdue checkouts
-    overdue = Booking.objects.filter(
-        status='CHECKED_IN',
-        check_out_date__lte=audit_date,
-    ).select_related('guest', 'room')
-
-    # Revenue for the date from folio
-    folio_agg = FolioCharge.objects.filter(
-        charge_date=audit_date, is_void=False,
-    ).aggregate(
-        room=Sum('total', filter=Q(charge_type='ROOM')),
-        fnb=Sum('total', filter=Q(charge_type__in=['FOOD', 'BEVERAGE'])),
-        other=Sum('total', filter=~Q(charge_type__in=['ROOM', 'FOOD', 'BEVERAGE', 'DEPOSIT', 'REFUND', 'TAX', 'DISCOUNT'])),
-    )
-
-    room_rev = float(folio_agg['room'] or 0)
-    fnb_rev = float(folio_agg['fnb'] or 0)
-    other_rev = float(folio_agg['other'] or 0)
-
-    return {
-        'audit_date': audit_date.isoformat(),
-        'already_run': already_run,
-        'total_rooms': total_rooms,
-        'rooms_sold': rooms_sold,
-        'occupancy_rate': round(occupancy_rate, 1),
-        'room_charges': room_charges,
-        'no_shows': [
-            {
-                'booking_id': b.id,
-                'booking_ref': b.booking_ref,
-                'guest_name': b.guest.full_name,
-                'room_type': b.room_type.name,
-            }
-            for b in no_shows
-        ],
-        'overdue_checkouts': [
-            {
-                'booking_id': b.id,
-                'booking_ref': b.booking_ref,
-                'guest_name': b.guest.full_name,
-                'room_number': b.room.room_number if b.room else '—',
-                'check_out_date': b.check_out_date.isoformat(),
-            }
-            for b in overdue
-        ],
-        'revenue_preview': {
-            'room': room_rev,
-            'fnb': fnb_rev,
-            'other': other_rev,
-            'total': room_rev + fnb_rev + other_rev,
-        },
-    }
-
-
-def run_night_audit(audit_date, performed_by):
-    """Execute the night audit for the given date."""
-    from .models import NightAuditLog
-
-    if NightAuditLog.objects.filter(audit_date=audit_date).exists():
-        raise ValueError(f"Night audit already run for {audit_date}")
-
-    total_rooms = Room.objects.count()
-    now = timezone.now()
-
-    # 1. Post room charges for in-house guests
-    in_house = Booking.objects.filter(
-        status='CHECKED_IN',
-        check_in_date__lte=audit_date,
-        check_out_date__gt=audit_date,
-    )
-    rooms_sold = in_house.count()
-
-    for booking in in_house:
-        nightly_rate = booking.total_price / max(booking.nights, 1)
-        already_posted = FolioCharge.objects.filter(
-            booking=booking, charge_type='ROOM', charge_date=audit_date, is_void=False
-        ).exists()
-        if not already_posted:
-            FolioCharge.objects.create(
-                booking=booking,
-                charge_type='ROOM',
-                description=f"Room charge — {audit_date}",
-                amount=nightly_rate,
-                quantity=1,
-                total=nightly_rate,
-                charge_date=audit_date,
-                posted_by=performed_by,
-            )
-
-    # 2. Mark no-shows
-    no_shows = Booking.objects.filter(
-        check_in_date=audit_date,
-        status__in=['PENDING', 'CONFIRMED'],
-        no_show=False,
-    )
-    no_show_count = no_shows.count()
-    no_shows.update(no_show=True, status='CANCELLED', cancelled_at=now)
-
-    # 3. Tally revenue from folio
-    folio_agg = FolioCharge.objects.filter(
-        charge_date=audit_date, is_void=False,
-    ).aggregate(
-        room=Sum('total', filter=Q(charge_type='ROOM')),
-        fnb=Sum('total', filter=Q(charge_type__in=['FOOD', 'BEVERAGE'])),
-        other=Sum('total', filter=~Q(charge_type__in=['ROOM', 'FOOD', 'BEVERAGE', 'DEPOSIT', 'REFUND', 'TAX', 'DISCOUNT'])),
-    )
-    room_revenue = folio_agg['room'] or Decimal('0')
-    fnb_revenue = folio_agg['fnb'] or Decimal('0')
-    other_revenue = folio_agg['other'] or Decimal('0')
-    total_revenue = room_revenue + fnb_revenue + other_revenue
-
-    # 4. Count stats
-    occupancy_rate = (rooms_sold / total_rooms * 100) if total_rooms else 0
-    new_bookings = Booking.objects.filter(created_at__date=audit_date).count()
-    check_ins = Booking.objects.filter(actual_check_in__date=audit_date).count()
-    check_outs = Booking.objects.filter(actual_check_out__date=audit_date).count()
-
-    # 5. Create audit log
-    log = NightAuditLog.objects.create(
-        audit_date=audit_date,
-        total_rooms_sold=rooms_sold,
-        total_rooms_available=total_rooms,
-        occupancy_rate=round(occupancy_rate, 2),
-        room_revenue=room_revenue,
-        fnb_revenue=fnb_revenue,
-        other_revenue=other_revenue,
-        total_revenue=total_revenue,
-        no_show_count=no_show_count,
-        new_bookings=new_bookings,
-        check_ins=check_ins,
-        check_outs=check_outs,
-        performed_by=performed_by,
-    )
-
-    # 6. Advance business date in HotelConfig
-    from .models import HotelConfig
-    config = HotelConfig.load()
-    config.business_date = audit_date + timedelta(days=1)
-    config.save(update_fields=['business_date'])
-
-    return log
+from .night_audit_services import get_night_audit_preview, run_night_audit  # noqa: F401
 
 
 # ──────────────────────────────────────────────
@@ -540,7 +355,7 @@ OVERBOOKING_PCT = 10  # extra sellable rooms when include_overbooking=true
 
 
 def _room_is_ooo(room):
-    return room.status == 'MAINTENANCE' or room.housekeeping_status == 'OUT_OF_ORDER'
+    return room.status == 'MAINTENANCE'
 
 
 def _offer_rate_for_night(room_type, day):
@@ -597,7 +412,7 @@ def get_reservation_control_report(start_date=None, end_date=None, include_overb
     )
     ooo_by_type = dict(
         physical_qs.filter(
-            Q(status='MAINTENANCE') | Q(housekeeping_status='OUT_OF_ORDER')
+            Q(status='MAINTENANCE')
         ).values('room_type_id').annotate(c=Count('id')).values_list('room_type_id', 'c')
     )
 

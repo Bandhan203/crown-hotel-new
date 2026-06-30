@@ -8,7 +8,7 @@ export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const navigate = useNavigate();
   const { getSetting } = useSiteSettings();
 
@@ -19,10 +19,17 @@ export default function AdminLogin() {
     setLoading(true);
     try {
       await login(email, password);
+      const stored = JSON.parse(localStorage.getItem('user') || '{}');
+      if (!['ADMIN', 'STAFF'].includes(stored.role)) {
+        logout();
+        toast.error('This account does not have admin access.');
+        return;
+      }
       toast.success('Welcome back!');
       navigate('/admin');
-    } catch {
-      toast.error('Invalid email or password');
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(typeof detail === 'string' ? detail : 'Invalid email or password');
     } finally {
       setLoading(false);
     }
@@ -47,7 +54,7 @@ export default function AdminLogin() {
               onChange={e => setEmail(e.target.value)}
               required
               className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-slate-800 placeholder-gray-500 outline-none transition focus:border-teal-600 focus:ring-1 focus:ring-teal-600"
-              placeholder="admin@hotel.com"
+              placeholder="admin@hotel.local"
             />
           </div>
 

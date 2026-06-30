@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import RoomCard from './RoomCard';
+import { isDirtyHk } from '../../utils/housekeepingStatus';
 
 interface RoomGridProps {
   rooms: {
@@ -34,6 +35,11 @@ export default function RoomGrid({ rooms, selectedRoomId, onSelectRoom }: RoomGr
     return [...list].sort((a, b) => a.room_number.localeCompare(b.room_number, undefined, { numeric: true }));
   }, [rooms, floor]);
 
+  const dirtyCount = useMemo(
+    () => rooms.filter(r => isDirtyHk(r.housekeeping_status)).length,
+    [rooms],
+  );
+
   const floorLabel = (f: number) => {
     if (f === 1) return `Floor ${f} (Reception)`;
     if (f === 2) return `Floor ${f} (Standard)`;
@@ -61,6 +67,12 @@ export default function RoomGrid({ rooms, selectedRoomId, onSelectRoom }: RoomGr
               ))}
             </select>
           </div>
+          {dirtyCount > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-status-dirty/15 border border-status-dirty/30 text-[10px] font-bold uppercase text-status-dirty">
+              <span className="w-2 h-2 rounded-full bg-status-dirty" />
+              {dirtyCount} dirty
+            </span>
+          )}
         </div>
         <div className="flex flex-wrap gap-4 text-[10px] font-bold uppercase text-on-surface-variant">
           {LEGEND.map(l => (

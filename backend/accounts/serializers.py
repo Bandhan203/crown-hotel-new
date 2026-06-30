@@ -38,11 +38,36 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 class UserListSerializer(serializers.ModelSerializer):
     total_bookings = serializers.IntegerField(read_only=True, default=0)
+    blacklisted = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'full_name', 'phone', 'role', 'is_active', 'date_joined', 'total_bookings']
-        read_only_fields = ['id', 'date_joined', 'total_bookings']
+        fields = ['id', 'email', 'full_name', 'phone', 'role', 'is_active', 'date_joined', 'total_bookings', 'blacklisted']
+        read_only_fields = ['id', 'date_joined', 'total_bookings', 'blacklisted']
+
+    def get_blacklisted(self, obj):
+        profile = getattr(obj, 'guest_profile', None)
+        return profile.blacklisted if profile else False
+
+
+class AdminGuestCreateSerializer(serializers.ModelSerializer):
+    """Admin creates a guest account (no password required)."""
+    class Meta:
+        model = User
+        fields = ['email', 'full_name', 'phone']
+
+    def create(self, validated_data):
+        user = User.objects.create_user(
+            email=validated_data['email'],
+            password=None,
+            full_name=validated_data.get('full_name', ''),
+            phone=validated_data.get('phone', ''),
+            role='GUEST',
+        )
+        user.set_unusable_password()
+        user.save(update_fields=['password'])
+        GuestProfile.objects.get_or_create(user=user)
+        return user
 
 
 class GuestProfileSerializer(serializers.ModelSerializer):

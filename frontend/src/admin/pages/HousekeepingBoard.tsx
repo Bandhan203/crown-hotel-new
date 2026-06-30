@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { MdCleaningServices, MdRefresh, MdAdd, MdFilterList } from 'react-icons/md';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import { DIRTY_HK, HK_COLORS, HK_STATUSES } from '../utils/housekeepingStatus';
 
 interface BoardRoom {
   id: number;
@@ -20,6 +21,7 @@ interface HKTask {
   room: number;
   room_number: string;
   room_type_name: string;
+  booking_ref?: string | null;
   task_type: string;
   priority: string;
   status: string;
@@ -37,13 +39,6 @@ interface StaffMember {
   full_name: string;
   email: string;
 }
-
-const HK_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-  CLEAN: { bg: 'bg-green-500/20', text: 'text-green-400', label: 'Clean' },
-  DIRTY: { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Dirty' },
-  INSPECTED: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Inspected' },
-  OUT_OF_ORDER: { bg: 'bg-gray-500/20', text: 'text-gray-500', label: 'Out of Order' },
-};
 
 const ROOM_STATUS_COLORS: Record<string, string> = {
   AVAILABLE: 'border-green-500/40',
@@ -102,6 +97,11 @@ export default function HousekeepingBoard() {
 
   useEffect(() => { fetchData(); fetchStaff(); }, [fetchData, fetchStaff]);
 
+  useEffect(() => {
+    const interval = setInterval(fetchData, 20000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
   const floors = [...new Set(rooms.map(r => r.floor))].sort();
 
   const filteredRooms = rooms.filter(r => {
@@ -155,10 +155,10 @@ export default function HousekeepingBoard() {
 
   // Summary counts
   const counts = {
-    clean: rooms.filter(r => r.housekeeping_status === 'CLEAN').length,
-    dirty: rooms.filter(r => r.housekeeping_status === 'DIRTY').length,
-    inspected: rooms.filter(r => r.housekeeping_status === 'INSPECTED').length,
-    ooo: rooms.filter(r => r.housekeeping_status === 'OUT_OF_ORDER').length,
+    clean: rooms.filter(r => ['OC', 'VC', 'ARR'].includes(r.housekeeping_status)).length,
+    dirty: rooms.filter(r => DIRTY_HK.has(r.housekeeping_status)).length,
+    inspected: rooms.filter(r => r.housekeeping_status === 'ARR').length,
+    ooo: rooms.filter(r => r.status === 'MAINTENANCE').length,
   };
 
   return (
@@ -202,10 +202,9 @@ export default function HousekeepingBoard() {
         <select value={hkFilter} onChange={e => setHkFilter(e.target.value)}
           className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-teal-600">
           <option value="ALL">All Status</option>
-          <option value="CLEAN">Clean</option>
-          <option value="DIRTY">Dirty</option>
-          <option value="INSPECTED">Inspected</option>
-          <option value="OUT_OF_ORDER">Out of Order</option>
+          {HK_STATUSES.map(([code, label]) => (
+            <option key={code} value={code}>{label}</option>
+          ))}
         </select>
         <select value={floorFilter} onChange={e => setFloorFilter(e.target.value)}
           className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-teal-600">
@@ -223,7 +222,7 @@ export default function HousekeepingBoard() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {filteredRooms.map(room => {
-            const hk = HK_COLORS[room.housekeeping_status] || HK_COLORS.CLEAN;
+            const hk = HK_COLORS[room.housekeeping_status] || HK_COLORS.VC;
             const roomTasks = tasks.filter(t => t.room === room.id && t.status !== 'COMPLETED' && t.status !== 'SKIPPED');
             return (
               <div key={room.id} className={`bg-gray-50 border-2 ${ROOM_STATUS_COLORS[room.status] || 'border-gray-200'} rounded-xl p-3 relative`}>
@@ -256,18 +255,18 @@ export default function HousekeepingBoard() {
 
                 {/* Quick Actions */}
                 <div className="flex gap-1 mt-auto">
-                  {room.housekeeping_status === 'DIRTY' && (
-                    <button onClick={() => updateRoomHK(room.id, 'CLEAN')} className="flex-1 px-1 py-1 text-xs bg-green-500/10 text-green-400 rounded hover:bg-green-500/20">
+                  {DIRTY_HK.has(room.housekeeping_status) && (
+                    <button onClick={() => updateRoomHK(room.id, 'VC')} className="flex-1 px-1 py-1 text-xs bg-green-500/10 text-green-400 rounded hover:bg-green-500/20">
                       Clean
                     </button>
                   )}
-                  {room.housekeeping_status === 'CLEAN' && (
-                    <button onClick={() => updateRoomHK(room.id, 'INSPECTED')} className="flex-1 px-1 py-1 text-xs bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500/20">
-                      Inspect
+                  {room.housekeeping_status === 'VC' && (
+                    <button onClick={() => updateRoomHK(room.id, 'ARR')} className="flex-1 px-1 py-1 text-xs bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500/20">
+                      Ready
                     </button>
                   )}
-                  {room.housekeeping_status !== 'DIRTY' && (
-                    <button onClick={() => updateRoomHK(room.id, 'DIRTY')} className="flex-1 px-1 py-1 text-xs bg-red-500/10 text-red-400 rounded hover:bg-red-500/20">
+                  {!DIRTY_HK.has(room.housekeeping_status) && room.housekeeping_status !== 'VD' && (
+                    <button onClick={() => updateRoomHK(room.id, 'VD')} className="flex-1 px-1 py-1 text-xs bg-red-500/10 text-red-400 rounded hover:bg-red-500/20">
                       Dirty
                     </button>
                   )}
@@ -296,6 +295,7 @@ export default function HousekeepingBoard() {
               <thead>
                 <tr className="bg-gray-50 text-gray-500 text-xs">
                   <th className="text-left px-4 py-3">Room</th>
+                  <th className="text-left px-4 py-3">Booking</th>
                   <th className="text-left px-4 py-3">Task</th>
                   <th className="text-left px-4 py-3">Priority</th>
                   <th className="text-left px-4 py-3">Assigned To</th>
@@ -307,6 +307,7 @@ export default function HousekeepingBoard() {
                 {tasks.map(t => (
                   <tr key={t.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-slate-800 font-medium">{t.room_number}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs font-mono">{t.booking_ref || '—'}</td>
                     <td className="px-4 py-3 text-gray-600">{t.task_type.replace('_', ' ')}</td>
                     <td className="px-4 py-3"><span className={PRIORITY_COLORS[t.priority]}>{t.priority}</span></td>
                     <td className="px-4 py-3 text-gray-600">{t.assigned_to_name || '—'}</td>

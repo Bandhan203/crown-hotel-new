@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { MdChevronLeft, MdChevronRight, MdRefresh } from 'react-icons/md';
 import api from '../../services/api';
+import BookingViewModal from '../components/BookingViewModal';
 
 interface CalendarRoom {
   id: number;
@@ -60,6 +61,7 @@ export default function ReservationCalendar() {
     return d;
   });
   const [viewDays, setViewDays] = useState(14);
+  const [viewBookingId, setViewBookingId] = useState<number | null>(null);
 
   const endDate = useMemo(() => {
     const d = new Date(startDate);
@@ -106,6 +108,32 @@ export default function ReservationCalendar() {
   // For each room, find bookings that overlap this date range
   const getBookingsForRoom = (roomId: number) => {
     return bookings.filter(b => b.room === roomId);
+  };
+
+  const unassignedBookings = useMemo(
+    () => bookings.filter(b => !b.room),
+    [bookings],
+  );
+
+  const renderBookingBar = (booking: CalendarBooking, rowKey: string) => {
+    const bar = getBookingBar(booking);
+    if (bar.span <= 0) return null;
+    const color = statusColors[booking.status] || '#6b7280';
+    return (
+      <div
+        key={`${rowKey}-${booking.id}`}
+        className="absolute top-1 h-7 rounded-md flex items-center px-2 text-slate-800 text-[10px] font-medium overflow-hidden cursor-pointer hover:brightness-110 transition-all"
+        style={{
+          left: `${bar.startCol * 96}px`,
+          width: `${bar.span * 96 - 4}px`,
+          backgroundColor: color,
+        }}
+        title={`${booking.booking_ref}: ${booking.guest_name} (${booking.status}) ${booking.check_in_date} → ${booking.check_out_date}`}
+        onClick={() => setViewBookingId(booking.id)}
+      >
+        <span className="truncate">{booking.guest_name} ({bar.span}N)</span>
+      </div>
+    );
   };
 
   // Calculate the column span and offset for a booking bar
@@ -198,6 +226,27 @@ export default function ReservationCalendar() {
               ))}
             </div>
 
+            {/* Unassigned reservations */}
+            {unassignedBookings.length > 0 && (
+              <div className="flex border-b border-amber-200 bg-amber-50/40 relative" style={{ minHeight: '40px' }}>
+                <div className="w-40 min-w-40 flex-shrink-0 px-3 py-2 border-r border-gray-200 flex items-center gap-2">
+                  <span className="text-amber-800 text-xs font-semibold">Unassigned</span>
+                  <span className="text-amber-600 text-[10px]">({unassignedBookings.length})</span>
+                </div>
+                <div className="flex flex-1 relative">
+                  {dates.map((d, i) => (
+                    <div
+                      key={i}
+                      className={`w-24 min-w-24 flex-shrink-0 border-r border-white/5 ${
+                        isSameDay(d, today) ? 'bg-teal-50/50' : ''
+                      }`}
+                    />
+                  ))}
+                  {unassignedBookings.map(b => renderBookingBar(b, 'unassigned'))}
+                </div>
+              </div>
+            )}
+
             {/* Rows */}
             {rooms.map(room => {
               const roomBookings = getBookingsForRoom(room.id);
@@ -224,25 +273,7 @@ export default function ReservationCalendar() {
                     ))}
 
                     {/* Booking bars */}
-                    {roomBookings.map(booking => {
-                      const bar = getBookingBar(booking);
-                      if (bar.span <= 0) return null;
-                      const color = statusColors[booking.status] || '#6b7280';
-                      return (
-                        <div
-                          key={booking.id}
-                          className="absolute top-1 h-7 rounded-md flex items-center px-2 text-slate-800 text-[10px] font-medium overflow-hidden cursor-pointer hover:brightness-110 transition-all"
-                          style={{
-                            left: `${bar.startCol * 96}px`,
-                            width: `${bar.span * 96 - 4}px`,
-                            backgroundColor: color,
-                          }}
-                          title={`${booking.booking_ref}: ${booking.guest_name} (${booking.status}) ${booking.check_in_date} → ${booking.check_out_date}`}
-                        >
-                          <span className="truncate">{booking.guest_name} ({bar.span}N)</span>
-                        </div>
-                      );
-                    })}
+                    {roomBookings.map(booking => renderBookingBar(booking, `room-${room.id}`))}
                   </div>
                 </div>
               );
@@ -253,6 +284,17 @@ export default function ReservationCalendar() {
             )}
           </div>
         </div>
+      )}
+
+      {viewBookingId && (
+        <BookingViewModal
+          bookingId={viewBookingId}
+          onClose={() => setViewBookingId(null)}
+          onRefresh={fetchData}
+          onDeleted={() => { setViewBookingId(null); fetchData(); }}
+          onOpenFolio={() => {}}
+          onOpenRegistration={() => {}}
+        />
       )}
     </div>
   );

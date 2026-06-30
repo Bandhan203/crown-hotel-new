@@ -1,6 +1,6 @@
 from rest_framework import generics, permissions, viewsets
 
-from accounts.permissions import IsAdmin
+from accounts.permissions import IsStaffUser
 from .models import SpaService
 from .serializers import SpaServiceSerializer
 
@@ -17,4 +17,6 @@ class AdminSpaServiceViewSet(viewsets.ModelViewSet):
     """CRUD /api/admin/spa-services/"""
     queryset = SpaService.objects.all()
     serializer_class = SpaServiceSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [IsStaffUser]
+    filterset_fields = ['is_available']
+    search_fields = ['name']

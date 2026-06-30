@@ -108,11 +108,14 @@ export default function CheckoutModule({
 
   const [dupRef, setDupRef] = useState('');
 
-  const fetchFolioWindows = useCallback(async (bookingId: number) => {
+  const fetchFolioWindows = useCallback(async (bookingId: number, focusWindow?: number) => {
     const res = await api.get(`/admin/bookings/${bookingId}/folio-windows/`);
     setWindows(res.data);
     if (res.data.length > 0) {
-      setActiveWindow(res.data[0].window_number);
+      const next = focusWindow && res.data.some((w: FolioWindow) => w.window_number === focusWindow)
+        ? focusWindow
+        : res.data[0].window_number;
+      setActiveWindow(next);
     }
   }, []);
 
@@ -237,19 +240,38 @@ export default function CheckoutModule({
       const auth = checkoutAuth.trim();
       const normPhrase = auth.toUpperCase().replace(/[\s_-]/g, '');
       const isPhrase = normPhrase === 'CHECKOUT';
-      await api.post(`/admin/checkout/${ctx.booking.id}/execute/`, {
-        authorization: auth,
-        password: isPhrase ? '' : auth,
+      const payload: Record<string, string> = {
         checkout_phrase: isPhrase ? 'CHECKOUT' : '',
-        notes_internal: checkoutNotes || undefined,
-      });
+      };
+      if (!isPhrase) {
+        payload.password = auth;
+        payload.authorization = auth;
+      } else if (auth) {
+        payload.authorization = auth;
+      }
+      if (checkoutNotes.trim()) {
+        payload.notes_internal = checkoutNotes.trim();
+      }
+      await api.post(`/admin/checkout/${ctx.booking.id}/execute/`, payload);
       toast.success(`Room ${ctx.room.room_number} checked out`);
       setCheckoutDone(true);
       onSuccess?.();
     } catch (err: unknown) {
-      const res = (err as { response?: { data?: { detail?: string } } })?.response;
-      const detail = res?.data?.detail;
-      toast.error(detail || 'Checkout failed', { duration: 6000 });
+      const res = (err as { response?: { data?: Record<string, unknown> } })?.response;
+      const data = res?.data;
+      let message = 'Checkout failed';
+      if (data) {
+        if (typeof data.detail === 'string') message = data.detail;
+        else {
+          const parts = Object.entries(data).flatMap(([k, v]) => {
+            if (Array.isArray(v)) return v.map(item => `${k}: ${item}`);
+            if (typeof v === 'string') return [`${k}: ${v}`];
+            return [];
+          });
+          if (parts.length) message = parts.join(' · ');
+        }
+      }
+      toast.error(message, { duration: 6000 });
     } finally {
       setLoading(false);
     }
@@ -257,18 +279,20 @@ export default function CheckoutModule({
 
   const handleTransfer = async () => {
     if (!ctx || !transferCharge) return;
+    const destination = transferTarget;
     try {
       await api.post(`/admin/bookings/${ctx.booking.id}/folio-transfer/`, {
         charge_id: transferCharge.id,
-        target_window: transferTarget,
+        target_window: destination,
       });
-      toast.success('Charge transferred');
+      toast.success(`Charge moved to window ${destination}`);
       setTransferCharge(null);
-      await fetchFolioWindows(ctx.booking.id);
+      await fetchFolioWindows(ctx.booking.id, destination);
       const res = await api.get('/admin/checkout/lookup/', { params: { room_number: ctx.room.room_number } });
       setCtx(res.data);
-    } catch {
-      toast.error('Transfer failed');
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(typeof detail === 'string' ? detail : 'Transfer failed');
     }
   };
 
@@ -435,7 +459,11 @@ export default function CheckoutModule({
                               <td className="py-2 text-slate-800">{c.desc}</td>
                               <td className="py-2 text-right font-medium">BDT {c.total.toFixed(2)}</td>
                               <td className="py-2 text-right">
-                                <button type="button" title="Transfer" onClick={() => { setTransferCharge(c); setTransferTarget(activeWindow === 1 ? 2 : 1); }}
+                                <button type="button" title="Transfer" onClick={() => {
+                                  const dest = windows.find(w => w.window_number !== activeWindow);
+                                  setTransferTarget(dest?.window_number ?? (activeWindow === 1 ? 2 : 1));
+                                  setTransferCharge(c);
+                                }}
                                   className="p-1 text-gray-400 hover:text-teal-600"><MdTransform size={16} /></button>
                                 <button type="button" title="Void/Adjust" onClick={() => setAdjustCharge(c)}
                                   className="p-1 text-gray-400 hover:text-red-500"><MdBlock size={16} /></button>

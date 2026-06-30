@@ -7,8 +7,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView  # noqa: F401
 
 from .models import GuestProfile
-from .permissions import IsAdmin, IsStaffUser
+from .permissions import IsAdmin, IsStaffUser, staff_module_permission
 from .serializers import (
+    AdminGuestCreateSerializer,
     GuestProfileSerializer,
     GuestStayHistorySerializer,
     LoginSerializer,
@@ -47,11 +48,11 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        email = serializer.validated_data['email']
+        email = serializer.validated_data['email'].strip().lower()
         password = serializer.validated_data['password']
 
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(email__iexact=email)
         except User.DoesNotExist:
             return Response({'detail': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -99,27 +100,39 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 class GuestListView(generics.ListAPIView):
     """GET /api/admin/guests/ — list all guest accounts."""
     serializer_class = UserListSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('GUESTS')]
     filterset_fields = ['is_active']
     search_fields = ['email', 'full_name', 'phone']
     ordering_fields = ['date_joined', 'full_name', 'total_bookings']
 
     def get_queryset(self):
-        return User.objects.filter(role='GUEST').annotate(
+        qs = User.objects.filter(role='GUEST').annotate(
             total_bookings=Count('bookings')
-        )
+        ).select_related('guest_profile')
+        blacklisted = self.request.query_params.get('blacklisted')
+        if blacklisted == 'true':
+            qs = qs.filter(guest_profile__blacklisted=True)
+        elif blacklisted == 'false':
+            qs = qs.filter(guest_profile__blacklisted=False)
+        return qs
+
+
+class AdminGuestCreateView(generics.CreateAPIView):
+    """POST /api/admin/guests/create/ — admin creates a guest."""
+    serializer_class = AdminGuestCreateSerializer
+    permission_classes = [staff_module_permission('GUESTS')]
 
 
 class GuestDetailView(generics.RetrieveAPIView):
     """GET /api/admin/guests/{id}/ — guest detail."""
     serializer_class = UserProfileSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('GUESTS')]
     queryset = User.objects.filter(role='GUEST')
 
 
 class GuestToggleActiveView(APIView):
     """PATCH /api/admin/guests/{id}/toggle-active/ — activate or deactivate a guest."""
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('GUESTS')]
 
     def patch(self, request, pk):
         try:

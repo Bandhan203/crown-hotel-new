@@ -41,6 +41,7 @@ LOCAL_APPS = [
     'staff',
     'dashboard',
     'inventory',
+    'corporate',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -220,3 +221,5 @@ FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
 # Email (configure in .env for production)
 # ──────────────────────────────────────────────
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@hotelcrownbd.com')
+CONTACT_NOTIFY_EMAIL = config('CONTACT_NOTIFY_EMAIL', default='hotelcrownbd@gmail.com')

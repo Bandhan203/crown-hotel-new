@@ -1,13 +1,11 @@
 import type { ReactNode } from 'react';
 import {
-  MdMeetingRoom,
-  MdRestaurant,
-  MdLocalParking,
-  MdSpa,
-  MdPool,
-  MdFitnessCenter,
+  MdMeetingRoom, MdRestaurant, MdLocalParking, MdSpa, MdPool, MdFitnessCenter,
 } from 'react-icons/md';
-import { FaGlassCheers, FaWifi, FaCar, FaConciergeBell, FaCoffee } from 'react-icons/fa';
+import {
+  FaGlassCheers, FaWifi, FaCar, FaConciergeBell, FaCoffee,
+  FaParking, FaSwimmingPool, FaDumbbell, FaShieldAlt, FaTshirt, FaBabyCarriage, FaGlassMartiniAlt,
+} from 'react-icons/fa';
 import { FiCheck } from 'react-icons/fi';
 
 const ICON_MAP: Record<string, ReactNode> = {
@@ -22,6 +20,13 @@ const ICON_MAP: Record<string, ReactNode> = {
   FaCar: <FaCar size={28} />,
   FaConciergeBell: <FaConciergeBell size={28} />,
   FaCoffee: <FaCoffee size={28} />,
+  FaParking: <FaParking size={28} />,
+  FaSwimmingPool: <FaSwimmingPool size={28} />,
+  FaDumbbell: <FaDumbbell size={28} />,
+  FaShieldAlt: <FaShieldAlt size={28} />,
+  FaTshirt: <FaTshirt size={28} />,
+  FaBabyCarriage: <FaBabyCarriage size={28} />,
+  FaGlassMartiniAlt: <FaGlassMartiniAlt size={28} />,
   FiCheck: <FiCheck size={16} />,
 };
 

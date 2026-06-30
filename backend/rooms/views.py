@@ -5,7 +5,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsAdmin, IsStaffUser
+from accounts.permissions import IsAdmin, IsStaffUser, staff_module_permission
 from .filters import RoomTypeFilter
 from .models import Room, RoomAmenity, RoomImage, RoomType, HousekeepingTask
 from .serializers import (
@@ -46,7 +46,7 @@ class AdminRoomTypeViewSet(viewsets.ModelViewSet):
     """CRUD /api/admin/room-types/"""
     queryset = RoomType.objects.annotate(room_count=Count('rooms'))
     serializer_class = RoomTypeAdminSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('ROOMS')]
     search_fields = ['name']
     ordering_fields = ['price_per_night', 'name', 'created_at']
 
@@ -55,7 +55,7 @@ class AdminRoomViewSet(viewsets.ModelViewSet):
     """CRUD /api/admin/rooms/"""
     queryset = Room.objects.select_related('room_type')
     serializer_class = RoomSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('ROOMS')]
     filterset_fields = ['status', 'room_type', 'floor']
     search_fields = ['room_number']
     ordering_fields = ['room_number', 'floor']
@@ -65,14 +65,14 @@ class AdminAmenityViewSet(viewsets.ModelViewSet):
     """CRUD /api/admin/amenities/"""
     queryset = RoomAmenity.objects.all()
     serializer_class = RoomAmenitySerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('ROOMS')]
 
 
 class AdminRoomImageViewSet(viewsets.ModelViewSet):
     """CRUD /api/admin/room-images/"""
     queryset = RoomImage.objects.select_related('room_type')
     serializer_class = RoomImageSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('ROOMS')]
     parser_classes = [MultiPartParser, FormParser]
     filterset_fields = ['room_type']
 
@@ -110,11 +110,11 @@ class HousekeepingTaskDetailView(generics.RetrieveUpdateAPIView):
         instance = serializer.save()
         # When completing a task, update room HK status + timestamp
         if instance.status == 'COMPLETED' and instance.task_type in ('CLEAN', 'DEEP_CLEAN'):
-            instance.room.housekeeping_status = 'CLEAN'
+            instance.room.housekeeping_status = 'VC'
             instance.room.last_cleaned_at = timezone.now()
             instance.room.save(update_fields=['housekeeping_status', 'last_cleaned_at'])
         elif instance.status == 'COMPLETED' and instance.task_type == 'INSPECT':
-            instance.room.housekeeping_status = 'INSPECTED'
+            instance.room.housekeeping_status = 'ARR'
             instance.room.save(update_fields=['housekeeping_status'])
 
 
@@ -146,7 +146,7 @@ class RoomHousekeepingStatusView(APIView):
             )
 
         room.housekeeping_status = new_status
-        if new_status in ('CLEAN', 'INSPECTED'):
+        if new_status in ('OC', 'VC', 'ARR'):
             room.last_cleaned_at = timezone.now()
         room.save(update_fields=['housekeeping_status', 'last_cleaned_at'])
         return Response(HousekeepingBoardRoomSerializer(room).data)
@@ -162,22 +162,22 @@ class RoomReadyView(APIView):
         except Room.DoesNotExist:
             return Response({'detail': 'Room not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        dirty_states = {'DIRTY', 'VD', 'OD', 'CO'}
+        dirty_states = {'VD', 'OD', 'CO'}
         hk = room.housekeeping_status
 
         if hk in dirty_states:
-            room.housekeeping_status = 'INSPECTED'
-            room.save(update_fields=['housekeeping_status'])
-            message = f'Room {room.room_number} marked Inspected.'
-        elif hk == 'INSPECTED':
-            room.housekeeping_status = 'CLEAN'
-            room.status = 'AVAILABLE'
+            room.housekeeping_status = 'VC'
             room.last_cleaned_at = timezone.now()
-            room.save(update_fields=['housekeeping_status', 'status', 'last_cleaned_at'])
+            room.save(update_fields=['housekeeping_status', 'last_cleaned_at'])
+            message = f'Room {room.room_number} marked Vacant Clean.'
+        elif hk == 'VC':
+            room.housekeeping_status = 'ARR'
+            room.status = 'AVAILABLE'
+            room.save(update_fields=['housekeeping_status', 'status'])
             message = f'Room {room.room_number} is Ready (Available).'
         else:
             return Response(
-                {'detail': f'Room {room.room_number} is {hk}. Room Ready applies to Dirty or Inspected rooms only.'},
+                {'detail': f'Room {room.room_number} is {hk}. Room Ready applies to dirty or vacant-clean rooms only.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -188,3 +188,31 @@ class RoomReadyView(APIView):
             'status': room.status,
             'housekeeping_status': room.housekeeping_status,
         })
+
+
+class RoomRequestCleaningView(APIView):
+    """POST /api/admin/rooms/{id}/request-cleaning/ — dispatch HK from dashboard."""
+    permission_classes = [IsStaffUser]
+
+    def post(self, request, pk):
+        from rooms.housekeeping_services import request_room_cleaning
+        from rooms.serializers import HousekeepingTaskSerializer
+
+        try:
+            task, created = request_room_cleaning(
+                pk,
+                user=request.user,
+                notes=request.data.get('notes', ''),
+            )
+        except Room.DoesNotExist:
+            return Response({'detail': 'Room not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            'detail': 'Housekeeping task created.' if created else 'Cleaning already queued.',
+            'created': created,
+            'task': HousekeepingTaskSerializer(task).data,
+            'room_id': task.room_id,
+            'housekeeping_status': task.room.housekeeping_status,
+        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)

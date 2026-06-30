@@ -8,6 +8,10 @@ class HotelConfig(models.Model):
     hotel_name = models.CharField(max_length=200, default='Crown Hotel')
     business_date = models.DateField(default=date_type.today)
     night_audit_pin = models.CharField(max_length=10, default='1234', help_text='PIN required to execute Night Audit')
+    manager_override_pin = models.CharField(
+        max_length=10, default='5678',
+        help_text='PIN to bypass overdue-checkout block during Night Audit',
+    )
     timezone = models.CharField(max_length=50, default='Asia/Dhaka')
     language = models.CharField(max_length=5, choices=[('en', 'English'), ('bn', 'Bangla')], default='en')
     theme = models.CharField(max_length=10, choices=[('dark', 'Dark'), ('light', 'Light')], default='dark')
@@ -37,6 +41,8 @@ class NightAuditLog(models.Model):
     occupancy_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     room_revenue = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     fnb_revenue = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    tax_revenue = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    service_charge_revenue = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     other_revenue = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total_revenue = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     no_show_count = models.PositiveIntegerField(default=0)

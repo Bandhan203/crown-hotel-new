@@ -11,6 +11,8 @@ import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { hotelImages } from '../constants/images';
 import { toMediaUrl } from '../utils/mediaUrl';
+import { getBookingAttribution } from '../utils/bookingChannel';
+import { computeRatePlanPricing, type RatePlan } from '../admin/utils/ratePlanPricing';
 
 export default function RoomDetails() {
   const { id } = useParams();
@@ -27,9 +29,16 @@ export default function RoomDetails() {
   const [specialRequests, setSpecialRequests] = useState('');
   const [availability, setAvailability] = useState<{ available: boolean; available_count: number } | null>(null);
   const [booking, setBooking] = useState(false);
+  const [ratePlans, setRatePlans] = useState<RatePlan[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | ''>('');
 
   const nights = checkIn && checkOut ? Math.max(0, Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000)) : 0;
-  const totalPrice = room?.price_per_night ? (nights * parseFloat(room.price_per_night)).toFixed(2) : null;
+  const rackPerNight = room?.price_per_night ? parseFloat(room.price_per_night) : 0;
+  const selectedPlan = ratePlans.find(p => p.id === selectedPlanId) || null;
+  const pricing = computeRatePlanPricing(rackPerNight, nights, 1, selectedPlan);
+  const totalPrice = nights > 0 && rackPerNight > 0
+    ? (parseFloat(pricing.offer_rate) * nights).toFixed(2)
+    : null;
 
   useEffect(() => {
     if (!id) return;
@@ -52,6 +61,23 @@ export default function RoomDetails() {
     return () => clearTimeout(timer);
   }, [checkIn, checkOut, room?.id]);
 
+  useEffect(() => {
+    if (!room?.id || !checkIn || !checkOut || checkIn >= checkOut) {
+      setRatePlans([]);
+      setSelectedPlanId('');
+      return;
+    }
+    api.get('/rate-plans/available/', {
+      params: { room_type: room.id, check_in_date: checkIn, check_out_date: checkOut },
+    })
+      .then(res => {
+        const plans = res.data.results ?? res.data ?? [];
+        setRatePlans(plans);
+        setSelectedPlanId('');
+      })
+      .catch(() => setRatePlans([]));
+  }, [checkIn, checkOut, room?.id]);
+
   const handleBookNow = async () => {
     if (!user) {
       navigate(`/login?next=/room-details/${id}`);
@@ -71,6 +97,8 @@ export default function RoomDetails() {
         adults,
         children,
         special_requests: specialRequests,
+        reference_source: getBookingAttribution(),
+        ...(selectedPlanId ? { rate_plan: selectedPlanId } : {}),
       });
 
       // Initiate SSLCommerz payment
@@ -200,6 +228,22 @@ export default function RoomDetails() {
                       </select>
                     </div>
                   </div>
+                  {ratePlans.length > 0 && (
+                    <div>
+                      <label className="block text-xs font-[var(--font-condensed)] uppercase tracking-[2px] text-[var(--color-dark)] mb-2">
+                        Rate Plan
+                      </label>
+                      <select value={selectedPlanId} onChange={e => setSelectedPlanId(e.target.value ? parseInt(e.target.value, 10) : '')}
+                        className="w-full border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[var(--color-primary)] bg-white">
+                        <option value="">Standard rack rate</option>
+                        {ratePlans.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} ({p.code}) — {p.discount_type === 'PERCENTAGE' ? `${p.discount_value}% off` : `BDT ${p.discount_value} off`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-xs font-[var(--font-condensed)] uppercase tracking-[2px] text-[var(--color-dark)] mb-2">
                       Special Requests
@@ -214,7 +258,12 @@ export default function RoomDetails() {
                 {nights > 0 && (
                   <div className="mb-4 text-sm">
                     <div className="flex justify-between text-[var(--color-body)]">
-                      <span>{nights} night{nights > 1 ? 's' : ''} × BDT {room?.price_per_night}</span>
+                      <span>
+                        {nights} night{nights > 1 ? 's' : ''} × BDT {pricing.offer_rate}
+                        {selectedPlan && parseFloat(pricing.discount_amount) > 0 && (
+                          <span className="text-green-600 text-xs ml-1">(plan applied)</span>
+                        )}
+                      </span>
                       <span className="font-semibold text-[var(--color-dark)]">BDT {totalPrice}</span>
                     </div>
                     {availability && (

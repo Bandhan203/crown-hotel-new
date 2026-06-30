@@ -28,17 +28,19 @@ class FolioChargeSerializer(serializers.ModelSerializer):
     class Meta:
         model = FolioCharge
         fields = [
-            'id', 'booking', 'charge_type', 'description', 'amount', 'quantity',
+            'id', 'booking', 'folio_window', 'charge_type', 'description', 'amount', 'quantity',
             'total', 'charge_date', 'posted_by', 'posted_by_name', 'reference',
-            'is_void', 'created_at',
+            'is_void', 'is_locked', 'is_transferred', 'reason_code', 'created_at',
         ]
         read_only_fields = ['id', 'booking', 'posted_by', 'posted_by_name', 'total', 'created_at']
 
 
 class FolioChargeCreateSerializer(serializers.ModelSerializer):
+    folio_window = serializers.IntegerField(default=1, min_value=1, max_value=8, required=False)
+
     class Meta:
         model = FolioCharge
-        fields = ['charge_type', 'description', 'amount', 'quantity', 'charge_date', 'reference']
+        fields = ['charge_type', 'description', 'amount', 'quantity', 'charge_date', 'reference', 'folio_window']
 
     def validate_amount(self, value):
         if value == 0:
@@ -50,9 +52,19 @@ class FolioChargeCreateSerializer(serializers.ModelSerializer):
 
 
 class BookingCreateSerializer(serializers.ModelSerializer):
+    reference_source = serializers.CharField(max_length=50, required=False, allow_blank=True, default='')
+    rate_plan = serializers.PrimaryKeyRelatedField(
+        queryset=RatePlan.objects.filter(is_active=True),
+        required=False,
+        allow_null=True,
+    )
+
     class Meta:
         model = Booking
-        fields = ['room_type', 'check_in_date', 'check_out_date', 'adults', 'children', 'special_requests']
+        fields = [
+            'room_type', 'check_in_date', 'check_out_date', 'adults', 'children',
+            'special_requests', 'reference_source', 'rate_plan',
+        ]
 
     def validate(self, attrs):
         if attrs['check_in_date'] >= attrs['check_out_date']:
@@ -114,6 +126,44 @@ class RegistrationSummarySerializer(serializers.ModelSerializer):
         ]
 
 
+class InHouseBookingSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for in-house list (service entry, front desk)."""
+    guest_name = serializers.CharField(source='guest.full_name', read_only=True)
+    guest_email = serializers.EmailField(source='guest.email', read_only=True)
+    room_type_detail = RoomTypeListSerializer(source='room_type', read_only=True)
+    room_number = serializers.CharField(source='room.room_number', read_only=True, default=None)
+    nights = serializers.SerializerMethodField()
+    folio_balance = serializers.SerializerMethodField()
+    is_settled = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Booking
+        fields = [
+            'id', 'booking_ref', 'guest', 'guest_name', 'guest_email',
+            'room_type', 'room_type_detail', 'room_number',
+            'check_in_date', 'check_out_date', 'adults', 'children',
+            'total_price', 'status', 'booking_source', 'nights',
+            'meal_plan', 'billing_type', 'folio_balance', 'is_settled',
+        ]
+
+    def get_nights(self, obj):
+        return obj.nights
+
+    def _folio_summary(self, obj):
+        cache = getattr(obj, '_folio_summary_cache', None)
+        if cache is None:
+            from .checkout_services import compute_folio_balance
+            cache = compute_folio_balance(obj)
+            obj._folio_summary_cache = cache
+        return cache
+
+    def get_folio_balance(self, obj):
+        return self._folio_summary(obj)['balance']
+
+    def get_is_settled(self, obj):
+        return self._folio_summary(obj)['is_settled']
+
+
 class BookingDetailSerializer(serializers.ModelSerializer):
     room_type_detail = RoomTypeListSerializer(source='room_type', read_only=True)
     guest_email = serializers.EmailField(source='guest.email', read_only=True)
@@ -127,6 +177,11 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     checked_out_by_name = serializers.CharField(source='checked_out_by.full_name', read_only=True, default=None)
     nights = serializers.IntegerField(read_only=True)
     registration_record = RegistrationSummarySerializer(read_only=True)
+    channel_display = serializers.SerializerMethodField()
+
+    def get_channel_display(self, obj):
+        from .channels import channel_display
+        return channel_display(obj)
 
     class Meta:
         model = Booking
@@ -137,7 +192,7 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             'total_price', 'status', 'special_requests', 'created_at', 'updated_at',
             'payments', 'folio_charges',
             # Reservation fields
-            'booking_source', 'rate_plan', 'rate_plan_name',
+            'booking_source', 'reference_source', 'channel_display', 'rate_plan', 'rate_plan_name',
             'arrival_time', 'departure_time',
             'actual_check_in', 'actual_check_out',
             'checked_in_by', 'checked_in_by_name', 'checked_out_by', 'checked_out_by_name',
@@ -180,11 +235,15 @@ class AdminBookingCreateSerializer(serializers.ModelSerializer):
     """Admin manual booking creation."""
     class Meta:
         model = Booking
-        fields = ['guest', 'room_type', 'check_in_date', 'check_out_date',
+        fields = ['guest', 'room_type', 'room', 'check_in_date', 'check_out_date',
                   'adults', 'children', 'special_requests', 'status',
                   'booking_source', 'rate_plan', 'arrival_time', 'company_name', 'notes_internal',
                   'guest_type', 'purpose_of_visit', 'coming_from', 'extra_bed']
-        extra_kwargs = {'status': {'required': False}}
+        extra_kwargs = {
+            'status': {'required': False},
+            'room': {'required': False, 'allow_null': True},
+            'rate_plan': {'required': False, 'allow_null': True},
+        }
 
     def validate(self, attrs):
         if attrs['check_in_date'] >= attrs['check_out_date']:
@@ -197,6 +256,12 @@ class AdminBookingCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 f'Max guests for {room_type.name} is {room_type.max_guests}.'
             )
+        from bookings.services import assert_guest_bookable
+        assert_guest_bookable(attrs['guest'])
+        if attrs.get('status') == 'CHECKED_IN':
+            raise serializers.ValidationError({
+                'status': 'Use the Registration Module to check in guests.',
+            })
         return attrs
 
 
@@ -290,6 +355,7 @@ class WalkInSerializer(serializers.Serializer):
     rack_rate = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=0)
     offer_rate = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=0)
     discount_amount = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=0)
+    rate_plan = serializers.IntegerField(required=False, allow_null=True, default=None)
 
     def validate(self, attrs):
         if attrs['check_in_date'] >= attrs['check_out_date']:
@@ -435,10 +501,10 @@ class CheckOutSerializer(serializers.Serializer):
     """Check-out form fields."""
     payment_amount = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=0)
     payment_method = serializers.ChoiceField(choices=Payment.Method.choices, required=False, default='CASH')
-    notes_internal = serializers.CharField(required=False, default='')
-    password = serializers.CharField(required=False, default='', write_only=True)
-    authorization = serializers.CharField(required=False, default='', write_only=True)
-    checkout_phrase = serializers.CharField(required=False, default='', write_only=True)
+    notes_internal = serializers.CharField(required=False, default='', allow_blank=True)
+    password = serializers.CharField(required=False, default='', allow_blank=True, write_only=True)
+    authorization = serializers.CharField(required=False, default='', allow_blank=True, write_only=True)
+    checkout_phrase = serializers.CharField(required=False, default='', allow_blank=True, write_only=True)
 
 
 class CalendarBookingSerializer(serializers.ModelSerializer):

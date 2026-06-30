@@ -1,10 +1,21 @@
 from decimal import Decimal
 
 from django.db.models import Q
+from rest_framework.exceptions import ValidationError
 
 from rooms.models import Room
 
 MAX_EXTRA_BEDS = 3
+
+
+def assert_guest_bookable(user):
+    """Reject inactive or blacklisted guests for new reservations."""
+    if not user.is_active:
+        raise ValidationError({'guest': 'Guest account is deactivated.'})
+    from accounts.models import GuestProfile
+    profile, _ = GuestProfile.objects.get_or_create(user=user)
+    if profile.blacklisted:
+        raise ValidationError({'guest': 'Guest is blacklisted and cannot be booked.'})
 
 
 def validate_guest_capacity(room_type, adults, children=0, infants=0, num_rooms=1, extra_bed=0):
@@ -64,7 +75,7 @@ def check_availability(room_type_id, check_in, check_out, exclude_booking_id=Non
     return (
         Room.objects.filter(room_type_id=room_type_id)
         .exclude(status='MAINTENANCE')
-        .exclude(housekeeping_status='OUT_OF_ORDER')
+        .exclude(housekeeping_status__in=['VD', 'OD', 'CO'])
         .exclude(id__in=booked_room_ids)
         .order_by('room_number')
     )
@@ -146,6 +157,23 @@ def get_applicable_rate_plans(room_type_id, check_in_date, check_out_date):
     return qs
 
 
+def assert_rate_plan_applicable(rate_plan_id, room_type_id, check_in_date, check_out_date):
+    """Validate rate plan exists, is active, and applies to the stay. Returns RatePlan or None."""
+    if not rate_plan_id:
+        return None
+    from bookings.models import RatePlan
+
+    try:
+        plan = RatePlan.objects.get(pk=rate_plan_id)
+    except RatePlan.DoesNotExist:
+        raise ValidationError({'rate_plan': 'Rate plan not found.'})
+    if not plan.is_active:
+        raise ValidationError({'rate_plan': 'Rate plan is inactive.'})
+    if not get_applicable_rate_plans(room_type_id, check_in_date, check_out_date).filter(pk=plan.pk).exists():
+        raise ValidationError({'rate_plan': 'Rate plan does not apply to this room type and stay dates.'})
+    return plan
+
+
 def apply_registration_data(booking, profile, data):
     """Apply registration form payload to booking + guest profile."""
     booking_fields = [
@@ -220,18 +248,57 @@ def apply_registration_data(booking, profile, data):
         booking.guest.save(update_fields=['phone', 'full_name'])
 
 
+def default_folio_window(booking) -> int:
+    """Route company-billed charges to the corporate folio window when applicable."""
+    if booking.billing_type == 'COMPANY':
+        account = getattr(booking, 'corporate_account', None)
+        if account_id := getattr(booking, 'corporate_account_id', None):
+            from corporate.models import CorporateAccount
+            account = account or CorporateAccount.objects.filter(pk=account_id).first()
+        if account:
+            return max(1, min(8, int(account.default_folio_window or 2)))
+        return 2
+    return 1
+
+
+def ensure_folio_windows(booking):
+    """Provision relational FolioWindow rows (1–8) tied to booking FK."""
+    from dashboard.models import FolioWindow
+
+    if FolioWindow.objects.filter(booking=booking).exists():
+        return
+    FolioWindow.objects.create(booking=booking, window_number=1, label='Main Folio')
+    if booking.billing_type == 'COMPANY':
+        FolioWindow.objects.create(booking=booking, window_number=2, label='Company Folio')
+
+
+def ensure_folio_window_slot(booking, window_number: int, label: str = ''):
+    """Ensure FolioWindow metadata exists for a charge target slot (1–8)."""
+    from dashboard.models import FolioWindow
+
+    FolioWindow.objects.get_or_create(
+        booking=booking,
+        window_number=window_number,
+        defaults={'label': label or f'Window {window_number}'},
+    )
+
+
 def open_guest_folio(booking, posted_by):
     """Create opening folio entries when a guest checks in."""
     from bookings.models import FolioCharge
 
+    ensure_folio_windows(booking)
+
     # Auto-populate company_name on all folio entries for company-billed stays
     company = booking.company_name if booking.billing_type == 'COMPANY' else ''
+    charge_window = default_folio_window(booking)
 
     if booking.deposit_amount > 0 and not FolioCharge.objects.filter(
         booking=booking, charge_type='DEPOSIT', is_void=False,
     ).exists():
         FolioCharge.objects.create(
             booking=booking,
+            folio_window=charge_window,
             charge_type='DEPOSIT',
             description='Security deposit',
             amount=-booking.deposit_amount,
@@ -251,6 +318,7 @@ def open_guest_folio(booking, posted_by):
     ).exists():
         FolioCharge.objects.create(
             booking=booking,
+            folio_window=charge_window,
             charge_type='ROOM',
             description=f'Room charge — {booking.check_in_date}',
             amount=nightly_rate,

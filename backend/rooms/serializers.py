@@ -23,7 +23,10 @@ class RoomTypeListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RoomType
-        fields = ['id', 'name', 'slug', 'price_per_night', 'max_guests', 'beds', 'size', 'view_type', 'is_featured', 'primary_image']
+        fields = [
+            'id', 'name', 'slug', 'description', 'price_per_night', 'max_guests',
+            'beds', 'size', 'view_type', 'is_featured', 'primary_image',
+        ]
 
     def get_primary_image(self, obj):
         img = obj.images.filter(is_primary=True).first() or obj.images.first()
@@ -56,6 +59,11 @@ class RoomTypeDetailSerializer(serializers.ModelSerializer):
 
 class RoomTypeAdminSerializer(serializers.ModelSerializer):
     room_count = serializers.IntegerField(read_only=True, default=0)
+    amenities = serializers.PrimaryKeyRelatedField(
+        queryset=RoomAmenity.objects.all(),
+        many=True,
+        required=False,
+    )
 
     class Meta:
         model = RoomType
@@ -103,11 +111,13 @@ class HousekeepingTaskSerializer(serializers.ModelSerializer):
     room_type_name = serializers.CharField(source='room.room_type.name', read_only=True)
     assigned_to_name = serializers.CharField(source='assigned_to.full_name', read_only=True, default=None)
     inspected_by_name = serializers.CharField(source='inspected_by.full_name', read_only=True, default=None)
+    booking_ref = serializers.CharField(source='booking.booking_ref', read_only=True, default=None)
 
     class Meta:
         model = HousekeepingTask
         fields = [
             'id', 'room', 'room_number', 'room_type_name',
+            'booking_ref',
             'task_type', 'priority', 'status',
             'assigned_to', 'assigned_to_name', 'notes',
             'scheduled_date', 'started_at', 'completed_at',

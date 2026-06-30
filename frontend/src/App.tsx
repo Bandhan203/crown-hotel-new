@@ -32,6 +32,7 @@ import RoomManagement from './admin/pages/RoomManagement';
 import BookingManagement from './admin/pages/BookingManagement';
 import GuestManagement from './admin/pages/GuestManagement';
 import StaffManagement from './admin/pages/StaffManagement';
+import StaffJoin from './admin/pages/StaffJoin';
 import RestaurantManagement from './admin/pages/RestaurantManagement';
 import SpaManagement from './admin/pages/SpaManagement';
 import ServicesManagement from './admin/pages/ServicesManagement';
@@ -90,11 +91,12 @@ function App() {
           <Route path="/payment/cancel" element={<PaymentCancel />} />
         </Route>
 
-        {/* Admin Login (no layout) */}
+        {/* Admin Login + Staff Join (no layout) */}
         <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/staff/join/:token" element={<StaffJoin />} />
 
         {/* Admin Protected Routes */}
-        <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+        <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'STAFF']} />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin" element={<Dashboard />} />
             <Route path="/admin/front-desk" element={<FrontDesk />} />

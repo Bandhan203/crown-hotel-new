@@ -12,8 +12,8 @@ export default function StatsBar({ data, gridData }: StatsBarProps) {
 
   const occupied = rooms.filter((r: any) => r.status === 'OCCUPIED').length;
   const vacant = rooms.filter((r: any) => r.status === 'VACANT').length;
-  const dirty = rooms.filter((r: any) => ['DIRTY', 'OD', 'VD'].includes(r.housekeeping_status)).length;
-  const maintenance = rooms.filter((r: any) => r.status === 'MAINTENANCE' || r.housekeeping_status === 'OUT_OF_ORDER').length;
+  const dirty = rooms.filter((r: any) => ['DIRTY', 'OD', 'VD', 'CO'].includes(r.housekeeping_status)).length;
+  const maintenance = rooms.filter((r: any) => r.status === 'MAINTENANCE').length;
 
   const total = rooms.length;
   const occupancyPct = data?.occupancy_rate || 0;

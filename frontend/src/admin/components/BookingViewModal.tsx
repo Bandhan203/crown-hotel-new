@@ -4,6 +4,8 @@ import {
   MdClose, MdDownload, MdBadge, MdReceipt, MdLogin, MdLogout, MdCheck,
 } from 'react-icons/md';
 import api from '../../services/api';
+import { fetchAvailableRooms } from '../utils/fetchAvailableRooms';
+import CheckOutModal from './CheckOutModal';
 
 /* ── types ─────────────────────────────────────────────────────────── */
 
@@ -25,7 +27,8 @@ interface BookingDetail {
   created_at: string; updated_at: string;
   room_type_detail?: { id: number; name: string; price_per_night: string };
   payments?: Payment[];
-  booking_source?: string; rate_plan?: number; rate_plan_name?: string;
+  booking_source?: string; reference_source?: string; channel_display?: string;
+  rate_plan?: number; rate_plan_name?: string;
   arrival_time?: string; departure_time?: string;
   actual_check_in?: string | null; actual_check_out?: string | null;
   checked_in_by_name?: string | null; checked_out_by_name?: string | null;
@@ -100,8 +103,8 @@ const GUEST_TYPES: Record<string, string> = {
 };
 
 const BOOKING_SOURCES: Record<string, string> = {
-  PHONE: 'Phone', WALK_IN: 'Walk-in', ONLINE: 'Online',
-  OTA: 'OTA', CORPORATE: 'Corporate', TRAVEL_AGENT: 'Travel Agent',
+  WEBSITE: 'Website', PHONE: 'Phone', WALK_IN: 'Walk-in',
+  OTA: 'OTA', AGENT: 'Agent', CORPORATE: 'Corporate',
 };
 
 function dash(v: unknown): string {
@@ -193,6 +196,7 @@ export default function BookingViewModal({
   const [availableRooms, setAvailableRooms] = useState<{ id: number; room_number: string; status: string }[]>([]);
   const [showPayForm, setShowPayForm] = useState(false);
   const [payForm, setPayForm] = useState({ amount: '', payment_method: 'CASH', transaction_id: '' });
+  const [showCheckout, setShowCheckout] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -223,12 +227,21 @@ export default function BookingViewModal({
 
   useEffect(() => {
     if (!showAssignRoom || !booking) return;
-    api.get(`/admin/rooms/?room_type=${booking.room_type}&status=AVAILABLE&page_size=100`)
-      .then(r => setAvailableRooms(r.data.results ?? r.data)).catch(() => {});
+    fetchAvailableRooms(booking.room_type, booking.check_in_date, booking.check_out_date, booking.id)
+      .then(rooms => setAvailableRooms(rooms))
+      .catch(() => setAvailableRooms([]));
   }, [showAssignRoom, booking]);
 
   const updateStatus = async (newStatus: string) => {
     if (!booking) return;
+    if (newStatus === 'CHECKED_IN') {
+      onOpenRegistration(booking.id);
+      return;
+    }
+    if (newStatus === 'CHECKED_OUT') {
+      setShowCheckout(true);
+      return;
+    }
     try {
       const res = await api.patch(`/admin/bookings/${booking.id}/status/`, { status: newStatus });
       toast.success(`Status → ${newStatus.replace(/_/g, ' ')}`);
@@ -376,6 +389,7 @@ export default function BookingViewModal({
                 <GridRow>
                   <DField label="Nights" value={dash(booking.nights)} />
                   <DField label="Booking Source" value={dash(BOOKING_SOURCES[booking.booking_source || ''] || booking.booking_source)} />
+                  <DField label="Channel" value={dash(booking.channel_display || booking.reference_source)} />
                 </GridRow>
                 <GridRow>
                   <DField label="Pickup / ETA" wide
@@ -662,6 +676,23 @@ export default function BookingViewModal({
           </>
         )}
       </div>
+
+      {showCheckout && booking && (
+        <CheckOutModal
+          booking={{
+            id: booking.id,
+            booking_ref: booking.booking_ref,
+            guest_name: booking.guest_name,
+            room_number: booking.room_number,
+          }}
+          onClose={() => setShowCheckout(false)}
+          onSuccess={() => {
+            setShowCheckout(false);
+            load();
+            onRefresh();
+          }}
+        />
+      )}
     </div>
   );
 }

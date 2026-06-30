@@ -11,6 +11,7 @@ from .checkout_services import (
     compute_folio_balance,
     execute_checkout,
     get_authorized_companies,
+    lookup_in_house_booking,
     lookup_room_for_checkout,
     receive_checkout_payment,
 )
@@ -40,14 +41,30 @@ def _checkout_context_payload(room, booking):
 
 
 class CheckoutLookupView(APIView):
-    """GET /api/admin/checkout/lookup/?room_number=703"""
+    """GET /api/admin/checkout/lookup/?room_number=&booking_id=&guest_id=&booking_ref="""
     permission_classes = [IsStaffUser]
 
     def get(self, request):
         room_number = request.query_params.get('room_number', '').strip()
+        booking_id = request.query_params.get('booking_id')
+        guest_id = request.query_params.get('guest_id')
+        booking_ref = request.query_params.get('booking_ref', '').strip()
+
         try:
-            room, booking = lookup_room_for_checkout(room_number)
-        except ValueError as exc:
+            if booking_id:
+                room, booking = lookup_in_house_booking(booking_id=int(booking_id))
+            elif guest_id:
+                room, booking = lookup_in_house_booking(guest_id=int(guest_id))
+            elif booking_ref:
+                room, booking = lookup_in_house_booking(booking_ref=booking_ref)
+            elif room_number:
+                room, booking = lookup_in_house_booking(room_number=room_number)
+            else:
+                return Response(
+                    {'detail': 'Provide room_number, booking_id, guest_id, or booking_ref.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except (ValueError, TypeError) as exc:
             return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         booking = (

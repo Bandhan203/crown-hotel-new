@@ -1,5 +1,6 @@
 from datetime import date, datetime, timedelta
 
+from django.db import transaction
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import permissions, status
@@ -10,10 +11,9 @@ from accounts.permissions import IsAdmin, IsStaffUser
 from bookings.models import Booking
 from bookings.serializers import BookingListSerializer
 from .models import NightAuditLog, HotelConfig, FolioWindow, QueueEntry, FolioAuditLog
+from .night_audit_services import NightAuditError, get_night_audit_preview, run_night_audit
 from .services import (
     get_admin_dashboard_stats,
-    get_night_audit_preview,
-    run_night_audit,
     get_occupancy_report,
     get_revenue_report,
     get_arrivals_departures_report,
@@ -64,19 +64,43 @@ class RoomGridContextView(APIView):
             'housekeeping_status': room.housekeeping_status,
             'notes': room.notes,
             'room_type': room.room_type.name if room.room_type else room.get_area_type_display(),
-            'occupant': None
+            'occupant': None,
         }
+
+        from rooms.housekeeping_services import is_room_dirty
+        from rooms.models import HousekeepingTask
+        from rooms.serializers import HousekeepingTaskSerializer
+
+        HK_LABELS = {
+            'OC': 'Occupied Clean', 'OD': 'Occupied Dirty', 'VC': 'Vacant Clean',
+            'VD': 'Vacant Dirty', 'CO': 'Dirty (Checkout)', 'ARR': 'Arrival Ready',
+        }
+        context['housekeeping_label'] = HK_LABELS.get(room.housekeeping_status, room.housekeeping_status)
+        context['is_dirty'] = is_room_dirty(room)
+
+        pending_task = (
+            HousekeepingTask.objects.filter(
+                room=room,
+                task_type=HousekeepingTask.TaskType.CLEAN,
+                status__in=[HousekeepingTask.Status.PENDING, HousekeepingTask.Status.IN_PROGRESS],
+            )
+            .select_related('booking')
+            .order_by('-created_at')
+            .first()
+        )
+        context['pending_hk_task'] = (
+            HousekeepingTaskSerializer(pending_task).data if pending_task else None
+        )
 
         # Find current occupant
         booking = Booking.objects.filter(room=room, status='CHECKED_IN').select_related(
             'guest', 'parent_booking', 'guest__guest_profile'
         ).first()
         if booking:
-            # Calculate balance
-            from bookings.models import FolioCharge, Payment
-            folio_total = FolioCharge.objects.filter(booking=booking, is_void=False).aggregate(total=Sum('total'))['total'] or 0
-            payments_total = Payment.objects.filter(booking=booking, status='COMPLETED').aggregate(total=Sum('amount'))['total'] or 0
-            balance = float(booking.total_price) + float(folio_total) - float(payments_total)
+            from bookings.checkout_services import compute_folio_balance, get_payment_breakdown
+
+            balance_info = compute_folio_balance(booking)
+            payment_breakdown = get_payment_breakdown(booking)
 
             guest = booking.guest
             profile = getattr(guest, 'guest_profile', None)
@@ -113,8 +137,8 @@ class RoomGridContextView(APIView):
                 'meal_plan': booking.meal_plan,
                 'meal_plan_label': booking.get_meal_plan_display(),
                 'market_code': booking.reference_source or booking.booking_source,
-                'advance_paid': float(payments_total or booking.deposit_amount or 0),
-                'balance_due': round(balance, 2),
+                'advance_paid': payment_breakdown['receipts'],
+                'balance_due': round(balance_info['balance'], 2),
                 'guest_preferences': booking.guest_preferences,
                 'special_requests': booking.special_requests,
                 'internal_notes': booking.notes_internal or booking.profile_note or '',
@@ -140,6 +164,29 @@ class GuestDashboardView(APIView):
 # Night Audit
 # ──────────────────────────────────────────────
 
+def _night_audit_log_payload(log: NightAuditLog) -> dict:
+    return {
+        'id': log.id,
+        'audit_date': log.audit_date.isoformat(),
+        'total_rooms_sold': log.total_rooms_sold,
+        'total_rooms_available': log.total_rooms_available,
+        'occupancy_rate': float(log.occupancy_rate),
+        'room_revenue': float(log.room_revenue),
+        'fnb_revenue': float(log.fnb_revenue),
+        'tax_revenue': float(getattr(log, 'tax_revenue', 0) or 0),
+        'service_charge_revenue': float(getattr(log, 'service_charge_revenue', 0) or 0),
+        'other_revenue': float(log.other_revenue),
+        'total_revenue': float(log.total_revenue),
+        'no_show_count': log.no_show_count,
+        'new_bookings': log.new_bookings,
+        'check_ins': log.check_ins,
+        'check_outs': log.check_outs,
+        'notes': log.notes,
+        'performed_by': log.performed_by.full_name if log.performed_by else None,
+        'created_at': log.created_at.isoformat(),
+    }
+
+
 class NightAuditPreviewView(APIView):
     """GET /api/admin/night-audit/preview/?date=YYYY-MM-DD"""
     permission_classes = [IsAdmin]
@@ -152,41 +199,31 @@ class NightAuditPreviewView(APIView):
 
 
 class NightAuditRunView(APIView):
-    """POST /api/admin/night-audit/run/  body: { "date": "YYYY-MM-DD", "notes": "" }"""
+    """POST /api/admin/night-audit/run/"""
     permission_classes = [IsAdmin]
 
     def post(self, request):
         date_str = request.data.get('date')
         audit_date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else HotelConfig.load().business_date
         notes = request.data.get('notes', '')
+        night_audit_pin = request.data.get('night_audit_pin')
+        manager_override_pin = request.data.get('manager_override_pin')
 
         try:
-            log = run_night_audit(audit_date, request.user)
-        except ValueError as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            log = run_night_audit(
+                audit_date,
+                request.user,
+                night_audit_pin=night_audit_pin,
+                manager_override_pin=manager_override_pin,
+                notes=notes,
+            )
+        except NightAuditError as e:
+            body = {'detail': str(e), 'code': e.code}
+            if e.details is not None:
+                body['overdue_checkouts'] = e.details
+            return Response(body, status=e.status_code)
 
-        if notes:
-            log.notes = notes
-            log.save(update_fields=['notes'])
-
-        return Response({
-            'id': log.id,
-            'audit_date': log.audit_date.isoformat(),
-            'total_rooms_sold': log.total_rooms_sold,
-            'total_rooms_available': log.total_rooms_available,
-            'occupancy_rate': float(log.occupancy_rate),
-            'room_revenue': float(log.room_revenue),
-            'fnb_revenue': float(log.fnb_revenue),
-            'other_revenue': float(log.other_revenue),
-            'total_revenue': float(log.total_revenue),
-            'no_show_count': log.no_show_count,
-            'new_bookings': log.new_bookings,
-            'check_ins': log.check_ins,
-            'check_outs': log.check_outs,
-            'notes': log.notes,
-            'performed_by': log.performed_by.full_name if log.performed_by else None,
-            'created_at': log.created_at.isoformat(),
-        }, status=status.HTTP_201_CREATED)
+        return Response(_night_audit_log_payload(log), status=status.HTTP_201_CREATED)
 
 
 class NightAuditListView(APIView):
@@ -195,27 +232,7 @@ class NightAuditListView(APIView):
 
     def get(self, request):
         logs = NightAuditLog.objects.select_related('performed_by').all()[:60]
-        return Response([
-            {
-                'id': l.id,
-                'audit_date': l.audit_date.isoformat(),
-                'occupancy_rate': float(l.occupancy_rate),
-                'total_revenue': float(l.total_revenue),
-                'room_revenue': float(l.room_revenue),
-                'fnb_revenue': float(l.fnb_revenue),
-                'other_revenue': float(l.other_revenue),
-                'no_show_count': l.no_show_count,
-                'new_bookings': l.new_bookings,
-                'check_ins': l.check_ins,
-                'check_outs': l.check_outs,
-                'total_rooms_sold': l.total_rooms_sold,
-                'total_rooms_available': l.total_rooms_available,
-                'performed_by': l.performed_by.full_name if l.performed_by else None,
-                'notes': l.notes,
-                'created_at': l.created_at.isoformat(),
-            }
-            for l in logs
-        ])
+        return Response([_night_audit_log_payload(l) for l in logs])
 
 
 class NightAuditDetailView(APIView):
@@ -233,24 +250,7 @@ class NightAuditDetailView(APIView):
         except NightAuditLog.DoesNotExist:
             return Response({'detail': 'No audit found for this date.'}, status=status.HTTP_404_NOT_FOUND)
 
-        return Response({
-            'id': log.id,
-            'audit_date': log.audit_date.isoformat(),
-            'total_rooms_sold': log.total_rooms_sold,
-            'total_rooms_available': log.total_rooms_available,
-            'occupancy_rate': float(log.occupancy_rate),
-            'room_revenue': float(log.room_revenue),
-            'fnb_revenue': float(log.fnb_revenue),
-            'other_revenue': float(log.other_revenue),
-            'total_revenue': float(log.total_revenue),
-            'no_show_count': log.no_show_count,
-            'new_bookings': log.new_bookings,
-            'check_ins': log.check_ins,
-            'check_outs': log.check_outs,
-            'performed_by': log.performed_by.full_name if log.performed_by else None,
-            'notes': log.notes,
-            'created_at': log.created_at.isoformat(),
-        })
+        return Response(_night_audit_log_payload(log))
 
 
 # ──────────────────────────────────────────────
@@ -438,18 +438,20 @@ class FolioWindowView(APIView):
     permission_classes = [IsStaffUser]
 
     def get(self, request, booking_id):
-        windows = FolioWindow.objects.filter(booking_id=booking_id).order_by('window_number')
-        if not windows.exists():
-            FolioWindow.objects.create(booking_id=booking_id, window_number=1, label='Main Folio')
-            windows = FolioWindow.objects.filter(booking_id=booking_id)
+        from bookings.models import Booking, FolioCharge
+        from bookings.services import ensure_folio_windows
 
-        from bookings.models import FolioCharge, Payment
+        ensure_folio_windows(Booking.objects.get(pk=booking_id))
+        windows = FolioWindow.objects.filter(booking_id=booking_id).order_by('window_number')
+
         data = []
         for w in windows:
             charges = FolioCharge.objects.filter(booking_id=booking_id, folio_window=w.window_number, is_void=False)
+            window_total = sum(float(c.total) for c in charges)
             data.append({
                 'window_number': w.window_number,
                 'label': w.label,
+                'window_total': window_total,
                 'charges': [{
                     'id': c.id,
                     'type': c.charge_type,
@@ -482,26 +484,58 @@ class FolioTransferView(APIView):
         charge_id = request.data.get('charge_id')
         target_window = request.data.get('target_window')
 
-        from bookings.models import FolioCharge
+        from bookings.models import Booking, FolioCharge
+        from bookings.services import ensure_folio_windows, ensure_folio_window_slot
+
         try:
-            charge = FolioCharge.objects.get(id=charge_id, booking_id=booking_id)
+            charge = FolioCharge.objects.get(id=charge_id, booking_id=booking_id, is_void=False)
         except FolioCharge.DoesNotExist:
-            return Response({'detail': 'Charge not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'Charge not found or already voided.'}, status=status.HTTP_404_NOT_FOUND)
 
-        old_window = charge.folio_window
-        charge.folio_window = target_window
-        charge.is_transferred = True
-        charge.save(update_fields=['folio_window', 'is_transferred'])
+        try:
+            target_window = int(target_window)
+        except (TypeError, ValueError):
+            return Response({'detail': 'target_window must be 1–8.'}, status=status.HTTP_400_BAD_REQUEST)
+        if target_window < 1 or target_window > 8:
+            return Response({'detail': 'target_window must be 1–8.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        FolioAuditLog.objects.create(
-            folio_charge=charge,
-            action=FolioAuditLog.ActionType.TRANSFER,
-            from_window=old_window,
-            to_window=target_window,
-            performed_by=request.user
-        )
+        if charge.is_locked:
+            return Response(
+                {'detail': 'This charge was posted by Night Audit and is locked. It cannot be transferred.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
-        return Response({'detail': 'Charge transferred successfully.'})
+        source_window = int(charge.folio_window or 1)
+        if target_window == source_window:
+            return Response(
+                {'detail': f'Charge is already on window {source_window}.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        booking = Booking.objects.get(pk=booking_id)
+        ensure_folio_windows(booking)
+        ensure_folio_window_slot(booking, target_window)
+
+        with transaction.atomic():
+            charge.folio_window = target_window
+            charge.is_transferred = True
+            charge.save(update_fields=['folio_window', 'is_transferred'])
+
+            FolioAuditLog.objects.create(
+                folio_charge=charge,
+                action=FolioAuditLog.ActionType.TRANSFER,
+                from_window=source_window,
+                to_window=target_window,
+                performed_by=request.user,
+            )
+
+        return Response({
+            'detail': 'Charge transferred successfully.',
+            'charge_id': charge.id,
+            'from_window': source_window,
+            'to_window': target_window,
+            'booking_id': booking_id,
+        })
 
 
 class FolioAdjustmentView(APIView):
@@ -520,6 +554,12 @@ class FolioAdjustmentView(APIView):
 
         if charge.is_void:
             return Response({'detail': 'Charge is already voided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if charge.is_locked:
+            return Response(
+                {'detail': 'This charge was posted by Night Audit and is locked. It cannot be voided or adjusted.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         # Instead of deleting, mark it as voided with an adjustment code
         charge.is_void = True

@@ -5,6 +5,7 @@ import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import { MdAdd, MdClose, MdSearch } from 'react-icons/md';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import { HK_BADGE, HK_STATUSES } from '../utils/housekeepingStatus';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -22,6 +23,13 @@ interface RoomType {
   view_type: string;
   is_featured: boolean;
   room_count?: number;
+  amenities?: number[];
+}
+
+interface RoomAmenity {
+  id: number;
+  name: string;
+  icon?: string;
 }
 
 interface Room {
@@ -47,12 +55,7 @@ const ROOM_STATUS: [string, string][] = [
   ['RESERVED', 'Reserved'],
 ];
 
-const HK_STATUS: [string, string][] = [
-  ['CLEAN', 'Clean'],
-  ['DIRTY', 'Dirty'],
-  ['INSPECTED', 'Inspected'],
-  ['OUT_OF_ORDER', 'Out of Order'],
-];
+const HK_STATUS = HK_STATUSES.map(([code, label]) => [code, label] as [string, string]);
 
 const VIEW_TYPES: [string, string][] = [
   ['', '— None —'],
@@ -68,13 +71,6 @@ const STATUS_BADGE: Record<string, string> = {
   OCCUPIED: 'bg-blue-50 text-blue-700 border border-blue-200',
   MAINTENANCE: 'bg-amber-50 text-amber-700 border border-amber-200',
   RESERVED: 'bg-violet-50 text-violet-700 border border-violet-200',
-};
-
-const HK_BADGE: Record<string, string> = {
-  CLEAN: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-  DIRTY: 'bg-orange-50 text-orange-700 border border-orange-200',
-  INSPECTED: 'bg-blue-50 text-blue-700 border border-blue-200',
-  OUT_OF_ORDER: 'bg-red-50 text-red-700 border border-red-200',
 };
 
 const BADGE = 'inline-flex items-center px-1.5 py-px rounded text-[10px] font-semibold leading-none whitespace-nowrap';
@@ -430,8 +426,31 @@ function RoomTypeModal({ item, onClose, onSaved }: {
   const [loading, setLoading] = useState(false);
   const [existingImages, setExistingImages] = useState<any[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [allAmenities, setAllAmenities] = useState<RoomAmenity[]>([]);
+  const [selectedAmenities, setSelectedAmenities] = useState<number[]>([]);
 
   const set = (key: string, value: string | boolean) => setForm(f => ({ ...f, [key]: value }));
+
+  useEffect(() => {
+    api.get('/admin/amenities/?page_size=200')
+      .then(r => setAllAmenities(r.data.results ?? r.data))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!item?.id) {
+      setSelectedAmenities([]);
+      return;
+    }
+    api.get(`/admin/room-types/${item.id}/`)
+      .then(r => {
+        const ids = (r.data.amenities || []).map((a: number | RoomAmenity) =>
+          typeof a === 'object' ? a.id : a,
+        );
+        setSelectedAmenities(ids);
+      })
+      .catch(() => setSelectedAmenities(item.amenities || []));
+  }, [item?.id]);
 
   useEffect(() => {
     if (!item?.id) { setExistingImages([]); return; }
@@ -458,6 +477,7 @@ function RoomTypeModal({ item, onClose, onSaved }: {
       size: parseInt(form.size, 10) || 0,
       view_type: form.view_type,
       is_featured: form.is_featured,
+      amenities: selectedAmenities,
     };
 
     try {
@@ -546,6 +566,29 @@ function RoomTypeModal({ item, onClose, onSaved }: {
             </label>
           </PmsSection>
 
+          <PmsSection title="Amenities">
+            {allAmenities.length === 0 ? (
+              <p className="text-xs text-slate-500 ml-[7.5rem]">No amenities defined yet (add via Django admin or API).</p>
+            ) : (
+              <div className="flex flex-wrap gap-2 ml-[7.5rem]">
+                {allAmenities.map(a => {
+                  const on = selectedAmenities.includes(a.id);
+                  return (
+                    <button key={a.id} type="button"
+                      onClick={() => setSelectedAmenities(prev =>
+                        on ? prev.filter(id => id !== a.id) : [...prev, a.id],
+                      )}
+                      className={`px-2 py-1 rounded text-xs border transition ${
+                        on ? 'bg-teal-700 text-white border-teal-700' : 'bg-white text-slate-600 border-slate-300 hover:border-teal-600'
+                      }`}>
+                      {a.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </PmsSection>
+
           <PmsSection title="Images">
             <input type="file" accept="image/*" multiple
               onChange={e => e.target.files && setNewFiles(f => [...f, ...Array.from(e.target.files!)])}
@@ -603,7 +646,7 @@ function RoomModal({ item, roomTypes, onClose, onSaved }: {
     room_type: String(item?.room_type || roomTypes[0]?.id || ''),
     floor: String(item?.floor ?? 1),
     status: item?.status || 'AVAILABLE',
-    housekeeping_status: item?.housekeeping_status || 'CLEAN',
+    housekeeping_status: item?.housekeeping_status || 'VC',
     is_smoking: item?.is_smoking ?? false,
     notes: item?.notes || '',
   });

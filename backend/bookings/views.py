@@ -14,7 +14,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsAdmin, IsStaffUser
+from accounts.permissions import IsAdmin, IsStaffUser, staff_module_permission
 from rooms.models import Room
 from .models import Booking, FolioCharge, Payment, RatePlan
 from .serializers import (
@@ -32,6 +32,7 @@ from .serializers import (
     FolioChargeCreateSerializer,
     FolioChargeSerializer,
     GuestRegistrationSerializer,
+    InHouseBookingSerializer,
     RegistrationCheckInSerializer,
     InvoiceSerializer,
     PaymentSerializer,
@@ -75,22 +76,40 @@ class CreateBookingView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
+        from .channels import normalize_reference_source
+        from bookings.services import assert_rate_plan_applicable, calculate_rate_plan_price, check_availability
+
         room_type = serializer.validated_data['room_type']
         check_in = serializer.validated_data['check_in_date']
         check_out = serializer.validated_data['check_out_date']
         nights = (check_out - check_in).days
-        total_price = room_type.price_per_night * nights
+        rate_plan = serializer.validated_data.get('rate_plan')
+        if rate_plan:
+            rate_plan = assert_rate_plan_applicable(rate_plan.id, room_type.id, check_in, check_out)
+
+        rack_per_night = room_type.price_per_night
+        total_price, discount_amount = calculate_rate_plan_price(rack_per_night, nights, rate_plan)
+        offer_per_night = total_price / nights if nights else total_price
 
         available = check_availability(room_type.id, check_in, check_out)
         if not available.exists():
             raise ValidationError({'detail': 'No rooms available for the selected dates.'})
 
         room = available.first()
+        ref_raw = serializer.validated_data.pop('reference_source', '') or self.request.data.get('reference_source', '')
+        reference_source = normalize_reference_source(ref_raw)
         booking = serializer.save(
             guest=self.request.user,
             room=room,
             total_price=total_price,
+            rack_rate=rack_per_night,
+            offer_rate=offer_per_night,
+            discount_amount=discount_amount,
+            rate_plan=rate_plan,
             payment_status=Booking.PaymentStatus.UNPAID,
+            booking_source=Booking.BookingSource.WEBSITE,
+            reference_source=reference_source,
+            status=Booking.Status.PENDING,
         )
 
     def create(self, request, *args, **kwargs):
@@ -153,10 +172,42 @@ class AdminBookingListView(generics.ListAPIView):
         'payments', 'folio_charges__posted_by', 'registration_record'
     )
     serializer_class = BookingDetailSerializer
-    permission_classes = [IsAdmin]
-    filterset_fields = ['status', 'room_type', 'guest']
-    search_fields = ['booking_ref', 'guest__email', 'guest__full_name', 'guest__phone']
+    permission_classes = [staff_module_permission('BOOKINGS')]
+    filterset_fields = ['status', 'room_type', 'guest', 'booking_source']
+    search_fields = ['booking_ref', 'guest__email', 'guest__full_name', 'guest__phone', 'reference_source']
     ordering_fields = ['created_at', 'check_in_date', 'total_price']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        from .channels import channel_filter_q
+
+        qs = super().get_queryset()
+        channel = self.request.query_params.get('channel')
+        q = channel_filter_q(channel)
+        if q is not None:
+            qs = qs.filter(q)
+        ref = self.request.query_params.get('reference_source')
+        if ref:
+            qs = qs.filter(reference_source__iexact=ref.strip())
+        return qs
+
+
+class AdminBookingChannelStatsView(APIView):
+    """GET /api/admin/bookings/channel-stats/ — counts by online / OTA channel."""
+    permission_classes = [staff_module_permission('BOOKINGS')]
+
+    def get(self, request):
+        from .channels import CHANNEL_FILTERS
+
+        qs = Booking.objects.exclude(status='CANCELLED')
+        status_filter = request.query_params.get('status')
+        if status_filter and status_filter != 'ALL':
+            qs = qs.filter(status=status_filter)
+
+        stats = {'all': qs.count()}
+        for key, q in CHANNEL_FILTERS.items():
+            stats[key.lower()] = qs.filter(q).count()
+        return Response(stats)
 
 
 class AdminBookingDetailView(generics.RetrieveAPIView):
@@ -167,27 +218,51 @@ class AdminBookingDetailView(generics.RetrieveAPIView):
         'payments', 'folio_charges__posted_by', 'registration_record'
     )
     serializer_class = BookingDetailSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('BOOKINGS')]
 
 
 class AdminCreateBookingView(generics.CreateAPIView):
     """POST /api/admin/bookings/ — admin manually creates a booking."""
     serializer_class = AdminBookingCreateSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('BOOKINGS')]
 
     def perform_create(self, serializer):
+        from bookings.services import assert_guest_bookable, assert_rate_plan_applicable, calculate_rate_plan_price, check_availability
+
+        guest = serializer.validated_data['guest']
+        assert_guest_bookable(guest)
+
         room_type = serializer.validated_data['room_type']
         check_in = serializer.validated_data['check_in_date']
         check_out = serializer.validated_data['check_out_date']
         nights = (check_out - check_in).days
-        total_price = room_type.price_per_night * nights
+        rate_plan = serializer.validated_data.get('rate_plan')
+        if rate_plan:
+            rate_plan = assert_rate_plan_applicable(rate_plan.id, room_type.id, check_in, check_out)
+        room = serializer.validated_data.get('room')
 
-        available = check_availability(room_type.id, check_in, check_out)
-        room = available.first()  # admin can create even if no room auto-assigned
+        if room:
+            available_ids = set(
+                check_availability(room_type.id, check_in, check_out).values_list('id', flat=True)
+            )
+            if room.id not in available_ids and room.room_type_id == room_type.id:
+                pass  # allow explicit room if same type (admin override)
+            elif room.id not in available_ids:
+                room = check_availability(room_type.id, check_in, check_out).first()
+        else:
+            room = check_availability(room_type.id, check_in, check_out).first()
+
+        rack_per_night = room_type.price_per_night
+        total_price, discount_amount = calculate_rate_plan_price(rack_per_night, nights, rate_plan)
+        offer_per_night = total_price / nights if nights else total_price
 
         serializer.save(
             room=room,
             total_price=total_price,
+            rack_rate=rack_per_night,
+            offer_rate=offer_per_night,
+            discount_amount=discount_amount,
+            rate_plan=rate_plan,
         )
 
     def create(self, request, *args, **kwargs):
@@ -205,7 +280,7 @@ class AdminUpdateBookingView(generics.UpdateAPIView):
     """PATCH /api/admin/bookings/{id}/ — admin edits booking details."""
     queryset = Booking.objects.select_related('room_type')
     serializer_class = AdminBookingUpdateSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('BOOKINGS')]
     http_method_names = ['patch']
 
     def update(self, request, *args, **kwargs):
@@ -218,7 +293,12 @@ class AdminUpdateBookingView(generics.UpdateAPIView):
         check_out = serializer.validated_data.get('check_out_date', booking.check_out_date)
         if 'total_price' not in serializer.validated_data:
             nights = (check_out - check_in).days
-            serializer.validated_data['total_price'] = booking.room_type.price_per_night * nights
+            from bookings.services import calculate_rate_plan_price
+            total, discount = calculate_rate_plan_price(
+                booking.room_type.price_per_night, nights, booking.rate_plan
+            )
+            serializer.validated_data['total_price'] = total
+            serializer.validated_data['discount_amount'] = discount
 
         serializer.save()
         return Response(BookingDetailSerializer(booking, context={'request': request}).data)
@@ -227,7 +307,7 @@ class AdminUpdateBookingView(generics.UpdateAPIView):
 class AdminDeleteBookingView(generics.DestroyAPIView):
     """DELETE /api/admin/bookings/{id}/"""
     queryset = Booking.objects.select_related('room')
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('BOOKINGS')]
 
     def perform_destroy(self, instance):
         with transaction.atomic():
@@ -240,7 +320,7 @@ class AdminDeleteBookingView(generics.DestroyAPIView):
 
 class AdminBookingStatusView(APIView):
     """PATCH /api/admin/bookings/{id}/status/ — update booking status with room sync."""
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('BOOKINGS')]
 
     def patch(self, request, pk):
         try:
@@ -269,6 +349,17 @@ class AdminBookingStatusView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+            if new_status == 'CHECKED_OUT':
+                return Response(
+                    {
+                        'detail': (
+                            'Use the Checkout Module (Revenue Guard) to check out guests. '
+                            'Folio must be settled before checkout.'
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             booking.status = new_status
             booking.save(update_fields=['status', 'updated_at'])
 
@@ -289,7 +380,7 @@ class AdminBookingStatusView(APIView):
 
 class AdminAssignRoomView(APIView):
     """PATCH /api/admin/bookings/{id}/assign-room/ — manually assign a room."""
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('BOOKINGS')]
 
     def patch(self, request, pk):
         try:
@@ -355,7 +446,7 @@ class AdminPaymentListView(generics.ListAPIView):
     """GET /api/admin/payments/"""
     queryset = Payment.objects.select_related('booking__guest').order_by('-created_at')
     serializer_class = PaymentSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('BOOKINGS')]
 
 
 # ── Walk-in ──────────────────────────────────
@@ -398,12 +489,27 @@ class WalkInBookingView(APIView):
             guest.save(update_fields=['full_name', 'phone'])
 
         nights = (data['check_out_date'] - data['check_in_date']).days
+        from bookings.services import assert_rate_plan_applicable, calculate_rate_plan_price
+
+        rate_plan_obj = None
+        if data.get('rate_plan'):
+            try:
+                rate_plan_obj = assert_rate_plan_applicable(
+                    data['rate_plan'], room_type.id, data['check_in_date'], data['check_out_date'],
+                )
+            except ValidationError as exc:
+                return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+
         rack = data.get('rack_rate') or room_type.price_per_night
-        offer = data.get('offer_rate') or rack
-        discount = data.get('discount_amount', 0)
-        total_price = max(0, (float(offer) * nights) - float(discount))
-        if total_price <= 0:
-            total_price = float(rack) * nights
+        if rate_plan_obj:
+            total_price, discount = calculate_rate_plan_price(rack, nights, rate_plan_obj)
+            offer = total_price / nights if nights else total_price
+        else:
+            offer = data.get('offer_rate') or rack
+            discount = data.get('discount_amount', 0)
+            total_price = max(0, (float(offer) * nights) - float(discount))
+            if total_price <= 0:
+                total_price = float(rack) * nights
 
         with transaction.atomic():
             # Save / update guest profile
@@ -448,6 +554,7 @@ class WalkInBookingView(APIView):
                 guest=guest,
                 room=room,
                 room_type=room_type,
+                rate_plan=rate_plan_obj,
                 check_in_date=data['check_in_date'],
                 check_out_date=data['check_out_date'],
                 arrival_time=data.get('arrival_time'),
@@ -530,14 +637,37 @@ class ReservationCreateView(APIView):
                 guest.phone = data['guest_phone']
             guest.save(update_fields=['full_name', 'phone'])
 
+        from bookings.services import assert_guest_bookable
+        try:
+            assert_guest_bookable(guest)
+        except ValidationError as exc:
+            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+
+        from bookings.services import assert_rate_plan_applicable, calculate_rate_plan_price
+
         nights = (data['check_out_date'] - data['check_in_date']).days
         num_rooms = int(data.get('num_rooms', 1) or 1)
         rack = data.get('rack_rate') or room_type.price_per_night
-        offer = data.get('offer_rate') or rack
-        discount = data.get('discount_amount', 0)
-        total_price = max(0, (float(offer) * nights * num_rooms) - float(discount))
-        if total_price <= 0:
-            total_price = float(rack) * nights * num_rooms
+
+        rate_plan_obj = None
+        if data.get('rate_plan'):
+            try:
+                rate_plan_obj = assert_rate_plan_applicable(
+                    data['rate_plan'], room_type.id, data['check_in_date'], data['check_out_date'],
+                )
+            except ValidationError as exc:
+                return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+
+        if rate_plan_obj:
+            stay_total, discount = calculate_rate_plan_price(rack, nights, rate_plan_obj)
+            total_price = stay_total * num_rooms
+            offer = stay_total / nights if nights else stay_total
+        else:
+            offer = data.get('offer_rate') or rack
+            discount = data.get('discount_amount', 0)
+            total_price = max(0, (float(offer) * nights * num_rooms) - float(discount))
+            if total_price <= 0:
+                total_price = float(rack) * nights * num_rooms
 
         parent_booking = None
         if data.get('parent_booking_id'):
@@ -582,21 +712,13 @@ class ReservationCreateView(APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-            # Resolve rate plan FK
-            from bookings.models import RatePlan
-            rate_plan_obj = None
-            if data.get('rate_plan'):
-                try:
-                    rate_plan_obj = RatePlan.objects.get(pk=data['rate_plan'])
-                except RatePlan.DoesNotExist:
-                    pass
-
-            # Build grand total with service charge + VAT
             svc_pct = float(data.get('service_charge_pct', 0) or 0)
             vat_pct_val = float(data.get('vat_pct', 0) or 0)
             service_charge_amount = total_price * svc_pct / 100
             vat_amount = total_price * vat_pct_val / 100
             grand = total_price + service_charge_amount + vat_amount
+
+            from .channels import normalize_reference_source
 
             booking = Booking.objects.create(
                 guest=guest,
@@ -625,7 +747,7 @@ class ReservationCreateView(APIView):
                 deposit_amount=data.get('deposit_amount', 0),
                 status=data.get('status', 'CONFIRMED'),
                 booking_source=data.get('booking_source', 'PHONE'),
-                reference_source=data.get('reference_source', ''),
+                reference_source=normalize_reference_source(data.get('reference_source', '')),
                 guest_hobbies=data.get('guest_hobbies', ''),
                 guest_preferences=data.get('guest_preferences', ''),
                 airport_details=data.get('airport_details', ''),
@@ -901,7 +1023,7 @@ class DeparturesListView(generics.ListAPIView):
 
 class InHouseListView(generics.ListAPIView):
     """GET /api/admin/reservations/in-house/ — currently checked-in guests."""
-    serializer_class = BookingDetailSerializer
+    serializer_class = InHouseBookingSerializer
     permission_classes = [IsStaffUser]
 
     def get_queryset(self):
@@ -1071,13 +1193,19 @@ class FolioListCreateView(APIView):
 
 class FolioVoidView(APIView):
     """PATCH /api/admin/folio/{charge_id}/void/"""
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('BOOKINGS')]
 
     def patch(self, request, charge_id):
         try:
             charge = FolioCharge.objects.get(pk=charge_id)
         except FolioCharge.DoesNotExist:
             return Response({'detail': 'Charge not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if charge.is_locked:
+            return Response(
+                {'detail': 'This charge was posted by Night Audit and is locked. It cannot be voided.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         charge.is_void = True
         charge.save(update_fields=['is_void'])
@@ -1384,16 +1512,17 @@ class RegistrationCardPDFView(APIView):
 
 class RatePlanListCreateView(generics.ListCreateAPIView):
     """GET/POST /api/admin/rate-plans/"""
-    queryset = RatePlan.objects.all()
+    queryset = RatePlan.objects.prefetch_related('room_types').all()
     serializer_class = RatePlanSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('BOOKINGS')]
+    pagination_class = None
 
 
 class RatePlanDetailView(generics.RetrieveUpdateDestroyAPIView):
     """GET/PATCH/DELETE /api/admin/rate-plans/{id}/"""
     queryset = RatePlan.objects.all()
     serializer_class = RatePlanSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('BOOKINGS')]
 
 
 class PublicRatePlanListView(generics.ListAPIView):
@@ -1427,7 +1556,7 @@ class PublicRatePlanListView(generics.ListAPIView):
 class AdminPaymentCreateView(generics.CreateAPIView):
     """POST /api/admin/bookings/{booking_id}/payments/ — record a payment."""
     serializer_class = AdminPaymentCreateSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('BOOKINGS')]
 
     def perform_create(self, serializer):
         booking_id = self.kwargs['booking_id']
@@ -1645,7 +1774,7 @@ class PaymentCancelView(APIView):
 
 class AdminPaymentGatewaySettingsView(APIView):
     """GET/PUT /api/admin/payment-gateway/settings/ — read or update SSLCommerz config."""
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('BOOKINGS')]
 
     def get(self, request):
         from .models import PaymentGatewayConfig
@@ -1705,7 +1834,7 @@ class AdminPaymentGatewaySettingsView(APIView):
 
 class AdminTransactionQueryView(APIView):
     """POST /api/admin/payment-gateway/query/ — query SSLCommerz transaction."""
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('BOOKINGS')]
 
     def post(self, request):
         tran_id = request.data.get('tran_id', '').strip()
@@ -1718,7 +1847,7 @@ class AdminTransactionQueryView(APIView):
 
 class AdminRefundPaymentView(APIView):
     """POST /api/admin/payment-gateway/refund/ — initiate SSLCommerz refund."""
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('BOOKINGS')]
 
     def post(self, request):
         payment_id = request.data.get('payment_id')
@@ -1769,7 +1898,7 @@ class PoliceExportView(APIView):
     """GET /api/admin/reports/police-export/?date=YYYY-MM-DD
     Returns checked-in guests in Bangladesh Police Portal format (JSON/CSV).
     """
-    permission_classes = [IsAdmin]
+    permission_classes = [staff_module_permission('BOOKINGS')]
 
     def get(self, request):
         from accounts.models import GuestProfile

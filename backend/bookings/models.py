@@ -110,6 +110,13 @@ class Booking(models.Model):
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     grand_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     company_name = models.CharField(max_length=200, blank=True, default='')
+    corporate_account = models.ForeignKey(
+        'corporate.CorporateAccount',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='bookings',
+    )
     notes_internal = models.TextField(blank=True, default='')
     profile_note = models.TextField(blank=True, default='')
     
@@ -293,6 +300,10 @@ class FolioCharge(models.Model):
     posted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='posted_charges')
     reference = models.CharField(max_length=100, blank=True, default='')
     is_void = models.BooleanField(default=False)
+    is_locked = models.BooleanField(
+        default=False,
+        help_text='True when posted by Night Audit — prevents void/adjustment tampering',
+    )
     void_reason = models.CharField(max_length=200, blank=True, default='')
     void_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='voided_charges')
     void_at = models.DateTimeField(null=True, blank=True)

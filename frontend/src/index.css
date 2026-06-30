@@ -462,7 +462,11 @@ select.text-white option {
   background-color: inherit;
 }
 
-/* Center body fills row — avoids white strip before right-pinned columns */
+/* Center columns stretch to fill gap before right-pinned Payment/Actions */
+.ag-theme-quartz.ag-theme-bookings .ag-center-cols-container {
+  min-width: 100%;
+}
+
 .ag-theme-quartz.ag-theme-bookings .ag-center-cols-viewport {
   flex: 1 1 auto;
 }

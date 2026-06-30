@@ -1,6 +1,6 @@
 from rest_framework import generics, permissions, viewsets
 
-from accounts.permissions import IsAdmin
+from accounts.permissions import IsStaffUser
 from .models import MenuCategory, MenuItem, RestaurantGallery
 from .serializers import (
     MenuCategoryAdminSerializer,
@@ -33,13 +33,13 @@ class RestaurantGalleryListView(generics.ListAPIView):
 class AdminMenuCategoryViewSet(viewsets.ModelViewSet):
     queryset = MenuCategory.objects.all()
     serializer_class = MenuCategoryAdminSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [IsStaffUser]
 
 
 class AdminMenuItemViewSet(viewsets.ModelViewSet):
     queryset = MenuItem.objects.select_related('category')
     serializer_class = MenuItemSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [IsStaffUser]
     filterset_fields = ['category', 'is_available']
     search_fields = ['name']
 
@@ -47,4 +47,4 @@ class AdminMenuItemViewSet(viewsets.ModelViewSet):
 class AdminRestaurantGalleryViewSet(viewsets.ModelViewSet):
     queryset = RestaurantGallery.objects.all()
     serializer_class = RestaurantGallerySerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [IsStaffUser]

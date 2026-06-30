@@ -10,6 +10,7 @@ class ItemCategory(models.Model):
 
 class Item(models.Model):
     category = models.ForeignKey(ItemCategory, on_delete=models.CASCADE, related_name='items')
+    code = models.CharField(max_length=30, blank=True, default='', db_index=True)
     name = models.CharField(max_length=200)
     unit = models.CharField(max_length=50, help_text='e.g., kg, pieces, liters')
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)

@@ -50,7 +50,7 @@ export default function RatePlanManagement() {
   const fetchPlans = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/admin/rate-plans/');
+      const res = await api.get('/admin/rate-plans/', { params: { page_size: 200 } });
       setPlans(res.data.results ?? res.data);
     } catch {
       toast.error('Failed to load rate plans');
@@ -207,6 +207,22 @@ export default function RatePlanManagement() {
                   </div>
                 )}
               </div>
+
+              {plan.room_types.length > 0 && (
+                <div className="mb-3">
+                  <span className="text-gray-500 text-xs">Room Types</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {plan.room_types.map(rtId => {
+                      const rt = roomTypes.find(r => r.id === rtId);
+                      return (
+                        <span key={rtId} className="px-2 py-0.5 rounded-full text-[10px] bg-teal-50 text-teal-800 border border-teal-200">
+                          {rt?.name || `Type #${rtId}`}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-2 pt-3 border-t border-gray-200">
                 <button onClick={() => openEdit(plan)} className="flex items-center gap-1 px-3 py-1.5 text-xs bg-gray-50 text-gray-600 hover:text-white rounded-lg border border-gray-200">

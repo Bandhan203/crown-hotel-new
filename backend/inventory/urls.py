@@ -3,7 +3,7 @@ from .views import (
     ItemCategoryListCreateView, ItemListCreateView, ItemDetailView,
     RequisitionListCreateView, RequisitionDetailView,
     RequisitionApproveView, RequisitionRejectView,
-    StockInView, StockLedgerView,
+    StockInView, StockAdjustmentView, StockLedgerView, RecentStockTransactionsView,
 )
 
 urlpatterns = [
@@ -18,5 +18,7 @@ urlpatterns = [
     path('inventory/requisitions/<int:pk>/reject/', RequisitionRejectView.as_view(), name='inventory-requisition-reject'),
     # Stock
     path('inventory/stock-in/', StockInView.as_view(), name='inventory-stock-in'),
+    path('inventory/stock-adjust/', StockAdjustmentView.as_view(), name='inventory-stock-adjust'),
     path('inventory/stock-ledger/<int:item_id>/', StockLedgerView.as_view(), name='inventory-stock-ledger'),
+    path('inventory/transactions/', RecentStockTransactionsView.as_view(), name='inventory-transactions'),
 ]

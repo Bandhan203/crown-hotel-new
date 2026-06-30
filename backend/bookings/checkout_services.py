@@ -129,6 +129,52 @@ def compute_folio_balance(booking):
     }
 
 
+def lookup_in_house_booking(
+    *,
+    booking_id=None,
+    guest_id=None,
+    room_number=None,
+    booking_ref=None,
+):
+    """
+    Resolve an active CHECKED_IN booking by relational keys.
+    Priority: booking_id → guest_id → booking_ref → room_number.
+    """
+    base_qs = Booking.objects.filter(status='CHECKED_IN').select_related(
+        'guest', 'room_type', 'room', 'registration_record',
+    )
+
+    if booking_id:
+        booking = base_qs.filter(pk=booking_id).first()
+        if not booking:
+            raise ValueError(f'No in-house booking found for id {booking_id}.')
+        if not booking.room:
+            raise ValueError('Booking has no room assigned.')
+        return booking.room, booking
+
+    if guest_id:
+        booking = base_qs.filter(guest_id=guest_id).order_by('-actual_check_in').first()
+        if not booking:
+            raise ValueError(f'No in-house stay found for guest id {guest_id}.')
+        if not booking.room:
+            raise ValueError('Guest booking has no room assigned.')
+        return booking.room, booking
+
+    ref = (booking_ref or '').strip()
+    if ref:
+        booking = base_qs.filter(booking_ref__iexact=ref).first()
+        if not booking:
+            raise ValueError(f'No in-house booking found for ref {ref}.')
+        if not booking.room:
+            raise ValueError('Booking has no room assigned.')
+        return booking.room, booking
+
+    if room_number:
+        return lookup_room_for_checkout(room_number)
+
+    raise ValueError('Provide room_number, booking_id, guest_id, or booking_ref.')
+
+
 def lookup_room_for_checkout(room_number: str):
     """Find occupied in-house booking by room number."""
     room_number = str(room_number).strip()
@@ -258,6 +304,9 @@ def receive_checkout_payment(booking, data, user):
         if method == 'COMPANY_CREDIT' and not company_name:
             raise ValueError('Company is required for Company Credit payments.')
 
+        from corporate.services import assert_corporate_credit_available
+        assert_corporate_credit_available(company_name, Decimal(str(amount)))
+
         payment = _create_settlement_payment(
             booking,
             amount=amount,
@@ -312,9 +361,8 @@ def execute_checkout(booking, user, data):
         if booking.room:
             if booking.room.status != 'OCCUPIED':
                 raise ValueError(f'Room {booking.room.room_number} is not occupied.')
-            booking.room.status = 'AVAILABLE'
-            booking.room.housekeeping_status = 'DIRTY'
-            booking.room.save(update_fields=['status', 'housekeeping_status'])
+            from rooms.housekeeping_services import on_checkout_room
+            on_checkout_room(booking.room, booking)
 
     booking.refresh_from_db()
 
@@ -328,10 +376,6 @@ def execute_checkout(booking, user, data):
 
 
 def get_authorized_companies():
-    """Distinct company names from corporate bookings."""
-    return list(
-        Booking.objects.exclude(company_name='')
-        .values_list('company_name', flat=True)
-        .distinct()
-        .order_by('company_name')[:200]
-    )
+    """Active CRM accounts merged with legacy booking company names."""
+    from corporate.services import get_checkout_company_names
+    return get_checkout_company_names()

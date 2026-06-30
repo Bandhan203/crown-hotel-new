@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   MdDashboard, MdHotel, MdBookOnline, MdPeople, MdBadge,
   MdArticle, MdSettings, MdExpandMore, MdExpandLess, MdLogout,
@@ -10,6 +10,7 @@ import {
 } from 'react-icons/md';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSiteSettings } from '../../contexts/SiteSettingsContext';
+import api from '../../services/api';
 
 const linkBase = 'flex items-center gap-3 px-4 rounded-lg text-sm font-medium transition-colors';
 const linkInactive = 'py-2.5 text-gray-600 hover:bg-gray-50';
@@ -59,11 +60,66 @@ const navItems: NavItem[] = [
   { to: '/admin/settings', icon: <MdSettings size={20} />, label: 'Settings' },
 ];
 
+const ROUTE_MODULE: Record<string, string> = {
+  '/admin/rooms': 'ROOMS',
+  '/admin/bookings': 'BOOKINGS',
+  '/admin/guests': 'GUESTS',
+  '/admin/restaurant': 'RESTAURANT',
+  '/admin/spa': 'SPA',
+  '/admin/staff': 'STAFF',
+  '/admin/rate-plans': 'BOOKINGS',
+  '/admin/inventory': 'INVENTORY',
+  '/admin/corporate': 'CORPORATE',
+};
+
+const STAFF_ALWAYS = new Set([
+  '/admin', '/admin/front-desk', '/admin/checkout',
+  '/admin/reservations/calendar', '/admin/reservation-control',
+  '/admin/housekeeping', '/admin/night-audit', '/admin/reports',
+  '/admin/service-entry',
+]);
+
+const ADMIN_ONLY_PREFIXES = ['/admin/cms', '/admin/branding', '/admin/settings', '/admin/staff'];
+
+type ModulePerms = Record<string, { can_view: boolean }>;
+
+function staffCanSee(path: string, role: string, modules: ModulePerms): boolean {
+  if (role === 'ADMIN') return true;
+  if (ADMIN_ONLY_PREFIXES.some(p => path.startsWith(p))) return false;
+  if (STAFF_ALWAYS.has(path)) return true;
+  const mod = ROUTE_MODULE[path];
+  if (!mod) return true;
+  return modules[mod]?.can_view ?? false;
+}
+
+function filterNav(items: NavItem[], role: string, modules: ModulePerms): NavItem[] {
+  return items
+    .map(item => {
+      if (item.children) {
+        if (role !== 'ADMIN') return null;
+        return item;
+      }
+      if (!item.to || staffCanSee(item.to, role, modules)) return item;
+      return null;
+    })
+    .filter(Boolean) as NavItem[];
+}
+
 export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const location = useLocation();
   const [cmsOpen, setCmsOpen] = useState(location.pathname.startsWith('/admin/cms'));
+  const [modulePerms, setModulePerms] = useState<ModulePerms>({});
   const { getSetting } = useSiteSettings();
+
+  useEffect(() => {
+    if (user?.role !== 'STAFF') return;
+    api.get('/staff/dashboard/')
+      .then(res => setModulePerms(res.data.modules || {}))
+      .catch(() => setModulePerms({}));
+  }, [user?.role]);
+
+  const visibleNav = filterNav(navItems, user?.role || 'ADMIN', modulePerms);
 
   const hotelName = getSetting('site_name', 'Hotel Crown');
   const accentColor = getSetting('admin_accent_color', '#aa8453');
@@ -89,7 +145,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-          {navItems.map((item) =>
+          {visibleNav.map((item) =>
             item.children ? (
               <div key={item.label}>
                 <button

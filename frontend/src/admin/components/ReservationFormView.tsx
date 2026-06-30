@@ -8,7 +8,7 @@ import SearchableSelect from './SearchableSelect';
 import { COUNTRIES, COUNTRY_ALIASES, NATIONALITIES } from '../constants/countries';
 import type { AvailableRoom } from '../utils/fetchAvailableRooms';
 import type { RatePlan } from '../utils/ratePlanPricing';
-import { MAX_EXTRA_BEDS } from '../utils/roomCapacity';
+import { REFERENCE_SOURCE_OPTIONS } from '../../utils/bookingChannel';
 
 export const INP = [
   'w-full px-4 py-2.5 bg-white border border-outline-variant rounded-lg text-sm text-on-surface',
@@ -425,9 +425,13 @@ export default function ReservationFormView(props: ReservationFormViewProps) {
                       </FormField>
                     </div>
                     <div className="col-span-6 md:col-span-4">
-                      <FormField id="reference_source" label="Ref Source">
-                        <input id="reference_source" type="text" value={form.reference_source}
-                          onChange={e => set('reference_source', e.target.value)} className={INP + ' px-3 py-2'} placeholder="Reference" />
+                      <FormField id="reference_source" label="Channel / Ref Source">
+                        <select id="reference_source" value={form.reference_source}
+                          onChange={e => set('reference_source', e.target.value)} className={SEL + ' px-3 py-2'}>
+                          {REFERENCE_SOURCE_OPTIONS.map(o => (
+                            <option key={o.value || 'empty'} value={o.value}>{o.label}</option>
+                          ))}
+                        </select>
                       </FormField>
                     </div>
                     <div className="col-span-12 md:col-span-4">

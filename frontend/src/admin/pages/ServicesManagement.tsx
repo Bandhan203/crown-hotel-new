@@ -28,10 +28,24 @@ export default function ServicesManagement() {
     }
   }, [endpoint]);
 
-  const handleSave = async (formData: any) => {
+  const handleSave = async (formData: Record<string, unknown>, imageFile?: File | null) => {
     try {
-      if (editItem?.id) await api.put(`/admin/${endpoint}/${editItem.id}/`, formData);
-      else await api.post(`/admin/${endpoint}/`, formData);
+      const isFacility = tab === 'facilities';
+      const useMultipart = isFacility && imageFile;
+      let payload: FormData | Record<string, unknown>;
+      if (useMultipart) {
+        const fd = new FormData();
+        Object.entries(formData).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) fd.append(k, String(v));
+        });
+        fd.append('image', imageFile!);
+        payload = fd;
+      } else {
+        payload = formData;
+      }
+      const headers = useMultipart ? { 'Content-Type': 'multipart/form-data' } : undefined;
+      if (editItem?.id) await api.patch(`/admin/${endpoint}/${editItem.id}/`, payload, { headers });
+      else await api.post(`/admin/${endpoint}/`, payload, { headers });
       toast.success(editItem ? 'Updated' : 'Created');
       setShowModal(false);
       setEditItem(null);
@@ -54,6 +68,7 @@ export default function ServicesManagement() {
 
   const columns = useMemo<ColDef[]>(() => [
     { field: 'name', headerName: 'Name', width: 180, minWidth: 180, maxWidth: 180, pinned: 'left', lockPinned: true, cellClass: 'cell-guest cell-pin cell-ellipsis', tooltipField: 'name', ...pinCol },
+    { field: 'order', headerName: 'Order', width: 72 },
     { field: 'icon', headerName: 'Icon', flex: 1, minWidth: 100, valueFormatter: p => p.value || '—' },
     {
       field: 'is_active', headerName: 'Status', width: 90, cellClass: '',
@@ -107,6 +122,7 @@ export default function ServicesManagement() {
         pageSize={15}
         refreshKey={`${tab}-${refreshKey}`}
         rowLabel={rowLabel}
+        queryParams={{ page_size: 200 }}
       />
 
       {showModal && (
@@ -121,23 +137,35 @@ export default function ServicesManagement() {
   );
 }
 
-function ServiceForm({ initial, isService, onSave }: { initial: any; isService: boolean; onSave: (d: any) => void }) {
+function ServiceForm({ initial, isService, onSave }: { initial: any; isService: boolean; onSave: (d: any, imageFile?: File | null) => void }) {
   const [form, setForm] = useState({
     name: initial?.name || '',
     description: initial?.description || '',
     icon: initial?.icon || '',
+    order: initial?.order != null ? String(initial.order) : '0',
     category: initial?.category || 'GENERAL',
     subtitle: initial?.subtitle || '',
     link: initial?.link || '',
     is_active: initial?.is_active ?? true,
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const set = (k: string, v: any) => setForm({ ...form, [k]: v });
+
+  const submit = () => {
+    const payload = {
+      ...form,
+      order: parseInt(form.order, 10) || 0,
+      is_active: form.is_active,
+    };
+    onSave(payload, imageFile);
+  };
 
   return (
     <div className="space-y-4">
       <FI label="Name" value={form.name} onChange={v => set('name', v)} />
       <FI label="Description" value={form.description} onChange={v => set('description', v)} />
-      <FI label="Icon" value={form.icon} onChange={v => set('icon', v)} placeholder="e.g. MdRestaurant" />
+      <FI label="Icon" value={form.icon} onChange={v => set('icon', v)} placeholder="e.g. MdRestaurant, FaWifi" />
+      <FI label="Display Order" value={form.order} onChange={v => set('order', v)} placeholder="0" />
       {!isService && (
         <>
           <div>
@@ -160,11 +188,21 @@ function ServiceForm({ initial, isService, onSave }: { initial: any; isService: 
           )}
         </>
       )}
+      {!isService && (
+        <div>
+          <label className="block text-sm text-gray-600 mb-1">Facility Image</label>
+          {initial?.image_url && !imageFile && (
+            <img src={initial.image_url} alt="" className="h-16 w-24 object-cover rounded mb-2 border" />
+          )}
+          <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files?.[0] || null)}
+            className="text-xs text-gray-600 w-full" />
+        </div>
+      )}
       <label className="flex items-center gap-2 text-sm text-gray-600">
         <input type="checkbox" checked={form.is_active} onChange={e => set('is_active', e.target.checked)}
           className="w-4 h-4 rounded border-gray-200 bg-gray-50" />Active
       </label>
-      <button onClick={() => onSave(form)} className="w-full py-2 bg-teal-700 hover:bg-teal-600 text-white rounded-lg text-sm font-medium">Save</button>
+      <button type="button" onClick={submit} className="w-full py-2 bg-teal-700 hover:bg-teal-600 text-white rounded-lg text-sm font-medium">Save</button>
     </div>
   );
 }

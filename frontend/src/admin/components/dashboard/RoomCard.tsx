@@ -2,6 +2,8 @@ import {
   MdPerson, MdCheckCircle, MdCleaningServices, MdConstruction,
 } from 'react-icons/md';
 
+import { resolveRoomVisual } from '../../utils/housekeepingStatus';
+
 interface RoomCardProps {
   room: {
     id: number;
@@ -17,9 +19,10 @@ interface RoomCardProps {
 type VisualStatus = 'available' | 'occupied' | 'dirty' | 'ooo' | 'reserved';
 
 function resolveStatus(status: string, hkStatus: string): VisualStatus {
-  if (status === 'MAINTENANCE' || hkStatus === 'OUT_OF_ORDER') return 'ooo';
-  if (status === 'OCCUPIED') return 'occupied';
-  if (['DIRTY', 'OD', 'VD'].includes(hkStatus)) return 'dirty';
+  const base = resolveRoomVisual(status, hkStatus);
+  if (base === 'ooo') return 'ooo';
+  if (base === 'dirty') return 'dirty';
+  if (base === 'occupied') return 'occupied';
   if (status === 'RESERVED') return 'reserved';
   return 'available';
 }

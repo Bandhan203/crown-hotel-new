@@ -12,18 +12,18 @@ interface Booking {
   id: number;
   booking_ref: string;
   guest_name: string;
-  guest_email: string;
-  room_type: number;
+  guest_email?: string;
+  room_type?: number;
   room_type_detail?: { name: string };
   room_number: string | null;
   check_in_date: string;
   check_out_date: string;
-  adults: number;
-  children: number;
-  total_price: string;
-  status: string;
-  booking_source: string;
-  nights: number;
+  adults?: number;
+  children?: number;
+  total_price?: string;
+  status?: string;
+  booking_source?: string;
+  nights?: number;
 }
 
 const statusBadge: Record<string, string> = {
@@ -33,6 +33,11 @@ const statusBadge: Record<string, string> = {
   CHECKED_OUT: 'bg-gray-500/20 text-gray-500',
   CANCELLED: 'bg-red-500/20 text-red-400',
 };
+
+function formatStatus(status?: string | null): string {
+  if (!status) return '—';
+  return status.replace(/_/g, ' ');
+}
 
 export default function FrontDesk() {
   const navigate = useNavigate();
@@ -187,10 +192,10 @@ export default function FrontDesk() {
                     <td className="px-4 py-3">{b.room_number ?? '—'}</td>
                     <td className="px-4 py-3">{b.check_in_date}</td>
                     <td className="px-4 py-3">{b.check_out_date}</td>
-                    <td className="px-4 py-3">{b.nights}</td>
+                    <td className="px-4 py-3">{b.nights ?? '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge[b.status] || ''}`}>
-                        {b.status.replace('_', ' ')}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge[b.status ?? ''] || 'bg-gray-100 text-gray-500'}`}>
+                        {formatStatus(b.status)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
