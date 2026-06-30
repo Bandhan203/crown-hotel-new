@@ -118,6 +118,13 @@ class HousekeepingTask(models.Model):
         SKIPPED = 'SKIPPED', 'Skipped'
 
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='housekeeping_tasks')
+    booking = models.ForeignKey(
+        'bookings.Booking',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='housekeeping_tasks',
+        help_text='The guest stay that triggered this task (e.g. checkout clean)',
+    )
     task_type = models.CharField(max_length=20, choices=TaskType.choices, default=TaskType.CLEAN)
     priority = models.CharField(max_length=10, choices=Priority.choices, default=Priority.NORMAL)
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.PENDING)
@@ -160,6 +167,24 @@ class MaintenanceLog(models.Model):
 
 class BreakfastLog(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='breakfast_logs')
+    booking = models.ForeignKey(
+        'bookings.Booking',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='breakfast_logs',
+        help_text='The active booking for this breakfast (for meal plan tracking)',
+    )
+    meal_plan = models.CharField(
+        max_length=5,
+        choices=[
+            ('EP', 'EP (Room Only)'),
+            ('CP', 'CP (Room + Breakfast)'),
+            ('MAP', 'MAP (Room + Breakfast + 1 Meal)'),
+            ('AP', 'AP (Room + 3 Meals)'),
+        ],
+        blank=True, default='',
+        help_text='Meal plan from the booking (auto-filled on creation)',
+    )
     date = models.DateField(auto_now_add=True)
     guest_count = models.PositiveIntegerField(default=1)
     notes = models.TextField(blank=True, default='')

@@ -97,6 +97,23 @@ class PaymentSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at']
 
 
+class RegistrationSummarySerializer(serializers.ModelSerializer):
+    """Lightweight registration summary embedded in BookingDetailSerializer."""
+    class Meta:
+        from .models import Registration
+        model = Registration
+        fields = [
+            'id', 'registration_ref', 'mode', 'status', 'billing_type',
+            'first_name', 'last_name', 'designation',
+            'guest_email', 'guest_phone',
+            'id_type', 'id_number', 'nationality', 'country',
+            'check_in_date', 'check_out_date', 'arrival_time',
+            'adults', 'children', 'infants', 'extra_bed',
+            'rack_rate', 'offer_rate', 'discount_amount', 'deposit_amount',
+            'created_at', 'updated_at',
+        ]
+
+
 class BookingDetailSerializer(serializers.ModelSerializer):
     room_type_detail = RoomTypeListSerializer(source='room_type', read_only=True)
     guest_email = serializers.EmailField(source='guest.email', read_only=True)
@@ -109,6 +126,7 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     checked_in_by_name = serializers.CharField(source='checked_in_by.full_name', read_only=True, default=None)
     checked_out_by_name = serializers.CharField(source='checked_out_by.full_name', read_only=True, default=None)
     nights = serializers.IntegerField(read_only=True)
+    registration_record = RegistrationSummarySerializer(read_only=True)
 
     class Meta:
         model = Booking
@@ -141,6 +159,8 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             'meal_plan', 'arrival_mode', 'vehicle_assigned',
             'reference_source', 'guest_hobbies', 'guest_preferences',
             'airport_details', 'transport_notes', 'parent_booking',
+            # Embedded registration record
+            'registration_record',
         ]
 
 
@@ -184,7 +204,19 @@ class AdminBookingUpdateSerializer(serializers.ModelSerializer):
     """Admin full booking update (dates, guests, special requests, price override)."""
     class Meta:
         model = Booking
-        fields = ['check_in_date', 'check_out_date', 'adults', 'children', 'special_requests', 'total_price']
+        fields = [
+            'check_in_date', 'check_out_date', 'adults', 'children', 'infants',
+            'extra_bed', 'num_rooms', 'special_requests', 'total_price',
+            'rack_rate', 'offer_rate', 'discount_pct', 'discount_amount',
+            'service_charge_pct', 'vat_pct', 'deposit_amount',
+            'booking_source', 'guest_type', 'purpose_of_visit', 'coming_from',
+            'company_name', 'notes_internal', 'profile_note', 'contact_person',
+            'id_type', 'id_number', 'billing_type', 'currency', 'payment_status',
+            'meal_plan', 'arrival_mode', 'arrival_time', 'departure_time',
+            'dnm', 'no_post', 'is_travel_agency', 'non_smoking',
+            'pickup_required', 'flight_pickup_no', 'flight_eta',
+            'drop_required', 'flight_drop_no', 'flight_etd',
+        ]
         extra_kwargs = {'total_price': {'required': False}}
 
     def validate(self, attrs):
@@ -199,7 +231,10 @@ class AdminPaymentCreateSerializer(serializers.ModelSerializer):
     """Admin recording a payment for a booking."""
     class Meta:
         model = Payment
-        fields = ['amount', 'payment_method', 'transaction_id']
+        fields = [
+            'amount', 'payment_method', 'transaction_id',
+            'company_name', 'is_refund', 'business_date',
+        ]
 
 
 class CheckAvailabilitySerializer(serializers.Serializer):

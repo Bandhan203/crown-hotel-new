@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import MenuCategory, MenuItem, RestaurantGallery
+from .models import MenuCategory, MenuItem, RestaurantGallery, RestaurantOrder, RestaurantOrderItem
 
 
 class MenuItemInline(admin.TabularInline):
@@ -24,3 +24,19 @@ class MenuItemAdmin(admin.ModelAdmin):
 @admin.register(RestaurantGallery)
 class RestaurantGalleryAdmin(admin.ModelAdmin):
     list_display = ['caption', 'order']
+
+
+class RestaurantOrderItemInline(admin.TabularInline):
+    model = RestaurantOrderItem
+    extra = 1
+    readonly_fields = ['total']
+
+
+@admin.register(RestaurantOrder)
+class RestaurantOrderAdmin(admin.ModelAdmin):
+    list_display = ['id', 'booking', 'room', 'order_type', 'status', 'total', 'posted_to_folio', 'order_date']
+    list_filter = ['status', 'order_type', 'posted_to_folio', 'order_date']
+    search_fields = ['booking__booking_ref', 'room__room_number']
+    raw_id_fields = ['booking', 'room', 'folio_charge', 'created_by', 'posted_by']
+    readonly_fields = ['subtotal', 'total', 'created_at', 'updated_at']
+    inlines = [RestaurantOrderItemInline]

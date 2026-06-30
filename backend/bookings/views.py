@@ -147,7 +147,11 @@ class CancelBookingView(APIView):
 
 class AdminBookingListView(generics.ListAPIView):
     """GET /api/admin/bookings/"""
-    queryset = Booking.objects.select_related('guest', 'room_type', 'room').prefetch_related('payments')
+    queryset = Booking.objects.select_related(
+        'guest', 'room_type', 'room', 'rate_plan', 'checked_in_by', 'checked_out_by', 'parent_booking'
+    ).prefetch_related(
+        'payments', 'folio_charges__posted_by', 'registration_record'
+    )
     serializer_class = BookingDetailSerializer
     permission_classes = [IsAdmin]
     filterset_fields = ['status', 'room_type', 'guest']
@@ -157,7 +161,11 @@ class AdminBookingListView(generics.ListAPIView):
 
 class AdminBookingDetailView(generics.RetrieveAPIView):
     """GET /api/admin/bookings/{id}/"""
-    queryset = Booking.objects.select_related('guest', 'room_type', 'room').prefetch_related('payments')
+    queryset = Booking.objects.select_related(
+        'guest', 'room_type', 'room', 'rate_plan', 'checked_in_by', 'checked_out_by'
+    ).prefetch_related(
+        'payments', 'folio_charges__posted_by', 'registration_record'
+    )
     serializer_class = BookingDetailSerializer
     permission_classes = [IsAdmin]
 
@@ -323,6 +331,21 @@ class AdminAssignRoomView(APIView):
         if booking.status in ('PENDING', 'CONFIRMED'):
             room.status = 'RESERVED'
             room.save(update_fields=['status'])
+
+        # Sync the linked Registration record so it reflects the new room assignment
+        try:
+            from .registration_services import sync_registration_from_booking
+            reg = getattr(booking, 'registration_record', None)
+            if reg is None:
+                try:
+                    reg = booking.registration_record
+                except Exception:
+                    reg = None
+            if reg:
+                sync_registration_from_booking(booking, reg)
+        except Exception:
+            pass  # Never block room assignment if registration sync fails
+
         return Response(BookingDetailSerializer(booking, context={'request': request}).data)
 
 
@@ -852,7 +875,11 @@ class ArrivalsListView(generics.ListAPIView):
         return Booking.objects.filter(
             check_in_date=target_date,
             status__in=['PENDING', 'CONFIRMED'],
-        ).select_related('guest', 'room_type', 'room').prefetch_related('payments')
+        ).select_related(
+            'guest', 'room_type', 'room', 'rate_plan'
+        ).prefetch_related(
+            'payments', 'folio_charges__posted_by', 'registration_record'
+        )
 
 
 class DeparturesListView(generics.ListAPIView):
@@ -865,7 +892,11 @@ class DeparturesListView(generics.ListAPIView):
         return Booking.objects.filter(
             check_out_date=target_date,
             status='CHECKED_IN',
-        ).select_related('guest', 'room_type', 'room').prefetch_related('payments')
+        ).select_related(
+            'guest', 'room_type', 'room', 'rate_plan'
+        ).prefetch_related(
+            'payments', 'folio_charges__posted_by', 'registration_record'
+        )
 
 
 class InHouseListView(generics.ListAPIView):
@@ -876,7 +907,11 @@ class InHouseListView(generics.ListAPIView):
     def get_queryset(self):
         return Booking.objects.filter(
             status='CHECKED_IN',
-        ).select_related('guest', 'room_type', 'room').prefetch_related('payments')
+        ).select_related(
+            'guest', 'room_type', 'room', 'rate_plan'
+        ).prefetch_related(
+            'payments', 'folio_charges__posted_by', 'registration_record'
+        )
 
 
 # ── Available rooms (reservation / check-in picker) ─────
@@ -952,7 +987,7 @@ class CalendarView(APIView):
             check_in_date__lte=end_date,
             check_out_date__gte=start_date,
             status__in=['PENDING', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT'],
-        ).select_related('guest', 'room')
+        ).select_related('guest', 'room__room_type')
 
         rooms_data = [
             {

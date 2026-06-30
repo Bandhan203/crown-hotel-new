@@ -195,6 +195,17 @@ def apply_registration_data(booking, profile, data):
         if src in data:
             setattr(profile, dst, data[src])
 
+    # Bidirectional id_type/id_number sync: write whichever side is filled
+    if 'id_type' in data and data['id_type']:
+        profile.id_type = data['id_type']
+    if 'id_number' in data and data['id_number']:
+        profile.id_number = data['id_number']
+    # Back-fill booking from profile if booking fields are empty
+    if not booking.id_type and profile.id_type:
+        booking.id_type = profile.id_type
+    if not booking.id_number and profile.id_number:
+        booking.id_number = profile.id_number
+
     if 'guest_phone' in data:
         booking.guest.phone = data['guest_phone']
 
@@ -213,6 +224,9 @@ def open_guest_folio(booking, posted_by):
     """Create opening folio entries when a guest checks in."""
     from bookings.models import FolioCharge
 
+    # Auto-populate company_name on all folio entries for company-billed stays
+    company = booking.company_name if booking.billing_type == 'COMPANY' else ''
+
     if booking.deposit_amount > 0 and not FolioCharge.objects.filter(
         booking=booking, charge_type='DEPOSIT', is_void=False,
     ).exists():
@@ -225,6 +239,7 @@ def open_guest_folio(booking, posted_by):
             total=-booking.deposit_amount,
             charge_date=booking.check_in_date,
             posted_by=posted_by,
+            reference=company,
         )
 
     nightly_rate = booking.total_price / max(booking.nights, 1)
@@ -243,6 +258,7 @@ def open_guest_folio(booking, posted_by):
             total=nightly_rate,
             charge_date=booking.check_in_date,
             posted_by=posted_by,
+            reference=company,
         )
 
 

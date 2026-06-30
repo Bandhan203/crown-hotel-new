@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Room, RoomAmenity, RoomImage, RoomType, HousekeepingTask
+from .models import Room, RoomAmenity, RoomImage, RoomType, HousekeepingTask, BreakfastLog, MaintenanceLog
 
 
 class RoomImageInline(admin.TabularInline):
@@ -32,7 +32,23 @@ class RoomAmenityAdmin(admin.ModelAdmin):
 
 @admin.register(HousekeepingTask)
 class HousekeepingTaskAdmin(admin.ModelAdmin):
-    list_display = ['id', 'room', 'task_type', 'priority', 'status', 'assigned_to', 'scheduled_date']
+    list_display = ['id', 'room', 'booking', 'task_type', 'priority', 'status', 'assigned_to', 'scheduled_date']
     list_filter = ['status', 'task_type', 'priority', 'scheduled_date']
-    search_fields = ['room__room_number', 'notes']
-    raw_id_fields = ['room', 'assigned_to', 'inspected_by']
+    search_fields = ['room__room_number', 'booking__booking_ref', 'notes']
+    raw_id_fields = ['room', 'booking', 'assigned_to', 'inspected_by']
+
+
+@admin.register(BreakfastLog)
+class BreakfastLogAdmin(admin.ModelAdmin):
+    list_display = ['id', 'room', 'booking', 'meal_plan', 'date', 'guest_count']
+    list_filter = ['meal_plan', 'date']
+    search_fields = ['room__room_number', 'booking__booking_ref']
+    raw_id_fields = ['room', 'booking']
+
+
+@admin.register(MaintenanceLog)
+class MaintenanceLogAdmin(admin.ModelAdmin):
+    list_display = ['id', 'room', 'status', 'reported_by', 'created_at']
+    list_filter = ['status']
+    search_fields = ['room__room_number', 'issue_description']
+    raw_id_fields = ['room', 'reported_by', 'assigned_to']
