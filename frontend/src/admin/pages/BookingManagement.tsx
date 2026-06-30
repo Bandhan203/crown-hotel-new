@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { type ColDef, type ICellRendererParams } from 'ag-grid-community';
 import { MdAdd, MdLogin, MdLogout, MdSearch } from 'react-icons/md';
 import toast from 'react-hot-toast';
@@ -249,6 +249,7 @@ export default function BookingManagement() {
             </div>
           ) : (
             <AgGridReact
+              theme="legacy"
               ref={gridRef}
               rowData={bookings}
               columnDefs={columns}

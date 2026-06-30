@@ -352,6 +352,7 @@ export default function RoomManagement() {
             </div>
           ) : (
             <AgGridReact
+              theme="legacy"
               key={`${tab}-${refreshKey}`}
               ref={gridRef}
               rowData={rows}

@@ -108,6 +108,7 @@ export default function AdminDataGrid({
           </div>
         ) : (
           <AgGridReact
+            theme="legacy"
             ref={gridRef}
             rowData={rowData}
             columnDefs={columnDefs}

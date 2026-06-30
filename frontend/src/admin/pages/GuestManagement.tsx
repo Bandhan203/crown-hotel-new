@@ -277,6 +277,7 @@ export default function GuestManagement() {
             </div>
           ) : (
             <AgGridReact
+              theme="legacy"
               ref={gridRef}
               rowData={rowData}
               columnDefs={columns}
