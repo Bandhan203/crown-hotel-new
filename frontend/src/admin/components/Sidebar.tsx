@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import {
   MdDashboard, MdHotel, MdBookOnline, MdPeople, MdBadge,
   MdArticle, MdSettings, MdExpandMore, MdExpandLess, MdLogout,
-  MdNewspaper, MdQuiz, MdStar, MdGroups, MdPhotoLibrary, MdViewCarousel,
   MdTune, MdRestaurant, MdSpa, MdRoomService, MdMessage,
   MdDesktopWindows, MdCalendarMonth, MdDiscount, MdCleaningServices,
   MdNightsStay, MdBarChart, MdPalette, MdReceipt, MdInventory, MdBusiness, MdGridOn,
@@ -46,13 +45,6 @@ const navItems: NavItem[] = [
   { to: '/admin/messages', icon: <MdMessage size={20} />, label: 'Messages' },
   {
     icon: <MdArticle size={20} />, label: 'CMS', children: [
-      { to: '/admin/cms/pages', icon: <MdArticle size={18} />, label: 'Pages Layout' },
-      { to: '/admin/cms/news', icon: <MdNewspaper size={18} />, label: 'News' },
-      { to: '/admin/cms/faq', icon: <MdQuiz size={18} />, label: 'FAQ' },
-      { to: '/admin/cms/testimonials', icon: <MdStar size={18} />, label: 'Testimonials' },
-      { to: '/admin/cms/team', icon: <MdGroups size={18} />, label: 'Team' },
-      { to: '/admin/cms/gallery', icon: <MdPhotoLibrary size={18} />, label: 'Gallery' },
-      { to: '/admin/cms/hero-slides', icon: <MdViewCarousel size={18} />, label: 'Hero Slides' },
       { to: '/admin/cms/site-settings', icon: <MdTune size={18} />, label: 'Global Settings' },
     ],
   },
