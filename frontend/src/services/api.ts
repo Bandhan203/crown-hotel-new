@@ -4,10 +4,32 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 /** Endpoints that must not send or refresh JWT (stale tokens would block login). */
 const AUTH_PUBLIC_PATHS = ['/auth/login/', '/auth/register/', '/auth/token/refresh/'];
+const CONTENT_PUBLIC_PATHS = [
+  '/site-settings/',
+  '/pages/',
+  '/hero-slides/',
+  '/news/',
+  '/faq/',
+  '/testimonials/',
+  '/team/',
+  '/gallery/',
+  '/rooms/',
+  '/services/',
+  '/facilities/',
+  '/restaurant/',
+  '/spa/',
+];
+const PUBLIC_PATHS = [...AUTH_PUBLIC_PATHS, ...CONTENT_PUBLIC_PATHS];
 
 function isAuthPublicRequest(url?: string): boolean {
   if (!url) return false;
   return AUTH_PUBLIC_PATHS.some((path) => url.includes(path));
+}
+
+function isPublicRequest(url?: string): boolean {
+  if (!url) return false;
+  if (url.includes('/admin/')) return false;
+  return PUBLIC_PATHS.some((path) => url.includes(path));
 }
 
 const api = axios.create({
@@ -17,7 +39,7 @@ const api = axios.create({
 
 // Attach access token to every request (except public auth endpoints)
 api.interceptors.request.use((config) => {
-  if (isAuthPublicRequest(config.url)) {
+  if (isPublicRequest(config.url)) {
     delete config.headers.Authorization;
     return config;
   }
@@ -39,7 +61,7 @@ api.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !original._retry &&
-      !isAuthPublicRequest(original.url)
+      !isPublicRequest(original.url)
     ) {
       original._retry = true;
       try {

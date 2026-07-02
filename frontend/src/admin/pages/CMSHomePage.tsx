@@ -79,14 +79,17 @@ export default function CMSHomePage() {
     setLoading(true);
     try {
       let currentPage: PageCMS;
-      try {
-        const res = await api.get<PageCMS>('/admin/pages/home/');
+      const pagesRes = await api.get<PageCMS[] | { results: PageCMS[] }>('/admin/pages/', {
+        params: { page_size: 100 },
+      });
+      const homePage = unwrapList(pagesRes.data).find((item) => item.page_slug === 'home');
+
+      if (homePage) {
         currentPage = {
-          ...res.data,
-          extra_content: mergeHomeConfig(res.data.extra_content),
+          ...homePage,
+          extra_content: mergeHomeConfig(homePage.extra_content),
         };
-      } catch (error: any) {
-        if (error.response?.status !== 404) throw error;
+      } else {
         currentPage = {
           page_slug: 'home',
           title: 'Hotel Crown',
@@ -99,15 +102,29 @@ export default function CMSHomePage() {
       setPage(currentPage);
 
       if (currentPage.id) {
-        const assetRes = await api.get<HomeAsset[] | { results: HomeAsset[] }>('/admin/page-assets/', {
-          params: { page: currentPage.id, page_size: 100 },
-        });
-        const list = unwrapList(assetRes.data);
-        const nextAssets = Object.fromEntries(list.map((asset) => [asset.key, asset]));
-        setAssets(nextAssets);
+        try {
+          const assetRes = await api.get<HomeAsset[] | { results: HomeAsset[] }>('/admin/page-assets/', {
+            params: { page: currentPage.id, page_size: 100 },
+          });
+          const list = unwrapList(assetRes.data);
+          const nextAssets = Object.fromEntries(list.map((asset) => [asset.key, asset]));
+          setAssets(nextAssets);
+          setAssetDrafts(Object.fromEntries(ASSET_FIELDS.map((field) => [
+            field.key,
+            { file: null, alt_text: nextAssets[field.key]?.alt_text || '' },
+          ])));
+        } catch {
+          setAssets({});
+          setAssetDrafts(Object.fromEntries(ASSET_FIELDS.map((field) => [
+            field.key,
+            { file: null, alt_text: '' },
+          ])));
+        }
+      } else {
+        setAssets({});
         setAssetDrafts(Object.fromEntries(ASSET_FIELDS.map((field) => [
           field.key,
-          { file: null, alt_text: nextAssets[field.key]?.alt_text || '' },
+          { file: null, alt_text: '' },
         ])));
       }
     } catch {

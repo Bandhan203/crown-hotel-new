@@ -33,8 +33,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const stored = localStorage.getItem('user');
     const tokens = localStorage.getItem('tokens');
+    const needsValidatedSession =
+      (window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') ||
+      window.location.pathname.startsWith('/my-bookings');
+
     if (stored && tokens) {
       setUser(JSON.parse(stored));
+      if (!needsValidatedSession) {
+        setLoading(false);
+        return () => window.removeEventListener('auth:logout', handleLogoutEvent);
+      }
       // Validate token by fetching profile
       api.get('/auth/me/').then(res => {
         setUser(res.data);
