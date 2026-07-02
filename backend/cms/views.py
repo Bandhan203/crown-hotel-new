@@ -1,8 +1,9 @@
 from rest_framework import generics, permissions, viewsets
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
 from accounts.permissions import IsAdmin
-from .models import FAQ, GalleryImage, HeroSlide, NewsPost, PageCMS, SiteSetting, TeamMember, Testimonial
+from .models import FAQ, GalleryImage, HeroSlide, NewsPost, PageCMS, PageCMSAsset, SiteSetting, TeamMember, Testimonial
 from .serializers import (
     FAQSerializer,
     GalleryImageSerializer,
@@ -12,6 +13,7 @@ from .serializers import (
     NewsPostListSerializer,
     PageCMSSerializer,
     PageCMSAdminSerializer,
+    PageCMSAssetSerializer,
     SiteSettingSerializer,
     SiteSettingAdminSerializer,
     TeamMemberSerializer,
@@ -110,10 +112,15 @@ class PageCMSDetailView(generics.RetrieveAPIView):
         # Get global settings
         site_settings = SiteSetting.objects.first()
         settings_data = SiteSettingSerializer(site_settings, context={'request': request}).data if site_settings else {}
+        assets = {}
+        if page_data.get("page_slug"):
+            for asset in PageCMSAsset.objects.filter(page__page_slug=page_data["page_slug"]):
+                assets[asset.key] = PageCMSAssetSerializer(asset, context={'request': request}).data
         
         return Response({
             "page": page_data,
-            "global_settings": settings_data
+            "global_settings": settings_data,
+            "assets": assets,
         })
 
 
@@ -176,3 +183,11 @@ class AdminPageCMSViewSet(viewsets.ModelViewSet):
     serializer_class = PageCMSAdminSerializer
     permission_classes = [IsAdmin]
     lookup_field = 'page_slug'
+
+
+class AdminPageCMSAssetViewSet(viewsets.ModelViewSet):
+    queryset = PageCMSAsset.objects.select_related('page')
+    serializer_class = PageCMSAssetSerializer
+    permission_classes = [IsAdmin]
+    parser_classes = [MultiPartParser, FormParser]
+    filterset_fields = ['page', 'key']

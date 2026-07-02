@@ -3,21 +3,24 @@ import SectionHeading from '../SectionHeading';
 import { hotelImages } from '../../constants/images';
 import { useSiteSettings } from '../../contexts/SiteSettingsContext';
 import { toMediaUrl } from '../../utils/mediaUrl';
+import type { HomeAsset, HomeSectionConfig } from '../../hooks/useHomeCMS';
 
-export default function BookingSection() {
+export default function BookingSection({ config, asset }: { config?: HomeSectionConfig; asset?: HomeAsset }) {
   const { getSetting } = useSiteSettings();
 
-  const bookingImage = toMediaUrl(getSetting('home_booking_image', ''), hotelImages.booking);
-  const tagline = getSetting(
+  const bookingImage = toMediaUrl(asset?.image_url || getSetting('home_booking_image', ''), hotelImages.booking);
+  const tagline = config?.tagline || getSetting(
     'home_booking_tagline',
     'Experience Comfort, Luxury & Hospitality at Hotel Crown, Padma Abasik, Rajshahi.',
   );
-  const frontPhone = getSetting('contact_phone', '01334 945 375');
-  const frontHref = getSetting('contact_phone_href', '01334945375');
-  const reservationsPhone = getSetting('contact_phone_reservations', '01334 945 376, 01334 945 377');
-  const reservationsHref = getSetting('contact_phone_reservations_href', '01334945376');
-  const email = getSetting('contact_email', 'hotelcrownbd@gmail.com');
-  const website = getSetting('contact_website', 'www.hotelcrownbd.com');
+  const frontLabel = config?.front_label || 'Front Office';
+  const frontPhone = config?.front_phone || getSetting('contact_phone', '01334 945 375');
+  const frontHref = config?.front_phone_href || getSetting('contact_phone_href', '01334945375');
+  const reservationsLabel = config?.reservations_label || 'Reservations';
+  const reservationsPhone = config?.reservations_phone || getSetting('contact_phone_reservations', '01334 945 376, 01334 945 377');
+  const reservationsHref = config?.reservations_phone_href || getSetting('contact_phone_reservations_href', '01334945376');
+  const email = config?.email || getSetting('contact_email', 'hotelcrownbd@gmail.com');
+  const website = config?.website || getSetting('contact_website', 'www.hotelcrownbd.com');
 
   return (
     <section
@@ -26,7 +29,7 @@ export default function BookingSection() {
     >
       <div className="overlay" />
       <div className="relative z-10 max-w-4xl mx-auto px-4">
-        <SectionHeading subtitle="HOTEL CROWN" title="Book Your Stay" light />
+        <SectionHeading subtitle={config?.subtitle || 'HOTEL CROWN'} title={config?.title || 'Book Your Stay'} light />
 
         <div className="bg-white/95 backdrop-blur-sm p-8 md:p-12">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -72,7 +75,7 @@ export default function BookingSection() {
             </div>
           </div>
           <button className="btn-primary w-full !py-4 font-bold text-sm uppercase tracking-widest mt-4">
-            Check Availability
+            {config?.button_text || 'Check Availability'}
           </button>
         </div>
 
@@ -81,7 +84,7 @@ export default function BookingSection() {
           <div className="flex flex-col items-center gap-2 mt-4">
             <div className="flex items-center justify-center gap-3 flex-wrap">
               <span className="text-[var(--color-primary-light)] text-sm font-[var(--font-condensed)] uppercase tracking-[3px]">
-                Front Office
+                {frontLabel}
               </span>
               <a
                 href={`tel:${frontHref}`}
@@ -93,7 +96,7 @@ export default function BookingSection() {
             </div>
             <div className="flex items-center justify-center gap-3 flex-wrap">
               <span className="text-[var(--color-primary-light)] text-sm font-[var(--font-condensed)] uppercase tracking-[3px]">
-                Reservations
+                {reservationsLabel}
               </span>
               <a
                 href={`tel:${reservationsHref}`}

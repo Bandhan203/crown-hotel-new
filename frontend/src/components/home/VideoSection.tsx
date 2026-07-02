@@ -2,13 +2,15 @@ import { FaPlay } from 'react-icons/fa';
 import { hotelImages } from '../../constants/images';
 import { useSiteSettings } from '../../contexts/SiteSettingsContext';
 import { toMediaUrl } from '../../utils/mediaUrl';
+import type { HomeAsset, HomeSectionConfig } from '../../hooks/useHomeCMS';
 
-export default function VideoSection() {
+export default function VideoSection({ config, asset }: { config?: HomeSectionConfig; asset?: HomeAsset }) {
   const { getSetting } = useSiteSettings();
 
-  const videoUrl = getSetting('home_video_url', 'https://youtu.be/7BGNAGahig8');
-  const videoTitle = getSetting('home_video_title', 'Experience Rajshahi');
-  const videoImage = toMediaUrl(getSetting('home_video_image', ''), hotelImages.video);
+  const videoUrl = config?.video_url || getSetting('home_video_url', 'https://youtu.be/7BGNAGahig8');
+  const videoTitle = config?.title || getSetting('home_video_title', 'Experience Rajshahi');
+  const videoSubtitle = config?.subtitle || 'HOTEL CROWN';
+  const videoImage = toMediaUrl(asset?.image_url || getSetting('home_video_image', ''), hotelImages.video);
 
   return (
     <section
@@ -18,7 +20,7 @@ export default function VideoSection() {
       <div className="overlay" />
       <div className="relative z-10 text-center text-slate-800">
         <span className="font-[var(--font-condensed)] text-sm tracking-[6px] uppercase text-[var(--color-primary)]">
-          HOTEL CROWN
+          {videoSubtitle}
         </span>
         <h2 className="font-[var(--font-heading)] text-3xl md:text-5xl text-slate-800 mt-4 mb-8">
           {videoTitle}

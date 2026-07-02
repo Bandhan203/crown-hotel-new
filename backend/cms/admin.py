@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import FAQ, GalleryImage, HeroSlide, NewsPost, PageCMS, SiteSetting, TeamMember, Testimonial
+from .models import FAQ, GalleryImage, HeroSlide, NewsPost, PageCMS, PageCMSAsset, SiteSetting, TeamMember, Testimonial
 
 @admin.register(HeroSlide)
 class HeroSlideAdmin(admin.ModelAdmin):
@@ -77,3 +77,10 @@ class PageCMSAdmin(admin.ModelAdmin):
             'description': 'Store page-specific dynamic blocks as JSON'
         }),
     )
+
+
+@admin.register(PageCMSAsset)
+class PageCMSAssetAdmin(admin.ModelAdmin):
+    list_display = ['page', 'key', 'alt_text', 'updated_at']
+    list_filter = ['page']
+    search_fields = ['key', 'alt_text', 'page__page_slug']

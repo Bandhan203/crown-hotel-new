@@ -12,6 +12,7 @@ router.register(r'admin/team', views.AdminTeamMemberViewSet, basename='admin-tea
 router.register(r'admin/gallery', views.AdminGalleryImageViewSet, basename='admin-gallery')
 router.register(r'admin/site-settings', views.AdminSiteSettingViewSet, basename='admin-site-settings')
 router.register(r'admin/pages', views.AdminPageCMSViewSet, basename='admin-pages')
+router.register(r'admin/page-assets', views.AdminPageCMSAssetViewSet, basename='admin-page-assets')
 
 urlpatterns = [
     # Public

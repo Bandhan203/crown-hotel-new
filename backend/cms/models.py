@@ -168,3 +168,18 @@ class PageCMS(models.Model):
 
     def __str__(self):
         return f"Page: {self.get_page_slug_display()}"
+
+
+class PageCMSAsset(models.Model):
+    page = models.ForeignKey(PageCMS, on_delete=models.CASCADE, related_name='assets')
+    key = models.SlugField(max_length=100)
+    image = models.ImageField(upload_to='pages/assets/')
+    alt_text = models.CharField(max_length=255, blank=True, default='')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('page', 'key')
+        ordering = ['page__page_slug', 'key']
+
+    def __str__(self):
+        return f"{self.page.page_slug}: {self.key}"

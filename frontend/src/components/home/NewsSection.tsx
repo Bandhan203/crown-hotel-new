@@ -6,6 +6,7 @@ import { Autoplay, Navigation } from 'swiper/modules';
 import api from '../../services/api';
 import { toMediaUrl } from '../../utils/mediaUrl';
 import { hotelImages } from '../../constants/images';
+import { pickBySelectedIds, type HomeSectionConfig } from '../../hooks/useHomeCMS';
 import 'swiper/css';
 import 'swiper/css/navigation';
 
@@ -33,7 +34,7 @@ function toAbsoluteMediaUrl(path: string | null): string {
   return toMediaUrl(path, hotelImages.newsFallback);
 }
 
-export default function NewsSection() {
+export default function NewsSection({ config }: { config?: HomeSectionConfig }) {
   const [posts, setPosts] = useState<NewsPost[]>([]);
 
   useEffect(() => {
@@ -45,7 +46,7 @@ export default function NewsSection() {
         const payload = res.data;
         const items = Array.isArray(payload) ? payload : payload.results;
         if (mounted) {
-          setPosts((items ?? []).slice(0, 6));
+          setPosts(pickBySelectedIds(items ?? [], config?.selected_ids, config?.limit || 6));
         }
       } catch {
         if (mounted) {
@@ -58,7 +59,7 @@ export default function NewsSection() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [config?.limit, config?.selected_ids]);
 
   if (posts.length === 0) {
     return null;
@@ -67,7 +68,7 @@ export default function NewsSection() {
   return (
     <section className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4">
-        <SectionHeading subtitle="HOTEL BLOG" title="Our News" />
+        <SectionHeading subtitle={config?.subtitle || 'HOTEL BLOG'} title={config?.title || 'Our News'} />
         <Swiper
           modules={[Autoplay, Navigation]}
           spaceBetween={30}

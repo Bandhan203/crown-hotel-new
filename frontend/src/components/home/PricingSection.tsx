@@ -4,6 +4,7 @@ import api from '../../services/api';
 import { useSiteSettings } from '../../contexts/SiteSettingsContext';
 import { renderServiceIcon } from '../../utils/serviceIcons';
 import { unwrapList } from '../../utils/cmsList';
+import { pickBySelectedIds, type HomeSectionConfig } from '../../hooks/useHomeCMS';
 
 type HotelService = {
   id: number;
@@ -46,16 +47,17 @@ const FALLBACK_SERVICES: HotelService[] = [
   },
 ];
 
-export default function PricingSection() {
+export default function PricingSection({ config }: { config?: HomeSectionConfig }) {
   const { getSetting } = useSiteSettings();
   const [services, setServices] = useState<HotelService[]>(FALLBACK_SERVICES);
 
-  const intro = getSetting(
+  const intro = config?.intro || getSetting(
     'home_services_intro',
     'From elegant arrivals to memorable dining and rejuvenating spa experiences, Hotel Crown offers thoughtfully curated services designed for comfort, convenience, and exceptional hospitality throughout your stay in Rajshahi.',
   );
-  const reservationsPhone = getSetting('contact_phone_reservations', '01334 945 376');
-  const reservationsHref = getSetting('contact_phone_reservations_href', '01334945376');
+  const reservationsLabel = config?.phone_label || 'Reservations';
+  const reservationsPhone = config?.phone || getSetting('contact_phone_reservations', '01334 945 376');
+  const reservationsHref = config?.phone_href || getSetting('contact_phone_reservations_href', '01334945376');
 
   useEffect(() => {
     let mounted = true;
@@ -65,7 +67,7 @@ export default function PricingSection() {
         const res = await api.get<HotelService[] | { results: HotelService[] }>('/services/');
         const data = unwrapList(res.data);
         if (mounted && data.length > 0) {
-          setServices(data);
+          setServices(pickBySelectedIds(data, config?.selected_ids, config?.limit || 6));
         }
       } catch {
         // keep fallback
@@ -76,19 +78,21 @@ export default function PricingSection() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [config?.limit, config?.selected_ids]);
 
   return (
     <section className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <div>
-            <span className="section-subtitle">CORE SERVICES</span>
-            <h2 className="section-title text-3xl md:text-4xl mt-4 mb-6">Our Premium Services</h2>
+            <span className="section-subtitle">{config?.subtitle || 'CORE SERVICES'}</span>
+            <h2 className="section-title text-3xl md:text-4xl mt-4 mb-6">
+              {config?.title || 'Our Premium Services'}
+            </h2>
             <p className="text-[var(--color-body)] mb-6 leading-relaxed">{intro}</p>
             <div className="flex items-center gap-3">
               <span className="text-[var(--color-primary)] text-sm font-[var(--font-condensed)] uppercase tracking-[3px]">
-                Reservations
+                {reservationsLabel}
               </span>
               <a
                 href={`tel:${reservationsHref}`}

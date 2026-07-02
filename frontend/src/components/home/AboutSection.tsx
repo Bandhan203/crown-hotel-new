@@ -3,34 +3,37 @@ import { FiPhone } from 'react-icons/fi';
 import { hotelImages } from '../../constants/images';
 import { useSiteSettings } from '../../contexts/SiteSettingsContext';
 import { toMediaUrl } from '../../utils/mediaUrl';
+import type { HomeAsset, HomeSectionConfig } from '../../hooks/useHomeCMS';
 
 const DEFAULT_BODY =
   'Discover a world of comfort and refined hospitality. Ideally located in Padma Abasik, Rajshahi, the hotel offers elegant accommodations, contemporary facilities, and attentive service in a welcoming environment. From relaxing stays to business visits, every detail is thoughtfully designed to provide an exceptional guest experience.';
 
-export default function AboutSection() {
+export default function AboutSection({ config, asset }: { config?: HomeSectionConfig; asset?: HomeAsset }) {
   const { getSetting } = useSiteSettings();
 
-  const title = getSetting('about_title', 'Experience Comfort, Luxury & Hospitality');
-  const body = getSetting('about_body', DEFAULT_BODY);
-  const address = getSetting(
+  const subtitle = config?.subtitle || 'HOTEL CROWN';
+  const title = config?.title || getSetting('about_title', 'Experience Comfort, Luxury & Hospitality');
+  const body = config?.body || getSetting('about_body', DEFAULT_BODY);
+  const address = config?.address || getSetting(
     'contact_address',
     'Padma Abasik, Rajshahi, Bangladesh (Rajshahi - 6200). House# 310, Road 7, Padma housing state, Padma abasik, Boalia, Rajshahi city, Rajshahi.',
   );
-  const phone = getSetting('contact_phone', '01334 945 375');
-  const phoneHref = getSetting('contact_phone_href', '01334945375');
-  const aboutImage = toMediaUrl(getSetting('about_image', ''), hotelImages.about);
+  const phoneLabel = config?.phone_label || 'Front Office';
+  const phone = config?.phone || getSetting('contact_phone', '01334 945 375');
+  const phoneHref = config?.phone_href || getSetting('contact_phone_href', '01334945375');
+  const aboutImage = toMediaUrl(asset?.image_url || getSetting('about_image', ''), hotelImages.about);
 
   return (
     <section className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4">
-        <SectionHeading subtitle="HOTEL CROWN" title={title} />
+        <SectionHeading subtitle={subtitle} title={title} />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
             <p className="text-[var(--color-body)] leading-relaxed mb-6 whitespace-pre-line">{body}</p>
             <p className="text-[var(--color-body)] leading-relaxed mb-8">{address}</p>
             <div className="flex items-center gap-4">
               <span className="text-[var(--color-primary)] text-sm font-[var(--font-condensed)] uppercase tracking-[3px]">
-                Front Office
+                {phoneLabel}
               </span>
               <a
                 href={`tel:${phoneHref}`}

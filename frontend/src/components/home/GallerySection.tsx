@@ -5,6 +5,7 @@ import api from '../../services/api';
 import { toMediaUrl } from '../../utils/mediaUrl';
 import { hotelImages } from '../../constants/images';
 import { unwrapList } from '../../utils/cmsList';
+import { pickBySelectedIds, type HomeSectionConfig } from '../../hooks/useHomeCMS';
 
 type GalleryItem = {
   id: number;
@@ -13,7 +14,7 @@ type GalleryItem = {
   alt_text: string;
 };
 
-export default function GallerySection() {
+export default function GallerySection({ config }: { config?: HomeSectionConfig }) {
   const [images, setImages] = useState<GalleryItem[]>([]);
 
   useEffect(() => {
@@ -22,7 +23,7 @@ export default function GallerySection() {
     async function loadGallery(): Promise<void> {
       try {
         const res = await api.get<GalleryItem[] | { results: GalleryItem[] }>('/gallery/');
-        const data = unwrapList(res.data).slice(0, 6);
+        const data = pickBySelectedIds(unwrapList(res.data), config?.selected_ids, config?.limit || 6);
         if (mounted) {
           setImages(data);
         }
@@ -35,7 +36,7 @@ export default function GallerySection() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [config?.limit, config?.selected_ids]);
 
   if (images.length === 0) return null;
 
@@ -43,9 +44,9 @@ export default function GallerySection() {
     <section className="py-20 bg-[var(--color-light)]">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
-          <SectionHeading subtitle="HOTEL GALLERY" title="Our Gallery" />
-          <Link to="/gallery" className="btn-primary text-xs !py-2 !px-5 self-start md:self-auto">
-            VIEW ALL
+          <SectionHeading subtitle={config?.subtitle || 'HOTEL GALLERY'} title={config?.title || 'Our Gallery'} />
+          <Link to={config?.button_link || '/gallery'} className="btn-primary text-xs !py-2 !px-5 self-start md:self-auto">
+            {config?.button_text || 'VIEW ALL'}
           </Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

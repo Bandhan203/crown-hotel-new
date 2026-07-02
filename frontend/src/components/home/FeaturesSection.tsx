@@ -4,6 +4,7 @@ import { hotelImages } from '../../constants/images';
 import api from '../../services/api';
 import { toMediaUrl } from '../../utils/mediaUrl';
 import { unwrapList } from '../../utils/cmsList';
+import { pickBySelectedIds, type HomeSectionConfig } from '../../hooks/useHomeCMS';
 
 type FeatureFacility = {
   id: number;
@@ -72,7 +73,7 @@ type FeatureBlock = {
   imageRight: boolean;
 };
 
-export default function FeaturesSection() {
+export default function FeaturesSection({ config }: { config?: HomeSectionConfig }) {
   const [features, setFeatures] = useState<FeatureBlock[]>(FALLBACK_FEATURES);
 
   useEffect(() => {
@@ -81,7 +82,11 @@ export default function FeaturesSection() {
     async function loadFeatures(): Promise<void> {
       try {
         const res = await api.get<FeatureFacility[] | { results: FeatureFacility[] }>('/facilities/');
-        const data = unwrapList(res.data).filter((item) => item.category === 'FEATURE');
+        const data = pickBySelectedIds(
+          unwrapList(res.data).filter((item) => item.category === 'FEATURE'),
+          config?.selected_ids,
+          config?.limit || 5,
+        );
         if (mounted && data.length > 0) {
           setFeatures(
             data.map((item, index) => ({
@@ -103,7 +108,7 @@ export default function FeaturesSection() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [config?.limit, config?.selected_ids]);
 
   return (
     <section className="py-0">
@@ -130,7 +135,7 @@ export default function FeaturesSection() {
                 <p className="text-[var(--color-body)] leading-relaxed mb-8">{feature.description}</p>
                 <div>
                   <Link to={feature.link} className="btn-primary">
-                    LEARN MORE
+                    {config?.button_text || 'LEARN MORE'}
                   </Link>
                 </div>
               </div>

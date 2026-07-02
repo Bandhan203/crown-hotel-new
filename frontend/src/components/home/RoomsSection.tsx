@@ -7,6 +7,7 @@ import api from '../../services/api';
 import { toMediaUrl } from '../../utils/mediaUrl';
 import { unwrapList } from '../../utils/cmsList';
 import { hotelImages } from '../../constants/images';
+import { pickBySelectedIds, type HomeSectionConfig } from '../../hooks/useHomeCMS';
 import 'swiper/css';
 import 'swiper/css/navigation';
 
@@ -24,7 +25,7 @@ type RoomType = {
   description?: string;
 };
 
-export default function RoomsSection() {
+export default function RoomsSection({ config }: { config?: HomeSectionConfig }) {
   const [rooms, setRooms] = useState<RoomType[]>([]);
 
   useEffect(() => {
@@ -37,7 +38,8 @@ export default function RoomsSection() {
           // Filter to featured rooms if possible, or just slice top 6
           const items = unwrapList(res.data) as RoomType[];
           const featured = items.filter((r: RoomType) => r.is_featured);
-          setRooms(featured.length > 0 ? featured : items.slice(0, 6));
+          const source = (config?.selected_ids || []).length > 0 ? items : (featured.length > 0 ? featured : items);
+          setRooms(pickBySelectedIds(source, config?.selected_ids, config?.limit || 6));
         }
       } catch {
         // Silently fail
@@ -48,14 +50,14 @@ export default function RoomsSection() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [config?.limit, config?.selected_ids]);
 
   if (rooms.length === 0) return null;
 
   return (
     <section className="py-20 bg-[var(--color-light)]">
       <div className="max-w-7xl mx-auto px-4">
-        <SectionHeading subtitle="HOTEL CROWN" title="Rooms & Suites" />
+        <SectionHeading subtitle={config?.subtitle || 'HOTEL CROWN'} title={config?.title || 'Rooms & Suites'} />
         <Swiper
           modules={[Autoplay, Navigation]}
           spaceBetween={30}

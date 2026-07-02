@@ -6,6 +6,7 @@ import { Autoplay, Pagination } from 'swiper/modules';
 import api from '../../services/api';
 import { toMediaUrl } from '../../utils/mediaUrl';
 import { unwrapList } from '../../utils/cmsList';
+import { pickBySelectedIds, type HomeSectionConfig } from '../../hooks/useHomeCMS';
 import 'swiper/css';
 import 'swiper/css/pagination';
 
@@ -42,7 +43,7 @@ const FALLBACK = [
   },
 ];
 
-export default function TestimonialsSection() {
+export default function TestimonialsSection({ config }: { config?: HomeSectionConfig }) {
   const [items, setItems] = useState(FALLBACK);
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export default function TestimonialsSection() {
     async function loadTestimonials(): Promise<void> {
       try {
         const res = await api.get<Testimonial[] | { results: Testimonial[] }>('/testimonials/');
-        const data = unwrapList(res.data);
+        const data = pickBySelectedIds(unwrapList(res.data), config?.selected_ids, config?.limit || 6);
         if (mounted && data.length > 0) {
           setItems(
             data.map((item, index) => ({
@@ -71,14 +72,17 @@ export default function TestimonialsSection() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [config?.limit, config?.selected_ids]);
 
   if (items.length === 0) return null;
 
   return (
     <section className="py-20 bg-white">
       <div className="max-w-4xl mx-auto px-4">
-        <SectionHeading subtitle="TESTIMONIALS" title="What Client's Say?" />
+        <SectionHeading
+          subtitle={config?.subtitle || 'TESTIMONIALS'}
+          title={config?.title || "What Client's Say?"}
+        />
         <Swiper
           modules={[Autoplay, Pagination]}
           autoplay={{ delay: 4000, disableOnInteraction: false }}

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   MdDashboard, MdHotel, MdBookOnline, MdPeople, MdBadge,
   MdArticle, MdSettings, MdExpandMore, MdExpandLess, MdLogout,
-  MdTune, MdRestaurant, MdSpa, MdRoomService, MdMessage,
+  MdHome, MdTune, MdRestaurant, MdSpa, MdRoomService, MdMessage,
   MdDesktopWindows, MdCalendarMonth, MdDiscount, MdCleaningServices,
   MdNightsStay, MdBarChart, MdPalette, MdReceipt, MdInventory, MdBusiness, MdGridOn,
 } from 'react-icons/md';
@@ -45,6 +45,7 @@ const navItems: NavItem[] = [
   { to: '/admin/messages', icon: <MdMessage size={20} />, label: 'Messages' },
   {
     icon: <MdArticle size={20} />, label: 'CMS', children: [
+      { to: '/admin/cms/home', icon: <MdHome size={18} />, label: 'Home Page' },
       { to: '/admin/cms/site-settings', icon: <MdTune size={18} />, label: 'Global Settings' },
     ],
   },

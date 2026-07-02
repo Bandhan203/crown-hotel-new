@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import FAQ, GalleryImage, HeroSlide, NewsPost, PageCMS, SiteSetting, TeamMember, Testimonial
+from .models import FAQ, GalleryImage, HeroSlide, NewsPost, PageCMS, PageCMSAsset, SiteSetting, TeamMember, Testimonial
 
 
 # ── Hero Slides ──────────────────────────────
@@ -107,3 +107,19 @@ class PageCMSAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = PageCMS
         fields = '__all__'
+
+
+class PageCMSAssetSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PageCMSAsset
+        fields = ['id', 'page', 'key', 'image', 'image_url', 'alt_text', 'updated_at']
+
+    def get_image_url(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url

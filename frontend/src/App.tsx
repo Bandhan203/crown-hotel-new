@@ -45,6 +45,7 @@ import CMSGallery from './admin/pages/CMSGallery';
 import CMSHeroSlides from './admin/pages/CMSHeroSlides';
 import CMSSiteSettings from './admin/pages/CMSSiteSettings';
 import CMSPages from './admin/pages/CMSPages';
+import CMSHomePage from './admin/pages/CMSHomePage';
 import Branding from './admin/pages/Branding';
 import Settings from './admin/pages/Settings';
 import FrontDesk from './admin/pages/FrontDesk';
@@ -118,6 +119,7 @@ function App() {
             <Route path="/admin/spa" element={<SpaManagement />} />
             <Route path="/admin/services" element={<ServicesManagement />} />
             <Route path="/admin/messages" element={<MessagesManagement />} />
+            <Route path="/admin/cms/home" element={<CMSHomePage />} />
             <Route path="/admin/cms/news" element={<CMSNews />} />
             <Route path="/admin/cms/faq" element={<CMSFAQ />} />
             <Route path="/admin/cms/testimonials" element={<CMSTestimonials />} />

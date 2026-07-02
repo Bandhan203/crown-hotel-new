@@ -9,6 +9,7 @@ import api from '../../services/api';
 import { hotelImages } from '../../constants/images';
 import { toMediaUrl } from '../../utils/mediaUrl';
 import { unwrapList } from '../../utils/cmsList';
+import type { HomeSectionConfig } from '../../hooks/useHomeCMS';
 
 type HeroSlide = {
   id: number;
@@ -43,8 +44,10 @@ const FALLBACK_SLIDES = [
   },
 ];
 
-export default function HeroSlider() {
+export default function HeroSlider({ config }: { config?: HomeSectionConfig }) {
   const [slides, setSlides] = useState(FALLBACK_SLIDES);
+  const secondaryText = config?.secondary_cta_text || 'Explore Facilities';
+  const secondaryLink = config?.secondary_cta_link || '/facilities';
 
   useEffect(() => {
     let mounted = true;
@@ -107,10 +110,10 @@ export default function HeroSlider() {
                     {slide.cta_text}
                   </Link>
                   <Link
-                    to="/facilities"
+                    to={secondaryLink}
                     className="inline-block border border-white/40 text-slate-800 text-xs font-[var(--font-condensed)] uppercase tracking-[3px] px-8 py-3 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors"
                   >
-                    Explore Facilities
+                    {secondaryText}
                   </Link>
                 </div>
               </div>
