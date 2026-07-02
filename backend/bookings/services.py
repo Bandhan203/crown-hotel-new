@@ -1,4 +1,5 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
+from datetime import date, timedelta
 
 from django.db.models import Q
 from rest_framework.exceptions import ValidationError
@@ -6,6 +7,41 @@ from rest_framework.exceptions import ValidationError
 from rooms.models import Room
 
 MAX_EXTRA_BEDS = 3
+MAX_STAY_NIGHTS = 365
+MAX_BOOKING_AMOUNT = Decimal('99999999.99')
+
+
+def money(value) -> Decimal:
+    """Normalize to 2-decimal currency for DB + API."""
+    try:
+        return Decimal(str(value or 0)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    except Exception:
+        return Decimal('0.00')
+
+
+def validate_reservation_stay_dates(check_in, check_out, max_nights: int = MAX_STAY_NIGHTS):
+    """Reject absurd date ranges that blow up pricing."""
+    from bookings.checkout_services import get_business_date
+
+    if check_in >= check_out:
+        raise ValidationError({'check_out_date': 'Check-out must be after check-in.'})
+    nights = (check_out - check_in).days
+    if nights > max_nights:
+        raise ValidationError({
+            'check_out_date': (
+                f'Stay cannot exceed {max_nights} nights '
+                f'(selected: {nights} nights). Please check arrival and departure dates.'
+            ),
+        })
+    earliest = get_business_date() - timedelta(days=30)
+    if check_in < earliest:
+        raise ValidationError({
+            'check_in_date': (
+                f'Check-in date {check_in} is too far in the past. '
+                'Please verify arrival and departure dates.'
+            ),
+        })
+    return nights
 
 
 def assert_guest_bookable(user):
@@ -47,6 +83,58 @@ def validate_guest_capacity(room_type, adults, children=0, infants=0, num_rooms=
     return msg
 
 
+def _blocked_room_ids(room_type_id, check_in, check_out, exclude_booking_id=None):
+    """Rooms unavailable for a stay window (reservations + in-house occupancy)."""
+    from bookings.models import Booking
+
+    reserved_qs = Booking.objects.filter(
+        room__isnull=False,
+        room_type_id=room_type_id,
+        check_in_date__lt=check_out,
+        check_out_date__gt=check_in,
+        status__in=['PENDING', 'CONFIRMED'],
+    )
+    in_house_qs = Booking.objects.filter(
+        room__isnull=False,
+        room_type_id=room_type_id,
+        check_in_date__lt=check_out,
+        check_out_date__gte=check_in,
+        status='CHECKED_IN',
+    )
+    if exclude_booking_id:
+        reserved_qs = reserved_qs.exclude(pk=exclude_booking_id)
+        in_house_qs = in_house_qs.exclude(pk=exclude_booking_id)
+
+    return set(reserved_qs.values_list('room_id', flat=True)) | set(
+        in_house_qs.values_list('room_id', flat=True)
+    )
+
+
+def assert_room_available_for_check_in(room, check_in, check_out, exclude_booking_id=None):
+    """Reject check-in when another in-house guest still occupies the room."""
+    from bookings.models import Booking
+
+    blocking = Booking.objects.filter(
+        room=room,
+        status='CHECKED_IN',
+        check_in_date__lt=check_out,
+        check_out_date__gte=check_in,
+    ).select_related('guest')
+    if exclude_booking_id:
+        blocking = blocking.exclude(pk=exclude_booking_id)
+
+    blocker = blocking.first()
+    if not blocker:
+        return
+
+    guest_name = blocker.guest.full_name if blocker.guest else 'Guest'
+    raise ValueError(
+        f'Room {room.room_number} is occupied by {guest_name} ({blocker.booking_ref}) '
+        f'until check-out on {blocker.check_out_date}. '
+        'Complete their checkout before checking in another guest.'
+    )
+
+
 def check_availability(room_type_id, check_in, check_out, exclude_booking_id=None):
     """Return rooms free for the date range (by booking overlap, not current room status)."""
     from datetime import date as date_cls
@@ -60,23 +148,16 @@ def check_availability(room_type_id, check_in, check_out, exclude_booking_id=Non
     if check_in >= check_out:
         return Room.objects.none()
 
-    booked_qs = Booking.objects.filter(
-        room__isnull=False,
-        room_type_id=room_type_id,
-        check_in_date__lt=check_out,
-        check_out_date__gt=check_in,
-        status__in=['PENDING', 'CONFIRMED', 'CHECKED_IN'],
+    blocked_room_ids = _blocked_room_ids(
+        room_type_id, check_in, check_out, exclude_booking_id=exclude_booking_id,
     )
-    if exclude_booking_id:
-        booked_qs = booked_qs.exclude(pk=exclude_booking_id)
-    booked_room_ids = booked_qs.values_list('room_id', flat=True)
 
     # Use booking overlap only — a room may be OCCUPIED today but free for future dates.
     return (
         Room.objects.filter(room_type_id=room_type_id)
         .exclude(status='MAINTENANCE')
         .exclude(housekeeping_status__in=['VD', 'OD', 'CO'])
-        .exclude(id__in=booked_room_ids)
+        .exclude(id__in=blocked_room_ids)
         .order_by('room_number')
     )
 
@@ -85,6 +166,25 @@ def assign_room(room_type_id, check_in, check_out, exclude_booking_id=None):
     """Assign the first available room for a booking."""
     available = check_availability(room_type_id, check_in, check_out, exclude_booking_id)
     return available.first()
+
+
+def release_room_if_unassigned(room, exclude_booking_id=None):
+    """Reset room to AVAILABLE when no active booking references it."""
+    if not room:
+        return
+    from bookings.models import Booking
+
+    active = Booking.objects.filter(
+        room=room,
+        status__in=['PENDING', 'CONFIRMED', 'CHECKED_IN'],
+    )
+    if exclude_booking_id:
+        active = active.exclude(pk=exclude_booking_id)
+    if active.exists():
+        return
+    if room.status in ('RESERVED', 'OCCUPIED'):
+        room.status = 'AVAILABLE'
+        room.save(update_fields=['status'])
 
 
 def sync_booking_payment_status(booking):
@@ -103,7 +203,7 @@ def sync_booking_payment_status(booking):
         )
     )['net'] or 0
     paid = float(paid)
-    total = float(booking.total_price)
+    total = float(booking.grand_total or booking.total_price or 0)
 
     if paid <= 0:
         booking.payment_status = Booking.PaymentStatus.UNPAID
@@ -283,6 +383,81 @@ def ensure_folio_window_slot(booking, window_number: int, label: str = ''):
     )
 
 
+def post_folio_night_lines(booking, charge_date, posted_by, *, lock_charges=False):
+    """Post ROOM + SERVICE + TAX folio lines for one night (idempotent)."""
+    from bookings.models import FolioCharge
+    from dashboard.night_audit_services import compute_nightly_charge_breakdown
+
+    if booking.no_post:
+        return []
+
+    breakdown = compute_nightly_charge_breakdown(booking, charge_date)
+    company = booking.company_name if booking.billing_type == 'COMPANY' else ''
+    charge_window = default_folio_window(booking)
+    created = []
+
+    if not FolioCharge.objects.filter(
+        booking=booking, charge_type='ROOM', charge_date=charge_date, is_void=False,
+    ).exists():
+        created.append(FolioCharge.objects.create(
+            booking=booking,
+            folio_window=charge_window,
+            charge_type='ROOM',
+            description=f'Room charge — {charge_date}',
+            amount=breakdown['room'],
+            quantity=1,
+            total=breakdown['room'],
+            charge_date=charge_date,
+            posted_by=posted_by,
+            reference=company,
+            is_locked=lock_charges,
+        ))
+
+    if breakdown['service_charge'] > 0 and not FolioCharge.objects.filter(
+        booking=booking, charge_type='SERVICE', charge_date=charge_date, is_void=False,
+    ).exists():
+        created.append(FolioCharge.objects.create(
+            booking=booking,
+            folio_window=charge_window,
+            charge_type='SERVICE',
+            description=f'Service charge — {charge_date}',
+            amount=breakdown['service_charge'],
+            quantity=1,
+            total=breakdown['service_charge'],
+            charge_date=charge_date,
+            posted_by=posted_by,
+            reference=company,
+            is_locked=lock_charges,
+        ))
+
+    if breakdown['tax'] > 0 and not FolioCharge.objects.filter(
+        booking=booking, charge_type='TAX', charge_date=charge_date, is_void=False,
+    ).exists():
+        created.append(FolioCharge.objects.create(
+            booking=booking,
+            folio_window=charge_window,
+            charge_type='TAX',
+            description=f'VAT/Tax — {charge_date}',
+            amount=breakdown['tax'],
+            quantity=1,
+            total=breakdown['tax'],
+            charge_date=charge_date,
+            posted_by=posted_by,
+            reference=company,
+            is_locked=lock_charges,
+        ))
+
+    if lock_charges:
+        FolioCharge.objects.filter(
+            booking=booking,
+            charge_date=charge_date,
+            is_void=False,
+            is_locked=False,
+        ).update(is_locked=True)
+
+    return created
+
+
 def open_guest_folio(booking, posted_by):
     """Create opening folio entries when a guest checks in."""
     from bookings.models import FolioCharge
@@ -309,25 +484,7 @@ def open_guest_folio(booking, posted_by):
             reference=company,
         )
 
-    nightly_rate = booking.total_price / max(booking.nights, 1)
-    if not FolioCharge.objects.filter(
-        booking=booking,
-        charge_type='ROOM',
-        charge_date=booking.check_in_date,
-        is_void=False,
-    ).exists():
-        FolioCharge.objects.create(
-            booking=booking,
-            folio_window=charge_window,
-            charge_type='ROOM',
-            description=f'Room charge — {booking.check_in_date}',
-            amount=nightly_rate,
-            quantity=1,
-            total=nightly_rate,
-            charge_date=booking.check_in_date,
-            posted_by=posted_by,
-            reference=company,
-        )
+    post_folio_night_lines(booking, booking.check_in_date, posted_by, lock_charges=False)
 
 
 def perform_check_in(booking, data, user):
@@ -335,7 +492,7 @@ def perform_check_in(booking, data, user):
     Assign room, mark booking CHECKED_IN, set room OCCUPIED, open folio.
     `data` is validated check-in payload (room_id, billing_type, etc.).
     """
-    from django.utils import timezone
+    from bookings.checkout_services import get_business_datetime
     from bookings.models import Booking
 
     room_id = data.get('room_id')
@@ -369,6 +526,13 @@ def perform_check_in(booking, data, user):
         if not still_ok:
             raise ValueError('Pre-assigned room is no longer available.')
 
+    assert_room_available_for_check_in(
+        booking.room,
+        booking.check_in_date,
+        booking.check_out_date,
+        exclude_booking_id=booking.id,
+    )
+
     if data.get('billing_type'):
         booking.billing_type = data['billing_type']
     if data.get('id_type'):
@@ -394,12 +558,13 @@ def perform_check_in(booking, data, user):
         booking.offer_rate = booking.rack_rate or booking.room_type.price_per_night
 
     booking.status = Booking.Status.CHECKED_IN
-    booking.actual_check_in = timezone.now()
+    booking.actual_check_in = get_business_datetime()
     booking.checked_in_by = user
     booking.save()
 
     booking.room.status = 'OCCUPIED'
-    booking.room.save(update_fields=['status'])
+    booking.room.housekeeping_status = 'OC'
+    booking.room.save(update_fields=['status', 'housekeeping_status'])
     open_guest_folio(booking, user)
     sync_booking_payment_status(booking)
     return booking

@@ -250,73 +250,26 @@ def get_night_audit_preview(audit_date=None) -> dict:
     }
 
 
+def _guests_to_charge(audit_date):
+    """In-house + overdue guests who owe a room night for audit_date."""
+    standard = list(_in_house_for_date(audit_date))
+    overdue = list(
+        Booking.objects.filter(
+            status=Booking.Status.CHECKED_IN,
+            check_in_date__lte=audit_date,
+            check_out_date__lte=audit_date,
+        ).select_related('guest', 'room', 'room_type', 'rate_plan')
+    )
+    seen = {b.id for b in standard}
+    combined = standard + [b for b in overdue if b.id not in seen]
+    return combined
+
+
 def _post_nightly_charges(booking: Booking, audit_date, performed_by) -> list[FolioCharge]:
     """Post room + tax + service folio lines for one night; return created rows."""
-    if booking.no_post:
-        return []
+    from bookings.services import post_folio_night_lines
 
-    if FolioCharge.objects.filter(
-        booking=booking,
-        charge_type=FolioCharge.ChargeType.ROOM,
-        charge_date=audit_date,
-        is_void=False,
-    ).exists():
-        return []
-
-    breakdown = compute_nightly_charge_breakdown(booking, audit_date)
-    company = booking.company_name if booking.billing_type == 'COMPANY' else ''
-    from bookings.services import default_folio_window
-    charge_window = default_folio_window(booking)
-    created = []
-
-    room_line = FolioCharge.objects.create(
-        booking=booking,
-        folio_window=charge_window,
-        charge_type=FolioCharge.ChargeType.ROOM,
-        description=f'Room charge — {audit_date}',
-        amount=breakdown['room'],
-        quantity=1,
-        total=breakdown['room'],
-        charge_date=audit_date,
-        posted_by=performed_by,
-        reference=company,
-        is_locked=True,
-    )
-    created.append(room_line)
-
-    if breakdown['service_charge'] > 0:
-        svc = FolioCharge.objects.create(
-            booking=booking,
-            folio_window=charge_window,
-            charge_type=FolioCharge.ChargeType.SERVICE,
-            description=f'Service charge — {audit_date}',
-            amount=breakdown['service_charge'],
-            quantity=1,
-            total=breakdown['service_charge'],
-            charge_date=audit_date,
-            posted_by=performed_by,
-            reference=company,
-            is_locked=True,
-        )
-        created.append(svc)
-
-    if breakdown['tax'] > 0:
-        tax_line = FolioCharge.objects.create(
-            booking=booking,
-            folio_window=charge_window,
-            charge_type=FolioCharge.ChargeType.TAX,
-            description=f'VAT/Tax — {audit_date}',
-            amount=breakdown['tax'],
-            quantity=1,
-            total=breakdown['tax'],
-            charge_date=audit_date,
-            posted_by=performed_by,
-            reference=company,
-            is_locked=True,
-        )
-        created.append(tax_line)
-
-    return created
+    return post_folio_night_lines(booking, audit_date, performed_by, lock_charges=True)
 
 
 def _process_no_shows(audit_date, now):
@@ -375,10 +328,11 @@ def run_night_audit(audit_date, performed_by, *, night_audit_pin: str, manager_o
     now = timezone.now()
 
     in_house = list(_in_house_for_date(audit_date))
+    chargeable = _guests_to_charge(audit_date)
     rooms_sold = len(in_house)
 
-    # ── 1. Post locked folio charges ──
-    for booking in in_house:
+    # ── 1. Post locked folio charges (in-house + overdue extension nights) ──
+    for booking in chargeable:
         _post_nightly_charges(booking, audit_date, performed_by)
 
     # Lock any pre-existing room lines for this date (e.g. check-in night posted at registration)

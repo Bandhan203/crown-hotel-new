@@ -16,13 +16,13 @@ export default function AdminHeader({ onMenuClick }: { onMenuClick: () => void }
   }, []);
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
-      <div className="flex items-center gap-2">
-        <button onClick={onMenuClick} className="lg:hidden text-gray-500 hover:text-teal-600 mr-2">
+    <header className="h-14 sm:h-16 bg-white border-b border-gray-200 flex items-center justify-between px-3 sm:px-6 flex-shrink-0 gap-2">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <button onClick={onMenuClick} className="lg:hidden text-gray-500 hover:text-teal-600 shrink-0">
           <MdMenu size={22} />
         </button>
-        <span className="text-gray-500 text-sm">Welcome back,</span>
-        <span className="font-bold text-gray-800 text-sm">{user?.full_name || 'Admin User'}</span>
+        <span className="text-gray-500 text-sm hidden sm:inline">Welcome back,</span>
+        <span className="font-bold text-gray-800 text-sm truncate">{user?.full_name || 'Admin User'}</span>
       </div>
 
       {/* Search Bar */}
@@ -40,9 +40,13 @@ export default function AdminHeader({ onMenuClick }: { onMenuClick: () => void }
       </div>
 
       {/* Right Side Icons & Profile */}
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-2 sm:gap-6 shrink-0">
+        <div className="flex lg:hidden items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-md border border-gray-200 max-w-[7rem] sm:max-w-none">
+          <MdEvent size={14} className="text-teal-600 shrink-0" />
+          <span className="text-[10px] sm:text-xs font-bold text-gray-700 font-mono truncate">{businessDate || '...'}</span>
+        </div>
         
-        {/* Business Date */}
+        {/* Business Date — desktop */}
         <div className="hidden lg:flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-md border border-gray-200">
           <MdEvent size={16} className="text-teal-600" />
           <span className="text-[11px] text-gray-500 uppercase tracking-wider">Business Date:</span>

@@ -45,7 +45,7 @@ export default function AboutSection() {
             <img
               src={aboutImage}
               alt="Hotel Crown"
-              className="w-full h-[500px] object-cover"
+              className="w-full h-[280px] sm:h-[380px] lg:h-[500px] object-cover"
             />
             <div className="absolute -bottom-6 -left-6 w-24 h-24 border-2 border-[var(--color-primary)] hidden lg:block" />
           </div>

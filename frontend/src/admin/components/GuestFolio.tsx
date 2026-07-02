@@ -204,30 +204,30 @@ export default function GuestFolio({ bookingId, bookingRef, onClose, onFolioChan
               </div>
 
               {showPostForm && (
-                <form onSubmit={handlePost} className="bg-slate-50 border border-teal-200 rounded-xl p-4 mb-4 grid grid-cols-5 gap-3 items-end">
-                  <div className="col-span-1">
+                <form onSubmit={handlePost} className="bg-slate-50 border border-teal-200 rounded-xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+                  <div className="sm:col-span-1">
                     <label className="block text-[10px] text-gray-500 uppercase mb-1">Type</label>
                     <select value={postForm.charge_type} onChange={e => setPostForm(f => ({...f, charge_type: e.target.value}))} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-slate-800 text-xs focus:border-teal-600 outline-none">
                       {Object.entries(chargeTypeLabels).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
                     </select>
                   </div>
-                  <div className="col-span-2">
+                  <div className="sm:col-span-2 lg:col-span-2">
                     <label className="block text-[10px] text-gray-500 uppercase mb-1">Description</label>
                     <input required value={postForm.description} onChange={e => setPostForm(f => ({...f, description: e.target.value}))} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-slate-800 text-xs focus:border-teal-600 outline-none" />
                   </div>
-                  <div className="col-span-1">
+                  <div className="sm:col-span-1 lg:col-span-1">
                     <label className="block text-[10px] text-gray-500 uppercase mb-1">Amount</label>
                     <input required type="number" step="0.01" value={postForm.amount} onChange={e => setPostForm(f => ({...f, amount: e.target.value}))} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-slate-800 text-xs focus:border-teal-600 outline-none" />
                   </div>
-                  <div className="col-span-1">
+                  <div className="sm:col-span-1 lg:col-span-1">
                     <button type="submit" className="w-full bg-teal-700 hover:bg-teal-600 text-white rounded-lg py-2 text-xs font-bold transition-colors">Post</button>
                   </div>
                 </form>
               )}
 
               {/* Charges Table */}
-              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                <table className="w-full text-left text-xs">
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm overflow-x-auto">
+                <table className="w-full text-left text-xs min-w-[520px]">
                   <thead className="bg-slate-100 border-b border-gray-200">
                     <tr>
                       <th className="py-3 px-4 font-semibold text-slate-600">Date</th>
@@ -276,7 +276,7 @@ export default function GuestFolio({ bookingId, bookingRef, onClose, onFolioChan
       {/* Adjust Modal */}
       {adjustCharge && (
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4" onClick={e => e.stopPropagation()}>
-          <form onSubmit={handleAdjust} className="bg-white border border-red-200 p-5 rounded-xl w-[400px] shadow-xl">
+          <form onSubmit={handleAdjust} className="bg-white border border-red-200 p-5 rounded-xl w-full max-w-[400px] mx-4 shadow-xl">
             <h3 className="text-red-600 font-bold mb-1 flex items-center gap-2"><MdBlock /> Revenue Guard: Void/Adjust</h3>
             <p className="text-xs text-slate-600 mb-4">Adjusting: <strong className="text-slate-900">{adjustCharge.desc}</strong> (BDT {adjustCharge.total})</p>
             
@@ -299,7 +299,7 @@ export default function GuestFolio({ bookingId, bookingRef, onClose, onFolioChan
       {/* Transfer Modal */}
       {transferCharge && (
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4" onClick={e => e.stopPropagation()}>
-          <form onSubmit={handleTransfer} className="bg-white border border-blue-200 p-5 rounded-xl w-[350px] shadow-xl">
+          <form onSubmit={handleTransfer} className="bg-white border border-blue-200 p-5 rounded-xl w-full max-w-[350px] mx-4 shadow-xl">
             <h3 className="text-blue-700 font-bold mb-1 flex items-center gap-2"><MdTransform /> Transfer Charge</h3>
             <p className="text-xs text-slate-600 mb-4">Transfer <strong className="text-slate-900">{transferCharge.desc}</strong> to:</p>
             

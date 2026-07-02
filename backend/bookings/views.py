@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -403,22 +404,46 @@ class AdminAssignRoomView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Check no conflicting active bookings on this room
-        conflict = Booking.objects.filter(
-            room=room,
-            check_in_date__lt=booking.check_out_date,
-            check_out_date__gt=booking.check_in_date,
-            status__in=['PENDING', 'CONFIRMED', 'CHECKED_IN'],
-        ).exclude(pk=booking.pk)
+        from bookings.services import check_availability, release_room_if_unassigned
 
-        if conflict.exists():
+        room = check_availability(
+            booking.room_type_id,
+            booking.check_in_date,
+            booking.check_out_date,
+            exclude_booking_id=booking.pk,
+        ).filter(pk=room_id).first()
+        if not room:
+            in_house = Booking.objects.filter(
+                room_id=room_id,
+                status='CHECKED_IN',
+                check_in_date__lt=booking.check_out_date,
+                check_out_date__gte=booking.check_in_date,
+            ).exclude(pk=booking.pk).select_related('guest').first()
+            if in_house:
+                guest_name = in_house.guest.full_name if in_house.guest else 'Guest'
+                return Response(
+                    {
+                        'detail': (
+                            f'Room is occupied by {guest_name} ({in_house.booking_ref}) '
+                            f'until check-out on {in_house.check_out_date}.'
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             return Response(
-                {'detail': 'Room has conflicting bookings for these dates.'},
+                {
+                    'detail': (
+                        'Room is not available — occupied, dirty, under maintenance, '
+                        'or has a conflicting reservation.'
+                    ),
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        old_room = booking.room
         booking.room = room
         booking.save(update_fields=['room', 'updated_at'])
+        release_room_if_unassigned(old_room, exclude_booking_id=booking.pk)
         if booking.status in ('PENDING', 'CONFIRMED'):
             room.status = 'RESERVED'
             room.save(update_fields=['status'])
@@ -452,151 +477,20 @@ class AdminPaymentListView(generics.ListAPIView):
 # ── Walk-in ──────────────────────────────────
 
 class WalkInBookingView(APIView):
-    """POST /api/admin/reservations/walk-in/ — create walk-in reservation + check-in."""
+    """POST /api/admin/reservations/walk-in/ — deprecated; use unified registration."""
+
     permission_classes = [IsStaffUser]
 
     def post(self, request):
-        serializer = WalkInSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-
-        from rooms.models import RoomType
-        try:
-            room_type = RoomType.objects.get(pk=data['room_type'])
-        except RoomType.DoesNotExist:
-            return Response({'detail': 'Room type not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-        # Get or create guest user — build full_name from first+last
-        first_name = data.get('first_name', '').strip()
-        last_name = data.get('last_name', '').strip()
-        full_name = f"{first_name} {last_name}".strip() or first_name or 'Guest'
-
-        guest, created = User.objects.get_or_create(
-            email=data['guest_email'],
-            defaults={
-                'full_name': full_name,
-                'phone': data.get('guest_phone', ''),
-                'role': 'GUEST',
-            }
+        return Response(
+            {
+                'detail': (
+                    'Walk-in API is deprecated. Use POST /api/admin/registrations/ '
+                    'then POST /api/admin/registrations/{id}/check-in/.'
+                ),
+            },
+            status=status.HTTP_410_GONE,
         )
-        if created:
-            guest.set_unusable_password()
-            guest.save()
-        else:
-            guest.full_name = full_name
-            if data.get('guest_phone'):
-                guest.phone = data['guest_phone']
-            guest.save(update_fields=['full_name', 'phone'])
-
-        nights = (data['check_out_date'] - data['check_in_date']).days
-        from bookings.services import assert_rate_plan_applicable, calculate_rate_plan_price
-
-        rate_plan_obj = None
-        if data.get('rate_plan'):
-            try:
-                rate_plan_obj = assert_rate_plan_applicable(
-                    data['rate_plan'], room_type.id, data['check_in_date'], data['check_out_date'],
-                )
-            except ValidationError as exc:
-                return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
-
-        rack = data.get('rack_rate') or room_type.price_per_night
-        if rate_plan_obj:
-            total_price, discount = calculate_rate_plan_price(rack, nights, rate_plan_obj)
-            offer = total_price / nights if nights else total_price
-        else:
-            offer = data.get('offer_rate') or rack
-            discount = data.get('discount_amount', 0)
-            total_price = max(0, (float(offer) * nights) - float(discount))
-            if total_price <= 0:
-                total_price = float(rack) * nights
-
-        with transaction.atomic():
-            # Save / update guest profile
-            from accounts.models import GuestProfile
-            profile, _ = GuestProfile.objects.get_or_create(user=guest)
-            profile_updates = {
-                'first_name': data.get('first_name', ''),
-                'last_name': data.get('last_name', ''),
-                'designation': data.get('designation', ''),
-                'date_of_birth': data.get('date_of_birth'),
-                'gender': data.get('gender', ''),
-                'nationality': data.get('nationality', ''),
-                'country': data.get('country', ''),
-                'address_line1': data.get('address', ''),
-                'occupation': data.get('occupation', ''),
-                'place_of_issue': data.get('place_of_issue', ''),
-                'visa_no': data.get('visa_no', ''),
-                'id_type': data.get('id_type', ''),
-                'id_number': data.get('id_number', ''),
-            }
-            for field, value in profile_updates.items():
-                if value is not None and value != '':
-                    setattr(profile, field, value)
-            profile.save()
-            # Find/assign room (date-aware availability)
-            room = None
-            if data.get('room_id'):
-                room = check_availability(
-                    room_type.id, data['check_in_date'], data['check_out_date']
-                ).filter(pk=data['room_id']).first()
-                if not room:
-                    return Response(
-                        {'detail': 'Selected room is not available for these dates.'},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-            else:
-                room = assign_room(room_type.id, data['check_in_date'], data['check_out_date'])
-                if not room:
-                    return Response({'detail': 'No rooms available.'}, status=status.HTTP_400_BAD_REQUEST)
-
-            booking = Booking.objects.create(
-                guest=guest,
-                room=room,
-                room_type=room_type,
-                rate_plan=rate_plan_obj,
-                check_in_date=data['check_in_date'],
-                check_out_date=data['check_out_date'],
-                arrival_time=data.get('arrival_time'),
-                adults=data['adults'],
-                children=data['children'],
-                total_price=total_price,
-                grand_total=total_price,
-                rack_rate=rack,
-                offer_rate=offer,
-                discount_amount=discount,
-                status='CHECKED_IN',
-                booking_source=data.get('booking_source', 'WALK_IN'),
-                id_type=data.get('id_type', ''),
-                id_number=data.get('id_number', ''),
-                deposit_amount=data.get('deposit_amount', 0),
-                special_requests=data.get('special_requests', ''),
-                company_name=data.get('company_name', ''),
-                guest_type=data.get('guest_type', ''),
-                purpose_of_visit=data.get('purpose_of_visit', ''),
-                coming_from=data.get('coming_from', ''),
-                extra_bed=data.get('extra_bed', 0),
-                actual_check_in=timezone.now(),
-                checked_in_by=request.user,
-            )
-
-            room.status = 'OCCUPIED'
-            room.save(update_fields=['status'])
-
-            # Post deposit to folio if provided
-            if booking.deposit_amount > 0:
-                FolioCharge.objects.create(
-                    booking=booking,
-                    charge_type='DEPOSIT',
-                    description='Security deposit',
-                    amount=-booking.deposit_amount,
-                    quantity=1,
-                    total=-booking.deposit_amount,
-                    charge_date=data['check_in_date'],
-                    posted_by=request.user,
-                )
-
-        return Response(BookingDetailSerializer(booking).data, status=status.HTTP_201_CREATED)
 
 
 # ── Reservation Create (future booking, not checked-in) ──────────────────
@@ -643,11 +537,22 @@ class ReservationCreateView(APIView):
         except ValidationError as exc:
             return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
 
-        from bookings.services import assert_rate_plan_applicable, calculate_rate_plan_price
+        from bookings.services import (
+            assert_rate_plan_applicable,
+            calculate_rate_plan_price,
+            money,
+            MAX_BOOKING_AMOUNT,
+            validate_reservation_stay_dates,
+        )
 
-        nights = (data['check_out_date'] - data['check_in_date']).days
+        nights = validate_reservation_stay_dates(data['check_in_date'], data['check_out_date'])
         num_rooms = int(data.get('num_rooms', 1) or 1)
-        rack = data.get('rack_rate') or room_type.price_per_night
+        if num_rooms < 1 or num_rooms > 50:
+            return Response(
+                {'detail': 'Number of rooms must be between 1 and 50.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        rack = money(data.get('rack_rate') or room_type.price_per_night)
 
         rate_plan_obj = None
         if data.get('rate_plan'):
@@ -660,14 +565,58 @@ class ReservationCreateView(APIView):
 
         if rate_plan_obj:
             stay_total, discount = calculate_rate_plan_price(rack, nights, rate_plan_obj)
-            total_price = stay_total * num_rooms
-            offer = stay_total / nights if nights else stay_total
+            total_price = money(stay_total * num_rooms)
+            offer = money(stay_total / nights) if nights else money(stay_total)
+            discount = money(discount * num_rooms)
         else:
-            offer = data.get('offer_rate') or rack
-            discount = data.get('discount_amount', 0)
-            total_price = max(0, (float(offer) * nights * num_rooms) - float(discount))
+            offer = money(data.get('offer_rate') or rack)
+            discount = money(data.get('discount_amount', 0))
+            line_total = offer * nights * num_rooms
+            total_price = money(max(Decimal('0'), line_total - discount))
             if total_price <= 0:
-                total_price = float(rack) * nights * num_rooms
+                total_price = money(rack * nights * num_rooms)
+
+        svc_pct = money(data.get('service_charge_pct', 0))
+        vat_pct_val = money(data.get('vat_pct', 0))
+        service_charge_amount = money(total_price * svc_pct / Decimal('100'))
+        vat_amount = money(total_price * vat_pct_val / Decimal('100'))
+        grand = money(total_price + service_charge_amount + vat_amount)
+
+        if grand > MAX_BOOKING_AMOUNT:
+            return Response(
+                {
+                    'detail': (
+                        'Calculated total exceeds system limit. '
+                        'Please verify check-in/check-out dates, number of rooms, and rates.'
+                    ),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        available_rooms = check_availability(
+            room_type.id, data['check_in_date'], data['check_out_date'],
+        )
+        if data.get('room_id'):
+            if not available_rooms.filter(pk=data['room_id']).exists():
+                return Response(
+                    {'detail': 'Selected room is not available for these dates.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        elif num_rooms > 1 and available_rooms.count() < num_rooms:
+            return Response(
+                {
+                    'detail': (
+                        f'Only {available_rooms.count()} room(s) available for these dates. '
+                        f'Requested {num_rooms}. Create separate bookings per room.'
+                    ),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        elif num_rooms == 1 and not data.get('room_id') and not available_rooms.exists():
+            return Response(
+                {'detail': 'No rooms available for this room type and date range.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         parent_booking = None
         if data.get('parent_booking_id'):
@@ -712,12 +661,6 @@ class ReservationCreateView(APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-            svc_pct = float(data.get('service_charge_pct', 0) or 0)
-            vat_pct_val = float(data.get('vat_pct', 0) or 0)
-            service_charge_amount = total_price * svc_pct / 100
-            vat_amount = total_price * vat_pct_val / 100
-            grand = total_price + service_charge_amount + vat_amount
-
             from .channels import normalize_reference_source
 
             booking = Booking.objects.create(
@@ -743,7 +686,7 @@ class ReservationCreateView(APIView):
                 discount_amount=discount,
                 service_charge_pct=svc_pct,
                 vat_pct=vat_pct_val,
-                tax_amount=round(service_charge_amount + vat_amount, 2),
+                tax_amount=money(service_charge_amount + vat_amount),
                 deposit_amount=data.get('deposit_amount', 0),
                 status=data.get('status', 'CONFIRMED'),
                 booking_source=data.get('booking_source', 'PHONE'),
@@ -784,28 +727,20 @@ class ReservationCreateView(APIView):
             # Record advance payment if provided
             payment_amount = float(data.get('payment_amount', 0) or 0)
             if payment_amount > 0:
+                from bookings.checkout_services import get_business_date, get_business_datetime
+
                 Payment.objects.create(
                     booking=booking,
                     amount=payment_amount,
                     payment_method=data.get('payment_method', 'CASH'),
                     currency=booking.currency,
                     status='COMPLETED',
-                    paid_at=timezone.now(),
-                )
-                sync_booking_payment_status(booking)
-
-            # Post security deposit to folio
-            if booking.deposit_amount > 0:
-                FolioCharge.objects.create(
-                    booking=booking,
-                    charge_type='DEPOSIT',
-                    description='Security deposit',
-                    amount=-booking.deposit_amount,
-                    quantity=1,
-                    total=-booking.deposit_amount,
-                    charge_date=data['check_in_date'],
+                    transaction_id='RESERVATION',
+                    paid_at=get_business_datetime(),
+                    business_date=get_business_date(),
                     posted_by=request.user,
                 )
+                sync_booking_payment_status(booking)
 
             from .registration_services import get_or_create_registration_for_booking
             get_or_create_registration_for_booking(booking)
@@ -993,7 +928,10 @@ class ArrivalsListView(generics.ListAPIView):
     permission_classes = [IsStaffUser]
 
     def get_queryset(self):
-        target_date = self.request.query_params.get('date', date.today().isoformat())
+        from dashboard.models import HotelConfig
+
+        business_date = HotelConfig.load().business_date
+        target_date = self.request.query_params.get('date') or business_date.isoformat()
         return Booking.objects.filter(
             check_in_date=target_date,
             status__in=['PENDING', 'CONFIRMED'],
@@ -1010,10 +948,20 @@ class DeparturesListView(generics.ListAPIView):
     permission_classes = [IsStaffUser]
 
     def get_queryset(self):
-        target_date = self.request.query_params.get('date', date.today().isoformat())
+        from dashboard.models import HotelConfig
+
+        business_date = HotelConfig.load().business_date
+        target_date_str = self.request.query_params.get('date')
+        target_date = business_date
+        if target_date_str:
+            try:
+                target_date = date.fromisoformat(target_date_str)
+            except ValueError:
+                pass
         return Booking.objects.filter(
-            check_out_date=target_date,
             status='CHECKED_IN',
+        ).filter(
+            models.Q(check_out_date=target_date) | models.Q(check_out_date__lt=business_date),
         ).select_related(
             'guest', 'room_type', 'room', 'rate_plan'
         ).prefetch_related(

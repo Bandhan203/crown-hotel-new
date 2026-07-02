@@ -1,7 +1,6 @@
 """Housekeeping workflow helpers — checkout → dirty room → cleaning task."""
 
-from datetime import date
-
+from dashboard.models import HotelConfig
 from rooms.models import HousekeepingTask, Room
 
 DIRTY_HK_STATUSES = frozenset({'OD', 'VD', 'CO'})
@@ -46,7 +45,7 @@ def ensure_cleaning_task(room, booking=None, *, notes='', priority='HIGH'):
         task_type=HousekeepingTask.TaskType.CLEAN,
         priority=priority,
         status=HousekeepingTask.Status.PENDING,
-        scheduled_date=date.today(),
+        scheduled_date=HotelConfig.load().business_date,
         notes=notes or 'Room cleaning requested',
     )
     return task, True

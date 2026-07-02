@@ -55,7 +55,11 @@ export default function AdminLayout() {
             ☰
           </button>
         )}
-        <main className={`flex-1 min-h-0 ${isDashboard ? 'overflow-y-auto overflow-x-hidden custom-scrollbar' : 'overflow-y-auto overflow-x-hidden p-4 lg:p-6'}`}>
+        <main className={`flex-1 min-h-0 min-w-0 ${
+          isDashboard
+            ? 'overflow-y-auto overflow-x-hidden custom-scrollbar pt-14 pl-12 pr-3 sm:pr-4 lg:pt-0 lg:pl-0 lg:pr-0'
+            : 'overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6'
+        }`}>
           <Outlet />
         </main>
       </div>

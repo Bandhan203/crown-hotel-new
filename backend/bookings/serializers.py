@@ -452,8 +452,8 @@ class ReservationCreateSerializer(serializers.Serializer):
     vehicle_assigned = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
 
     def validate(self, attrs):
-        if attrs['check_in_date'] >= attrs['check_out_date']:
-            raise serializers.ValidationError({'check_out_date': 'Check-out must be after check-in.'})
+        from bookings.services import validate_reservation_stay_dates
+        validate_reservation_stay_dates(attrs['check_in_date'], attrs['check_out_date'])
         if not attrs.get('first_name', '').strip():
             raise serializers.ValidationError({'first_name': 'First name is required.'})
         if attrs['adults'] < 1:
@@ -668,3 +668,16 @@ class RegistrationCheckInPayloadSerializer(RegistrationWriteSerializer):
         required=True,
     )
     notes_internal = serializers.CharField(required=False, allow_blank=True, default='')
+    payment_amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, default=0, min_value=0,
+    )
+    payment_method = serializers.ChoiceField(
+        choices=Payment.Method.choices, required=False, default=Payment.Method.CASH,
+    )
+    early_check_in = serializers.BooleanField(required=False, default=False)
+
+    def validate(self, attrs):
+        payment_amount = float(attrs.get('payment_amount') or 0)
+        if payment_amount < 0:
+            raise serializers.ValidationError({'payment_amount': 'Advance cannot be negative.'})
+        return attrs

@@ -12,7 +12,7 @@ export default function VideoSection() {
 
   return (
     <section
-      className="relative h-[70vh] min-h-[500px] bg-cover bg-center bg-fixed flex items-center justify-center"
+      className="relative h-[50vh] min-h-[280px] sm:min-h-[400px] md:h-[70vh] bg-cover bg-center max-md:bg-scroll md:bg-fixed flex items-center justify-center"
       style={{ backgroundImage: `url(${videoImage})` }}
     >
       <div className="overlay" />

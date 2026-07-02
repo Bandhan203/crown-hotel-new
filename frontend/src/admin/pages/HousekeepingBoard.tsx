@@ -69,16 +69,31 @@ export default function HousekeepingBoard() {
   const [hkFilter, setHkFilter] = useState<string>('ALL');
   const [floorFilter, setFloorFilter] = useState<string>('ALL');
   const [showTaskForm, setShowTaskForm] = useState(false);
-  const [taskForm, setTaskForm] = useState({ room: '', task_type: 'CLEAN', priority: 'NORMAL', assigned_to: '', notes: '', scheduled_date: new Date().toISOString().split('T')[0] });
+  const [businessDate, setBusinessDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [taskForm, setTaskForm] = useState({
+    room: '', task_type: 'CLEAN', priority: 'NORMAL', assigned_to: '', notes: '',
+    scheduled_date: new Date().toISOString().split('T')[0],
+  });
   const [selectedTask, setSelectedTask] = useState<HKTask | null>(null);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api.get('/admin/config/')
+      .then(res => {
+        if (res.data?.business_date) {
+          setBusinessDate(res.data.business_date);
+          setTaskForm(f => ({ ...f, scheduled_date: res.data.business_date }));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [roomsRes, tasksRes] = await Promise.all([
         api.get('/admin/housekeeping/board/'),
-        api.get('/admin/housekeeping/', { params: { page_size: 100, scheduled_date: new Date().toISOString().split('T')[0] } }),
+        api.get('/admin/housekeeping/', { params: { page_size: 100, scheduled_date: businessDate } }),
       ]);
       setRooms(roomsRes.data);
       setTasks(tasksRes.data.results ?? tasksRes.data);
@@ -86,7 +101,7 @@ export default function HousekeepingBoard() {
       toast.error('Failed to load housekeeping data');
     }
     setLoading(false);
-  }, []);
+  }, [businessDate]);
 
   const fetchStaff = useCallback(async () => {
     try {

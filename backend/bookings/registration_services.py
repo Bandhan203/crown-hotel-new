@@ -100,7 +100,9 @@ def get_or_create_registration_for_booking(booking):
 
 
 def create_walk_in_registration():
-    today = date.today()
+    from dashboard.models import HotelConfig
+
+    today = HotelConfig.load().business_date
     tomorrow = date.fromordinal(today.toordinal() + 1)
     return Registration.objects.create(
         mode=Registration.Mode.WALK_IN,
@@ -109,6 +111,45 @@ def create_walk_in_registration():
         check_out_date=tomorrow,
         booking_source='WALK_IN',
     )
+
+
+def _advance_payment_source(transaction_id: str) -> str:
+    tid = (transaction_id or '').upper()
+    if tid == 'RESERVATION':
+        return 'RESERVATION'
+    if tid == 'CHECK_IN':
+        return 'CHECK_IN'
+    return 'OTHER'
+
+
+def _serialize_advance_payments(booking):
+    if not booking:
+        return []
+    from bookings.models import Payment
+
+    rows = Payment.objects.filter(
+        booking=booking,
+        status=Payment.Status.COMPLETED,
+        is_refund=False,
+    ).order_by('paid_at', 'id')
+    labels = {
+        'RESERVATION': 'Reservation advance',
+        'CHECK_IN': 'Check-in advance',
+        'OTHER': 'Advance payment',
+    }
+    result = []
+    for payment in rows:
+        source = _advance_payment_source(payment.transaction_id)
+        result.append({
+            'id': payment.id,
+            'amount': str(payment.amount),
+            'payment_method': payment.payment_method,
+            'paid_at': payment.paid_at.isoformat() if payment.paid_at else None,
+            'source': source,
+            'label': labels.get(source, 'Advance payment'),
+            'booking_ref': booking.booking_ref,
+        })
+    return result
 
 
 def registration_to_api(registration, request=None):
@@ -122,6 +163,12 @@ def registration_to_api(registration, request=None):
     registration_card = None
     booking_status = registration.status
 
+    advance_paid = 0.0
+    advance_payments = []
+    balance_due = 0.0
+    from dashboard.models import HotelConfig
+    business_date = HotelConfig.load().business_date.isoformat()
+
     if booking:
         room_type_name = booking.room_type.name if booking.room_type else room_type_name
         room_number = booking.room.room_number if booking.room else room_number
@@ -131,6 +178,14 @@ def registration_to_api(registration, request=None):
         booking_status = booking.status
         if booking.registration_card and request:
             registration_card = request.build_absolute_uri(booking.registration_card.url)
+        from bookings.checkout_services import get_payment_breakdown
+        advance_paid = get_payment_breakdown(booking)['receipts']
+        advance_payments = _serialize_advance_payments(booking)
+        balance_due = max(0.0, float(booking.grand_total or booking.total_price or 0) - advance_paid)
+    else:
+        advance_paid = 0.0
+        advance_payments = []
+        balance_due = 0.0
 
     return {
         'id': registration.id,
@@ -180,10 +235,16 @@ def registration_to_api(registration, request=None):
         'offer_rate': str(registration.offer_rate),
         'discount_amount': str(registration.discount_amount),
         'deposit_amount': str(registration.deposit_amount),
+        'advance_paid': str(advance_paid),
+        'advance_payments': advance_payments,
+        'balance_due': str(balance_due),
+        'payment_amount': '0',
+        'payment_method': 'CASH',
         'total_price': total_price,
         'grand_total': grand_total,
         'currency': currency,
         'billing_type': registration.billing_type or 'GUEST',
+        'business_date': business_date,
         'registration_card': registration_card,
     }
 
@@ -203,6 +264,7 @@ def apply_registration_payload(registration, data):
             registration.room_type = RoomType.objects.get(pk=room_type_id)
         except RoomType.DoesNotExist:
             pass
+    room_was_set = room_id is not None
     if room_id is not None:
         registration.room_id = room_id
 
@@ -232,14 +294,44 @@ def apply_registration_payload(registration, data):
     registration.save()
 
     if registration.booking_id:
+        booking = registration.booking
         profile, _ = GuestProfile.objects.get_or_create(user=registration.guest)
         sync_payload = {
             **data,
             'address': registration.address,
             'guest_phone': registration.guest_phone,
         }
-        apply_registration_data(registration.booking, profile, sync_payload)
-        sync_registration_from_booking(registration.booking, registration)
+        apply_registration_data(booking, profile, sync_payload)
+
+        if (
+            room_was_set
+            and registration.room_id
+            and registration.check_in_date
+            and registration.check_out_date
+        ):
+            from bookings.services import check_availability, release_room_if_unassigned
+
+            avail = check_availability(
+                booking.room_type_id or registration.room_type_id,
+                registration.check_in_date,
+                registration.check_out_date,
+                exclude_booking_id=booking.id,
+            ).filter(pk=registration.room_id).first()
+            if avail:
+                old_room = booking.room
+                booking.room = avail
+                booking.save(update_fields=['room', 'updated_at'])
+                registration.room = avail
+                registration.save(update_fields=['room', 'updated_at'])
+                release_room_if_unassigned(old_room, exclude_booking_id=booking.id)
+                if booking.status in ('PENDING', 'CONFIRMED'):
+                    avail.status = 'RESERVED'
+                    avail.save(update_fields=['status'])
+            else:
+                registration.room = booking.room
+                registration.save(update_fields=['room', 'updated_at'])
+        else:
+            sync_registration_from_booking(booking, registration)
 
     return registration
 
@@ -261,12 +353,21 @@ def _ensure_booking_for_walk_in(registration, user):
     if nights <= 0:
         raise ValueError('Check-out must be after check-in.')
 
-    offer = float(registration.offer_rate or registration.rack_rate or room_type.price_per_night)
-    rack = float(registration.rack_rate or offer)
-    disc = float(registration.discount_amount or 0)
-    total_price = max(0, offer * nights - disc)
+    from bookings.services import money
+    from decimal import Decimal
+
+    offer = money(registration.offer_rate or registration.rack_rate or room_type.price_per_night)
+    rack = money(registration.rack_rate or offer)
+    disc = money(registration.discount_amount or 0)
+    line_total = offer * nights
+    total_price = money(max(Decimal('0'), line_total - disc))
     if total_price <= 0:
-        total_price = float(rack) * nights
+        total_price = money(rack * nights)
+    svc_pct = money(getattr(registration, 'service_charge_pct', 0) or 0)
+    vat_pct = money(getattr(registration, 'vat_pct', 0) or 0)
+    service_charge = money(total_price * svc_pct / Decimal('100'))
+    vat_amount = money(total_price * vat_pct / Decimal('100'))
+    grand = money(total_price + service_charge + vat_amount)
 
     room = None
     if registration.room_id:
@@ -288,10 +389,11 @@ def _ensure_booking_for_walk_in(registration, user):
         infants=registration.infants,
         extra_bed=registration.extra_bed,
         total_price=total_price,
-        grand_total=total_price,
+        grand_total=grand,
         rack_rate=rack,
         offer_rate=offer,
         discount_amount=disc,
+        tax_amount=money(service_charge + vat_amount),
         deposit_amount=registration.deposit_amount,
         status='CONFIRMED',
         booking_source=registration.booking_source or 'WALK_IN',
@@ -326,6 +428,66 @@ def _ensure_booking_for_walk_in(registration, user):
     return booking
 
 
+def _recalculate_booking_stay_pricing(booking):
+    """Recompute room charges after check-in / check-out date changes."""
+    from decimal import Decimal
+
+    from bookings.services import MAX_BOOKING_AMOUNT, money
+
+    nights = (booking.check_out_date - booking.check_in_date).days
+    if nights <= 0:
+        raise ValueError('Check-out must be after check-in.')
+
+    num_rooms = booking.num_rooms or 1
+    offer = money(booking.offer_rate or booking.rack_rate or booking.room_type.price_per_night)
+    rack = money(booking.rack_rate or offer)
+    discount = money(booking.discount_amount or 0)
+    line_total = offer * nights * num_rooms
+    total_price = money(max(Decimal('0'), line_total - discount))
+    if total_price <= 0:
+        total_price = money(rack * nights * num_rooms)
+
+    svc_pct = money(booking.service_charge_pct or 0)
+    vat_pct = money(booking.vat_pct or 0)
+    service_charge = money(total_price * svc_pct / Decimal('100'))
+    vat = money(total_price * vat_pct / Decimal('100'))
+    grand = money(total_price + service_charge + vat)
+    if grand > MAX_BOOKING_AMOUNT:
+        raise ValueError(
+            'Recalculated total exceeds system limit. '
+            'Please verify dates, rooms, and rates before early check-in.'
+        )
+
+    booking.total_price = total_price
+    booking.grand_total = grand
+    booking.tax_amount = money(service_charge + vat)
+    return nights
+
+
+def _resolve_arrival_for_check_in(booking, registration, business_date, early_check_in=False):
+    """Align scheduled arrival with hotel business date when checking in early."""
+    if booking.check_in_date <= business_date:
+        return False
+
+    if not early_check_in:
+        raise ValueError(
+            f'Arrival date is {booking.check_in_date}. Business date is {business_date}. '
+            'Cannot check in before arrival date. Use early check-in to move arrival to today.'
+        )
+
+    booking.check_in_date = business_date
+    if registration:
+        registration.check_in_date = business_date
+
+    _recalculate_booking_stay_pricing(booking)
+    booking.save(update_fields=[
+        'check_in_date', 'total_price', 'grand_total', 'tax_amount', 'updated_at',
+    ])
+    if registration:
+        registration.save(update_fields=['check_in_date', 'updated_at'])
+    return True
+
+
 def check_in_registration(registration, data, user):
     """Unified check-in: update registration, ensure booking, perform check-in."""
     from dashboard.models import HotelConfig
@@ -334,11 +496,12 @@ def check_in_registration(registration, data, user):
 
     booking = _ensure_booking_for_walk_in(registration, user)
     business_date = HotelConfig.load().business_date
-    if booking.check_in_date > business_date:
-        raise ValueError(
-            f'Arrival date is {booking.check_in_date}. Business date is {business_date}. '
-            'Cannot check in before arrival date.'
-        )
+    _resolve_arrival_for_check_in(
+        booking,
+        registration,
+        business_date,
+        early_check_in=bool(data.get('early_check_in')),
+    )
 
     if booking.status not in ('PENDING', 'CONFIRMED'):
         raise ValueError(f'Cannot check in a booking with status {booking.status}.')
@@ -377,6 +540,36 @@ def check_in_registration(registration, data, user):
             )},
         })
         perform_check_in(booking, checkin_data, user)
+
+        payment_amount = float(data.get('payment_amount') or 0)
+        if payment_amount > 0:
+            from bookings.models import Payment
+            from bookings.checkout_services import get_business_date, get_business_datetime
+            from bookings.services import sync_booking_payment_status
+
+            existing = 0.0
+            if booking.pk:
+                from bookings.checkout_services import get_payment_breakdown
+                existing = get_payment_breakdown(booking)['receipts']
+            grand = float(booking.grand_total or booking.total_price or 0)
+            if existing + payment_amount > grand + 0.01:
+                raise ValueError(
+                    f'Advance BDT {payment_amount:,.2f} exceeds balance due '
+                    f'(BDT {max(0, grand - existing):,.2f}).'
+                )
+            Payment.objects.create(
+                booking=booking,
+                amount=payment_amount,
+                payment_method=data.get('payment_method', Payment.Method.CASH),
+                currency=booking.currency or 'BDT',
+                status=Payment.Status.COMPLETED,
+                transaction_id='CHECK_IN',
+                paid_at=get_business_datetime(),
+                business_date=get_business_date(),
+                posted_by=user,
+            )
+            sync_booking_payment_status(booking)
+
         registration.status = Registration.Status.CHECKED_IN
         registration.billing_type = checkin_data['billing_type']
         registration.room = booking.room

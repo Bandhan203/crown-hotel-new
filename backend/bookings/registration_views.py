@@ -38,11 +38,12 @@ class RegistrationByBookingView(APIView):
         try:
             booking = Booking.objects.select_related(
                 'guest', 'room_type', 'room',
-            ).get(pk=booking_id)
+            ).prefetch_related('payments').get(pk=booking_id)
         except Booking.DoesNotExist:
             return Response({'detail': 'Booking not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         registration = get_or_create_registration_for_booking(booking)
+        registration.refresh_from_db()
         return Response(registration_to_api(registration, request))
 
 

@@ -122,6 +122,23 @@ export default function ReservationModal({ onClose, onSuccess, initialValues }: 
   const [grandTotal,     setGrandTotal]     = useState(0);
   const [workflowPhase,  setWorkflowPhase]  = useState<WorkflowPhase | null>(null);
   const [primaryBooking, setPrimaryBooking] = useState<SavedReservation | null>(null);
+
+  useEffect(() => {
+    api.get('/admin/config/')
+      .then(res => {
+        const biz = res.data.business_date;
+        if (!biz) return;
+        const next = new Date(biz + 'T12:00:00');
+        next.setDate(next.getDate() + 1);
+        const tomorrow = next.toISOString().split('T')[0];
+        setForm(f => ({
+          ...f,
+          check_in_date: f.check_in_date === TODAY ? biz : f.check_in_date,
+          check_out_date: f.check_out_date === TOMORROW ? tomorrow : f.check_out_date,
+        }));
+      })
+      .catch(() => {});
+  }, []);
   const [sessionCount,   setSessionCount]   = useState(0);
   const [lastBooking,    setLastBooking]    = useState<SavedReservation | null>(null);
   const [finalizing,     setFinalizing]     = useState(false);
@@ -392,6 +409,8 @@ export default function ReservationModal({ onClose, onSuccess, initialValues }: 
     if (!form.guest_email.trim()) { toast.error('Email is required');      return; }
     if (!form.room_type)          { toast.error('Room type is required');  return; }
     if (nights <= 0)              { toast.error('Departure must be after arrival'); return; }
+    if (nights > 365)             { toast.error('Stay cannot exceed 365 nights. Please check dates.'); return; }
+    if (grandTotal > 99_999_999)  { toast.error('Total amount is too large. Check dates, rooms, and rates.'); return; }
     if (capacityCheck && !capacityCheck.ok) {
       toast.error(capacityWarning || 'Guest count exceeds room capacity. Add extra bed(s) or adjust PAX.');
       return;

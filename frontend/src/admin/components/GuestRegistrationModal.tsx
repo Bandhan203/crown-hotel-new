@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { MdClose, MdUploadFile, MdSave, MdBadge, MdLogin, MdPrint } from 'react-icons/md';
 import api from '../../services/api';
@@ -58,6 +58,14 @@ const ID_TYPES = [
   { value: 'DRIVING_LICENSE', label: 'Driving License' },
 ];
 
+const PAYMENT_METHODS = [
+  { value: 'CASH', label: 'Cash' },
+  { value: 'CARD', label: 'Card' },
+  { value: 'POS', label: 'POS' },
+  { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
+  { value: 'ONLINE', label: 'Online' },
+];
+
 const BOOKING_SOURCES = [
   { value: 'WEBSITE', label: 'Website' },
   { value: 'PHONE', label: 'Phone' },
@@ -66,6 +74,19 @@ const BOOKING_SOURCES = [
   { value: 'AGENT', label: 'Agent' },
   { value: 'CORPORATE', label: 'Corporate' },
 ];
+
+function formatApiError(data: unknown, fallback = 'Request failed'): string {
+  if (!data || typeof data !== 'object') return fallback;
+  const d = data as Record<string, unknown>;
+  if (typeof d.detail === 'string') return d.detail;
+  const parts: string[] = [];
+  for (const [field, val] of Object.entries(d)) {
+    if (Array.isArray(val)) {
+      parts.push(`${field.replace(/_/g, ' ')}: ${val.join(', ')}`);
+    } else if (typeof val === 'string') parts.push(val);
+  }
+  return parts.join(' · ') || fallback;
+}
 
 function buildPayload(data: RegistrationData, roomId: string, roomTypeId: string) {
   return buildRegistrationPayload(data, roomId, roomTypeId);
@@ -95,14 +116,21 @@ export default function RegistrationModule({
   const [roomsLoading, setRoomsLoading] = useState(false);
   const [roomId, setRoomId] = useState('');
   const [dialog, setDialog] = useState<DialogPhase>(null);
+  const [businessDate, setBusinessDate] = useState('');
   const formRef = useRef<HTMLFormElement>(null);
   useEnterNav(formRef);
 
   const isWalkIn = mode === 'walk-in';
   const canCheckIn = isWalkIn
-    ? data?.status !== 'CHECKED_IN'
+    ? data?.status !== 'CHECKED_IN' && data?.registration_status !== 'CHECKED_IN'
     : data?.status === 'PENDING' || data?.status === 'CONFIRMED';
   const isCheckedIn = data?.status === 'CHECKED_IN';
+
+  useEffect(() => {
+    api.get('/admin/config/')
+      .then(res => setBusinessDate(res.data.business_date || ''))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (isWalkIn) {
@@ -147,6 +175,28 @@ export default function RegistrationModule({
     load();
     return () => { cancelled = true; };
   }, [bookingId, registrationId, isWalkIn, hydrated]);
+
+  // Refresh reservation advance when opening check-in for an existing booking
+  useEffect(() => {
+    if (!bookingId || isWalkIn || !hydrated) return;
+    let cancelled = false;
+    api.get(`/admin/registrations/by-booking/${bookingId}/`)
+      .then(res => {
+        if (cancelled) return;
+        const fresh = hydrateRegistrationForm(res.data);
+        setData(d => d ? {
+          ...d,
+          advance_paid: fresh.advance_paid,
+          advance_payments: fresh.advance_payments,
+          balance_due: fresh.balance_due,
+          grand_total: fresh.grand_total,
+          total_price: fresh.total_price,
+          booking_ref: fresh.booking_ref,
+        } : d);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [bookingId, isWalkIn, hydrated]);
 
   useEffect(() => {
     if (!isWalkIn || !roomTypeId) return;
@@ -202,6 +252,40 @@ export default function RegistrationModule({
 
   const isForeigner = data && data.country.trim() !== '' && !data.country.toLowerCase().includes('bangladesh');
 
+  const grandTotal = useMemo(() => {
+    if (!data) return 0;
+    if (isWalkIn) {
+      const nights = Math.max(1, data.nights || 1);
+      const offer = parseFloat(data.offer_rate || data.rack_rate || '0') || 0;
+      const disc = parseFloat(data.discount_amount || '0') || 0;
+      return Math.max(0, offer * nights - disc);
+    }
+    return parseFloat(data.grand_total || data.total_price || '0') || 0;
+  }, [data, isWalkIn]);
+
+  const advancePaid = useMemo(() => {
+    const v = parseFloat(data?.advance_paid || '0');
+    return Number.isFinite(v) && v > 0 ? v : 0;
+  }, [data?.advance_paid]);
+
+  const newAdvance = useMemo(() => {
+    const v = parseFloat(data?.payment_amount || '0');
+    return Number.isFinite(v) && v > 0 ? v : 0;
+  }, [data?.payment_amount]);
+
+  const paymentBalance = useMemo(() => {
+    const due = Math.max(0, grandTotal - advancePaid - newAdvance);
+    const overpaid = Math.max(0, advancePaid + newAdvance - grandTotal);
+    return { due, overpaid };
+  }, [grandTotal, advancePaid, newAdvance]);
+
+  const hotelBusinessDate = businessDate || data?.business_date || '';
+  const isEarlyCheckIn = Boolean(
+    hotelBusinessDate
+    && data?.check_in_date
+    && data.check_in_date > hotelBusinessDate,
+  );
+
   const handleUpdate = async () => {
     if (!data || !registrationId) return;
     setSaving(true);
@@ -212,8 +296,8 @@ export default function RegistrationModule({
       toast.success('Registration updated — guest list and ledger synchronized');
       onRefresh?.();
     } catch (err: unknown) {
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      toast.error(detail || 'Failed to update registration');
+      const res = (err as { response?: { data?: unknown } })?.response?.data;
+      toast.error(formatApiError(res, 'Failed to update registration'));
     } finally {
       setSaving(false);
       setDialog(null);
@@ -238,11 +322,21 @@ export default function RegistrationModule({
       toast.error('Company name is required for Company Payment billing');
       return;
     }
+    if (paymentBalance.overpaid > 0) {
+      const currency = data.currency || 'BDT';
+      toast.error(
+        `Advance exceeds grand total by ${currency} ${paymentBalance.overpaid.toFixed(2)}. Reduce the amount.`,
+      );
+      return;
+    }
     setCheckingIn(true);
     try {
       const payload = {
         ...buildPayload({ ...data, billing_type: billingType }, roomId, roomTypeId),
         billing_type: billingType,
+        payment_amount: data.payment_amount || '0',
+        payment_method: data.payment_method || 'CASH',
+        early_check_in: isEarlyCheckIn,
       };
       if (isForeigner) payload.id_type = 'PASSPORT';
       const res = await api.post(`/admin/registrations/${registrationId}/check-in/`, payload);
@@ -254,8 +348,8 @@ export default function RegistrationModule({
       onRefresh?.();
       await printRegistrationCard(updated.booking_id ?? data.booking_id);
     } catch (err: unknown) {
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      toast.error(detail || 'Check-in failed');
+      const res = (err as { response?: { data?: unknown } })?.response?.data;
+      toast.error(formatApiError(res, 'Check-in failed'));
     } finally {
       setCheckingIn(false);
     }
@@ -598,16 +692,97 @@ export default function RegistrationModule({
                     <input type="number" step="0.01" value={data.discount_amount} onChange={e => set('discount_amount', e.target.value)} className={inputClass} />
                   </div>
                   <div>
-                    <label className={labelClass}>Deposit</label>
-                    <input type="number" step="0.01" value={data.deposit_amount} onChange={e => set('deposit_amount', e.target.value)} className={inputClass} />
+                    <label className={labelClass}>Deposit (Security)</label>
+                    <input type="number" step="0.01" min="0" value={data.deposit_amount} onChange={e => set('deposit_amount', e.target.value)} className={inputClass} />
                   </div>
-                  <div><label className={labelClass}>Total Price</label><input type="text" value={`${sym} ${data.total_price}`} disabled className={inputClass + ' opacity-50'} /></div>
-                  <div><label className={labelClass}>Grand Total</label><input type="text" value={`${sym} ${data.grand_total || data.total_price}`} disabled className={inputClass + ' opacity-50'} /></div>
+                  <div><label className={labelClass}>Total Price</label><input type="text" value={`${sym} ${isWalkIn ? grandTotal.toFixed(2) : data.total_price}`} disabled className={inputClass + ' opacity-50'} /></div>
+                  <div><label className={labelClass}>Grand Total</label><input type="text" value={`${sym} ${grandTotal.toFixed(2)}`} disabled className={inputClass + ' opacity-50'} /></div>
                   {data.billing_type && (
                     <div><label className={labelClass}>Billing Type</label><input type="text" value={data.billing_type === 'COMPANY' ? 'Company Payment' : 'Guest Payment'} disabled className={inputClass + ' opacity-50'} /></div>
                   )}
                 </div>
               </Section>
+
+              {canCheckIn && !checkInComplete && (
+                <Section title="Advance Payment (Check-in)">
+                  {!isWalkIn && data.booking_ref && (
+                    <p className="text-xs text-gray-500 mb-3">
+                      Linked to reservation <span className="font-mono font-semibold text-teal-700">{data.booking_ref}</span>
+                      {advancePaid > 0 ? ' — advance from booking is applied below.' : ' — collect additional advance at check-in if needed.'}
+                    </p>
+                  )}
+                  {data.advance_payments.length > 0 && (
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 mb-3 space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">
+                        Reservation payments linked
+                      </p>
+                      {data.advance_payments.map(p => (
+                        <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                          <div>
+                            <span className="font-medium text-slate-800">{p.label}</span>
+                            {p.booking_ref && (
+                              <span className="text-gray-500 ml-2 font-mono text-xs">{p.booking_ref}</span>
+                            )}
+                          </div>
+                          <div className="text-right text-xs text-gray-600">
+                            <span className="font-bold text-blue-900">{sym} {parseFloat(p.amount).toFixed(2)}</span>
+                            <span className="mx-1">·</span>
+                            <span>{p.payment_method.replace(/_/g, ' ')}</span>
+                            {p.paid_at && (
+                              <>
+                                <span className="mx-1">·</span>
+                                <span>{new Date(p.paid_at).toLocaleString()}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {advancePaid > 0 && (
+                      <div>
+                        <label className={labelClass}>Paid at Reservation</label>
+                        <input type="text" value={`${sym} ${advancePaid.toFixed(2)}`} disabled className={inputClass + ' opacity-50 bg-blue-50/50'} />
+                      </div>
+                    )}
+                    <div>
+                      <label className={labelClass}>{advancePaid > 0 ? 'Additional Advance' : 'Advance Now'}</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={data.payment_amount}
+                        onChange={e => set('payment_amount', e.target.value)}
+                        className={`${inputClass} ${paymentBalance.overpaid > 0 ? 'border-red-400' : ''}`}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Payment Method</label>
+                      <select value={data.payment_method || 'CASH'} onChange={e => set('payment_method', e.target.value)} className={selectClass}>
+                        {PAYMENT_METHODS.map(m => (
+                          <option key={m.value} value={m.value}>{m.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="sm:col-span-2 lg:col-span-1 flex flex-col justify-end">
+                      <div className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-sm">
+                        <div className="flex justify-between text-gray-600">
+                          <span>Balance due</span>
+                          <span className="font-bold text-teal-800">{sym} {paymentBalance.due.toFixed(2)}</span>
+                        </div>
+                        {newAdvance > 0 && paymentBalance.due === 0 && paymentBalance.overpaid === 0 && (
+                          <p className="text-xs text-green-700 mt-1">Fully paid with this advance</p>
+                        )}
+                        {paymentBalance.overpaid > 0 && (
+                          <p className="text-xs text-red-600 mt-1">Overpaid by {sym} {paymentBalance.overpaid.toFixed(2)}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Section>
+              )}
 
               <Section title="Remarks & Registration Card">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -680,9 +855,38 @@ export default function RegistrationModule({
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-xl border border-gray-200 p-6">
             <h3 className="text-lg font-bold text-slate-800 mb-2">Billing Configuration</h3>
-            <p className="text-sm text-gray-500 mb-6">
-              Select billing type before finalizing check-in for <strong>{data.booking_ref}</strong>.
+            <p className="text-sm text-gray-500 mb-4">
+              Select billing type before finalizing check-in for <strong>{data.booking_ref || data.registration_ref}</strong>.
             </p>
+            {isEarlyCheckIn && (
+              <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-900 mb-4">
+                Scheduled arrival is <strong>{data.check_in_date}</strong>, but hotel business date is{' '}
+                <strong>{hotelBusinessDate}</strong>. Early check-in will move arrival to the business date
+                and recalculate room charges for the longer stay.
+              </div>
+            )}
+            <div className="rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-sm mb-4 space-y-1">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Grand total</span>
+                <span className="font-semibold">{sym} {grandTotal.toFixed(2)}</span>
+              </div>
+              {advancePaid > 0 && (
+                <div className="flex justify-between text-blue-700">
+                  <span>Reservation advance (linked)</span>
+                  <span className="font-semibold">{sym} {advancePaid.toFixed(2)}</span>
+                </div>
+              )}
+              {newAdvance > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Advance now</span>
+                  <span>{sym} {newAdvance.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-gray-200 pt-1">
+                <span className="text-gray-600 font-medium">Due after check-in</span>
+                <span className="font-bold text-teal-700">{sym} {paymentBalance.due.toFixed(2)}</span>
+              </div>
+            </div>
             <div className="flex gap-3">
               <button
                 type="button"

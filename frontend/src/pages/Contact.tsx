@@ -123,7 +123,7 @@ export default function Contact() {
         </div>
       </section>
 
-      <section className="h-100 bg-gray-200">
+      <section className="h-64 sm:h-80 md:h-96 bg-gray-200">
         <iframe title="Hotel Location" src={mapEmbedUrl} width="100%" height="100%" style={{ border: 0 }}
           allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
       </section>

@@ -17,6 +17,7 @@ export const INP = [
 ].join(' ');
 export const SEL = INP + ' appearance-none cursor-pointer';
 export const TAREA = INP + ' resize-none';
+const MAX_EXTRA_BEDS = 2;
 const LBL = 'block text-xs font-semibold text-on-surface-variant tracking-wide';
 
 function FormField({ id, label, required, children, className = '' }: {
@@ -361,7 +362,7 @@ export default function ReservationFormView(props: ReservationFormViewProps) {
                         onChange={e => set('num_rooms', e.target.value)} className={INP + ' bg-surface-container-low'} />
                     </FormField>
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="space-y-1">
                       <p className="text-xs text-on-surface-variant uppercase font-bold tracking-tight">Adults</p>
                       <Stepper id="adults" value={form.adults} onChange={v => set('adults', v)} min={1} warn={overCapacity} />

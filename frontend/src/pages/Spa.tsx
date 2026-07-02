@@ -51,7 +51,7 @@ export default function Spa() {
         <div className="max-w-7xl mx-auto px-4">
           <SectionHeading subtitle="EXPERIENCES" title="Spa Center" />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <img src={hotelImages.spa.main} alt="Spa" className="w-full h-[400px] object-cover" />
+            <img src={hotelImages.spa.main} alt="Spa" className="w-full h-[220px] sm:h-[320px] lg:h-[400px] object-cover" />
             <div>
               <p className="text-[var(--color-body)] leading-relaxed mb-6">
                 Indulge in a world of relaxation with our premium spa treatments at Hotel Crown.
@@ -83,7 +83,7 @@ export default function Spa() {
                     <img
                       src={toMediaUrl(service.image_url || service.image, hotelImages.spa.services[i % hotelImages.spa.services.length])}
                       alt={service.name}
-                      className="w-full h-[250px] object-cover group-hover:scale-110 transition-transform duration-700"
+                      className="w-full h-[180px] sm:h-[220px] lg:h-[250px] object-cover group-hover:scale-110 transition-transform duration-700"
                     />
                   </div>
                   <div className="p-6 text-center">
@@ -105,12 +105,12 @@ export default function Spa() {
 
       <section className="py-0">
         <div className="grid grid-cols-1 lg:grid-cols-2">
-          <div className="h-[400px] lg:h-auto bg-cover bg-center" style={{ backgroundImage: `url(${hotelImages.spa.pool})` }} />
-          <div className="p-12 lg:p-16 flex flex-col justify-center bg-[var(--color-dark)]">
-            <span className="section-subtitle">MODERN</span>
+          <div className="h-[240px] sm:h-[320px] lg:h-auto bg-cover bg-center" style={{ backgroundImage: `url(${hotelImages.spa.pool})` }} />
+          <div className="p-8 sm:p-12 lg:p-16 flex flex-col justify-center bg-[var(--color-dark)]">
+            <span className="section-subtitle text-white/80">MODERN</span>
             <div className="star-divider !justify-start mt-4 mb-4"><span>★ ★ ★ ★ ★</span></div>
-            <h2 className="font-[var(--font-heading)] text-3xl md:text-4xl text-slate-800 mb-6">The Health Club & Pool</h2>
-            <p className="text-slate-800/70 leading-relaxed mb-8">
+            <h2 className="font-[var(--font-heading)] text-2xl sm:text-3xl md:text-4xl text-white mb-6">The Health Club & Pool</h2>
+            <p className="text-white/75 leading-relaxed mb-8">
               Relax and unwind with health club access and premium comfort facilities at Hotel Crown.
             </p>
             <Link to="/contact" className="btn-primary">LEARN MORE</Link>

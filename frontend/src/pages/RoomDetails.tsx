@@ -148,7 +148,7 @@ export default function RoomDetails() {
               >
                 {images.map((img: any, i: number) => (
                   <SwiperSlide key={i}>
-                    <img src={toMediaUrl(img.image, hotelImages.roomDetailsFallback)} alt={`Room view ${i + 1}`} className="w-full h-[500px] object-cover" />
+                    <img src={toMediaUrl(img.image, hotelImages.roomDetailsFallback)} alt={`Room view ${i + 1}`} className="w-full h-[250px] sm:h-[350px] lg:h-[500px] object-cover" />
                   </SwiperSlide>
                 ))}
               </Swiper>
@@ -283,13 +283,13 @@ export default function RoomDetails() {
               </div>
 
               {/* Contact Box */}
-              <div className="bg-[var(--color-dark)] text-slate-800 p-6">
+              <div className="bg-[var(--color-dark)] text-white p-6">
                 <h4 className="text-lg font-[var(--font-heading)] mb-4">Need Help?</h4>
-                <p className="text-slate-800/60 text-sm mb-4">Feel free to contact us if you have any questions.</p>
+                <p className="text-white/70 text-sm mb-4">Feel free to contact us if you have any questions.</p>
                 <a href="tel:01334945375" className="text-[var(--color-primary)] font-[var(--font-heading)] text-lg block mb-2">
                   01334 945 375
                 </a>
-                <a href="mailto:hotelcrownbd@gmail.com" className="text-slate-800/60 text-sm">
+                <a href="mailto:hotelcrownbd@gmail.com" className="text-white/70 text-sm">
                   hotelcrownbd@gmail.com
                 </a>
               </div>

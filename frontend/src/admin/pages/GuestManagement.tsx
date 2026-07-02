@@ -4,6 +4,7 @@ import { AllCommunityModule, ModuleRegistry, type ColDef, type ICellRendererPara
 import { MdSearch, MdEdit, MdSave, MdAdd } from 'react-icons/md';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -86,6 +87,7 @@ const activeStatusColors: Record<string, string> = {
 
 export default function GuestManagement() {
   const gridRef = useRef<any>(null);
+  const isMobile = useIsMobile();
   const [rowData, setRowData] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -265,10 +267,11 @@ export default function GuestManagement() {
   ];
 
   const fitGridColumns = useCallback(() => {
+    if (isMobile) return;
     const api = gridRef.current?.api;
     if (!api) return;
     api.sizeColumnsToFit({ defaultMinWidth: 68 });
-  }, []);
+  }, [isMobile]);
 
   const totalPages = total !== null ? Math.ceil(total / PAGE_SIZE) : 1;
 
@@ -343,7 +346,7 @@ export default function GuestManagement() {
       )}
 
       <div className="rounded-xl overflow-hidden border border-gray-200 bg-[#141414] shadow-lg">
-        <div className="ag-theme-quartz ag-theme-bookings w-full" style={{ height: 500 }}>
+        <div className="ag-theme-quartz ag-theme-bookings w-full admin-grid-height overflow-x-auto">
           {loading ? (
             <div className="flex items-center justify-center h-full bg-white">
               <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
@@ -361,7 +364,7 @@ export default function GuestManagement() {
               suppressPaginationPanel={true}
               pagination={false}
               suppressCellFocus={true}
-              suppressHorizontalScroll={true}
+              suppressHorizontalScroll={!isMobile}
               animateRows={false}
               getRowId={p => String(p.data.id)}
               onGridReady={fitGridColumns}

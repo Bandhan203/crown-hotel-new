@@ -118,6 +118,7 @@ def get_room_grid_data():
         b.room_id: b for b in Booking.objects.filter(
             room_id__isnull=False,
             status__in=['PENDING', 'CONFIRMED'],
+            check_in_date__lte=business_date,
             check_out_date__gt=business_date,
         ).select_related('guest')
     }
@@ -317,14 +318,13 @@ def get_cancellation_report(start_date, end_date):
 
 def get_guest_ledger_report():
     """Outstanding guest balances for checked-in guests."""
+    from bookings.checkout_services import compute_folio_balance
+
     in_house = Booking.objects.filter(status='CHECKED_IN').select_related('guest', 'room', 'room_type')
 
     rows = []
     for b in in_house:
-        charges = FolioCharge.objects.filter(booking=b, is_void=False).aggregate(total=Sum('total'))['total'] or Decimal('0')
-        from bookings.models import Payment
-        payments = Payment.objects.filter(booking=b, status='COMPLETED').aggregate(total=Sum('amount'))['total'] or Decimal('0')
-        balance = charges - payments
+        balance_info = compute_folio_balance(b)
         rows.append({
             'booking_id': b.id,
             'booking_ref': b.booking_ref,
@@ -333,9 +333,9 @@ def get_guest_ledger_report():
             'room_type': b.room_type.name,
             'check_in_date': b.check_in_date.isoformat(),
             'check_out_date': b.check_out_date.isoformat(),
-            'total_charges': float(charges),
-            'total_payments': float(payments),
-            'balance': float(balance),
+            'total_charges': balance_info['folio_total'],
+            'total_payments': balance_info['payments_received'],
+            'balance': balance_info['balance'],
         })
 
     return {

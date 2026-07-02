@@ -75,7 +75,7 @@ export default function Navbar() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <span
-            className={`font-(--font-heading) text-[26px] font-bold tracking-[3px] capitalize transition-colors ${
+            className={`font-(--font-heading) text-xl sm:text-[26px] font-bold tracking-[2px] sm:tracking-[3px] capitalize transition-colors ${
               isScrolled ? 'text-dark' : 'text-slate-800'
             }`}
           >

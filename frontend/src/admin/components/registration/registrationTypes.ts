@@ -2,6 +2,16 @@
 
 export type RegistrationMode = 'advance' | 'walk-in';
 
+export interface AdvancePaymentRecord {
+  id: number;
+  amount: string;
+  payment_method: string;
+  paid_at: string | null;
+  source: 'RESERVATION' | 'CHECK_IN' | 'OTHER';
+  label: string;
+  booking_ref?: string;
+}
+
 export interface RegistrationData {
   id: number;
   registration_id: number;
@@ -25,10 +35,16 @@ export interface RegistrationData {
   infants: number;
   contact_person: string;
   deposit_amount: string;
+  advance_paid: string;
+  advance_payments: AdvancePaymentRecord[];
+  balance_due: string;
+  payment_amount: string;
+  payment_method: string;
   total_price: string;
   grand_total: string;
   currency: string;
   billing_type: string;
+  business_date?: string;
   guest_type: string;
   purpose_of_visit: string;
   coming_from: string;
@@ -79,6 +95,11 @@ export const EMPTY_REGISTRATION: RegistrationData = {
   infants: 0,
   contact_person: '',
   deposit_amount: '0',
+  advance_paid: '0',
+  advance_payments: [],
+  balance_due: '0',
+  payment_amount: '0',
+  payment_method: 'CASH',
   total_price: '0',
   grand_total: '0',
   currency: 'BDT',
@@ -163,6 +184,11 @@ export function hydrateRegistrationForm(api: Partial<RegistrationData>): Registr
     offer_rate: api.offer_rate != null ? String(api.offer_rate) : '',
     discount_amount: api.discount_amount != null ? String(api.discount_amount) : '0',
     deposit_amount: api.deposit_amount != null ? String(api.deposit_amount) : '0',
+    advance_paid: api.advance_paid != null ? String(api.advance_paid) : '0',
+    advance_payments: api.advance_payments ?? [],
+    balance_due: api.balance_due != null ? String(api.balance_due) : '0',
+    payment_amount: api.payment_amount != null ? String(api.payment_amount) : '0',
+    payment_method: api.payment_method || 'CASH',
     total_price: api.total_price != null ? String(api.total_price) : '0',
     grand_total: api.grand_total != null ? String(api.grand_total) : '0',
     registration_id: api.registration_id ?? api.id ?? 0,

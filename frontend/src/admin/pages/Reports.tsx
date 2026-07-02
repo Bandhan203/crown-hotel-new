@@ -161,7 +161,7 @@ function OccupancyReport({ data }: { data: any[] }) {
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <SummaryCard label="Avg Occupancy" value={`${avgOccupancy}%`} />
         <SummaryCard label="Avg Rooms Sold" value={String(avgSold)} />
         <SummaryCard label="Period" value={`${data.length} days`} />
@@ -222,7 +222,7 @@ function RevenueReport({ data }: { data: any }) {
 function ArrivalsReport({ data }: { data: any }) {
   return (
     <>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <SummaryCard label="Date" value={data.date} />
         <SummaryCard label="Arrivals" value={String(data.arrival_count)} />
         <SummaryCard label="Departures" value={String(data.departure_count)} />
@@ -251,7 +251,7 @@ function ArrivalsReport({ data }: { data: any }) {
 function NoShowReport({ data }: { data: any }) {
   return (
     <>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <SummaryCard label="Period" value={`${data.start_date} — ${data.end_date}`} />
         <SummaryCard label="No-Shows" value={String(data.count)} />
         <SummaryCard label="Lost Revenue" value={`BDT ${data.bookings.reduce((s: number, b: any) => s + b.total_price, 0).toLocaleString()}`} />
@@ -269,7 +269,7 @@ function NoShowReport({ data }: { data: any }) {
 function CancellationReport({ data }: { data: any }) {
   return (
     <>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <SummaryCard label="Period" value={`${data.start_date} — ${data.end_date}`} />
         <SummaryCard label="Cancellations" value={String(data.count)} />
         <SummaryCard label="Lost Revenue" value={`BDT ${data.bookings.reduce((s: number, b: any) => s + b.total_price, 0).toLocaleString()}`} />
@@ -287,7 +287,7 @@ function CancellationReport({ data }: { data: any }) {
 function GuestLedgerReport({ data }: { data: any }) {
   return (
     <>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <SummaryCard label="In-House Guests" value={String(data.count)} />
         <SummaryCard label="Total Outstanding" value={`BDT ${data.total_outstanding.toLocaleString()}`} highlight />
         <SummaryCard label="Report" value="Live" />
@@ -351,7 +351,7 @@ function RecentBookingsReport({ data }: { data: any }) {
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <SummaryCard label="Total Recent Bookings" value={String(data.count)} />
         <SummaryCard label="Report" value="Latest 100" />
       </div>
@@ -398,7 +398,7 @@ function PoliceExportReport({ data }: { data: any }) {
   const records: any[] = data.records || [];
   return (
     <>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <SummaryCard label="Export Date" value={data.date} />
         <SummaryCard label="Total Guests" value={String(data.total_guests)} highlight />
         <SummaryCard label="Format" value="BD Police Portal" />

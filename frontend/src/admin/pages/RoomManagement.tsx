@@ -5,6 +5,7 @@ import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import { MdAdd, MdClose, MdSearch } from 'react-icons/md';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import { HK_BADGE, HK_STATUSES } from '../utils/housekeepingStatus';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -138,6 +139,7 @@ export default function RoomManagement() {
   const [total, setTotal] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const gridRef = useRef<any>(null);
+  const isMobile = useIsMobile();
 
   const loadRoomTypes = useCallback(async () => {
     try {
@@ -298,10 +300,11 @@ export default function RoomManagement() {
   const columns = tab === 'types' ? typeColumns : roomColumns;
 
   const fitGridColumns = useCallback(() => {
+    if (isMobile) return;
     const api = gridRef.current?.api;
     if (!api) return;
     api.sizeColumnsToFit({ defaultMinWidth: 68 });
-  }, []);
+  }, [isMobile]);
 
   return (
     <div className="space-y-2">
@@ -341,7 +344,7 @@ export default function RoomManagement() {
       </div>
 
       <div className="rounded-xl overflow-hidden border border-gray-200 bg-[#141414] shadow-lg">
-        <div className="ag-theme-quartz ag-theme-bookings w-full" style={{ height: 500 }}>
+        <div className="ag-theme-quartz ag-theme-bookings w-full admin-grid-height overflow-x-auto">
           {loading ? (
             <div className="flex items-center justify-center h-full bg-white">
               <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
@@ -360,7 +363,7 @@ export default function RoomManagement() {
               suppressPaginationPanel={true}
               pagination={false}
               suppressCellFocus={true}
-              suppressHorizontalScroll={true}
+              suppressHorizontalScroll={!isMobile}
               animateRows={false}
               getRowId={p => String(p.data.id)}
               onGridReady={fitGridColumns}

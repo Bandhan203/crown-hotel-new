@@ -10,7 +10,7 @@ interface PageHeroProps {
 export default function PageHero({ title, breadcrumbs, backgroundImage }: PageHeroProps) {
   return (
     <section
-      className="relative h-[60vh] min-h-[400px] flex items-center justify-center text-center bg-cover bg-center"
+      className="relative h-[45vh] min-h-[280px] sm:min-h-[400px] md:h-[60vh] flex items-center justify-center text-center bg-cover bg-center"
       style={{
         backgroundImage: backgroundImage
           ? `url(${backgroundImage})`
@@ -18,11 +18,11 @@ export default function PageHero({ title, breadcrumbs, backgroundImage }: PageHe
       }}
     >
       <div className="overlay" />
-      <div className="relative z-10 text-slate-800">
+      <div className="relative z-10 text-white px-4">
         <div className="star-divider mb-4">
           <span>★ ★ ★ ★ ★</span>
         </div>
-        <h1 className="text-4xl md:text-5xl font-[var(--font-heading)] text-slate-800 mb-4">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-[var(--font-heading)] text-white mb-4">
           {title}
         </h1>
         <div className="flex items-center justify-center gap-2 text-sm">

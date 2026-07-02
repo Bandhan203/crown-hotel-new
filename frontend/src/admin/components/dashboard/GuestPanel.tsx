@@ -206,7 +206,7 @@ export default function GuestPanel({ roomContext, loading, onOpenFolio }: GuestP
           {isOccupied && occ ? (
             <div className="space-y-3">
               <SectionBlock title="Guest Information">
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
                   <InfoRow label="Title / Name" value={occ.guest_name} />
                   <InfoRow label="Contact Number" value={occ.phone || '—'} />
                   <InfoRow label="Company Name" value={occ.company_name || '—'} />
@@ -230,7 +230,7 @@ export default function GuestPanel({ roomContext, loading, onOpenFolio }: GuestP
               </SectionBlock>
 
               <SectionBlock title="Stay & Logistics">
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
                   <InfoRow label="Arrival / Departure" value={formatStayRange(occ)} />
                   <InfoRow label="Duration" value={`${nights} Night${nights !== 1 ? 's' : ''}`} />
                   <InfoRow label="Parent Booking ID" value={occ.parent_booking_ref || '—'} />
@@ -242,7 +242,7 @@ export default function GuestPanel({ roomContext, loading, onOpenFolio }: GuestP
               </SectionBlock>
 
               <SectionBlock title="Demographics & Services">
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
                   <div className="flex flex-col">
                     <span className="text-[10px] opacity-60">Meal Plan</span>
                     <div className="flex items-center gap-1">
@@ -305,7 +305,7 @@ export default function GuestPanel({ roomContext, loading, onOpenFolio }: GuestP
                 </section>
               )}
 
-              <div className="grid grid-cols-2 gap-3 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                 <button
                   type="button"
                   onClick={() => navigate('/admin/front-desk?tab=departures')}

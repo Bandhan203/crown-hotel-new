@@ -414,9 +414,9 @@ export default function ServiceEntry() {
         </div>
       </div>
 
-      <div className="flex gap-4" style={{ minHeight: 'calc(100vh - 160px)' }}>
+      <div className="flex gap-4 flex-col lg:flex-row min-h-0 lg:min-h-[calc(100vh-160px)]">
         {/* Left — posting */}
-        <div className="w-[420px] shrink-0 flex flex-col gap-3 overflow-auto">
+        <div className="w-full lg:w-[420px] lg:shrink-0 flex flex-col gap-3 overflow-auto min-w-0">
           <div className="flex gap-2">
             <button onClick={() => setAutoHitMode(false)}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium border transition ${!autoHitMode ? 'bg-teal-700 text-white border-teal-600' : 'bg-white text-gray-500 border-gray-200'}`}>

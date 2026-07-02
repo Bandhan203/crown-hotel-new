@@ -57,15 +57,20 @@ export default function FrontDesk() {
   const [showReservation, setShowReservation] = useState(false);
   const [regBookingId, setRegBookingId] = useState<number | null>(null);
   const [regCheckInMode, setRegCheckInMode] = useState(false);
+  const [businessDate, setBusinessDate] = useState('');
 
-  const fetchData = async () => {
+  const fetchData = async (bizDate?: string) => {
     setLoading(true);
+    const dateParam = bizDate || businessDate;
     try {
-      const [arrRes, depRes, ihRes] = await Promise.all([
-        api.get('/admin/reservations/arrivals/'),
-        api.get('/admin/reservations/departures/'),
+      const [cfgRes, arrRes, depRes, ihRes] = await Promise.all([
+        dateParam ? Promise.resolve({ data: { business_date: dateParam } }) : api.get('/admin/config/'),
+        api.get('/admin/reservations/arrivals/', { params: dateParam ? { date: dateParam } : {} }),
+        api.get('/admin/reservations/departures/', { params: dateParam ? { date: dateParam } : {} }),
         api.get('/admin/reservations/in-house/'),
       ]);
+      const biz = cfgRes.data.business_date || dateParam || '';
+      if (biz) setBusinessDate(biz);
       setArrivals(arrRes.data.results ?? arrRes.data);
       setDepartures(depRes.data.results ?? depRes.data);
       setInHouse(ihRes.data.results ?? ihRes.data);
@@ -76,7 +81,7 @@ export default function FrontDesk() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { void fetchData(); }, []);
 
   useEffect(() => {
     const action = searchParams.get('action');
@@ -115,43 +120,93 @@ export default function FrontDesk() {
 
   const currentList = tab === 'arrivals' ? arrivals : tab === 'departures' ? departures : inHouse;
 
+  const isOverdueDeparture = (b: Booking) =>
+    tab === 'departures'
+    && businessDate
+    && b.check_out_date < businessDate
+    && b.status === 'CHECKED_IN';
+
+  const renderBookingActions = (b: Booking) => (
+    <div className="flex flex-wrap gap-1">
+      {(b.status === 'PENDING' || b.status === 'CONFIRMED') && (
+        <>
+          <button
+            onClick={() => { setRegBookingId(b.id); setRegCheckInMode(true); }}
+            className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs hover:bg-green-500/30 transition"
+            title="Check In (Registration)"
+          >
+            <MdLogin size={16} />
+          </button>
+          <button
+            onClick={() => handleNoShow(b.id)}
+            className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs hover:bg-red-500/30 transition"
+            title="No Show"
+          >
+            <MdDoNotDisturb size={16} />
+          </button>
+        </>
+      )}
+      {b.status === 'CHECKED_IN' && (
+        <button
+          onClick={() => setCheckOutBooking(b)}
+          className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs hover:bg-orange-500/30 transition"
+          title="Check Out"
+        >
+          <MdLogout size={16} />
+        </button>
+      )}
+      <button
+        onClick={() => { setRegBookingId(b.id); setRegCheckInMode(false); }}
+        className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs hover:bg-purple-500/30 transition"
+        title="Registration Module"
+      >
+        <MdBadge size={16} />
+      </button>
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800" style={{ fontFamily: '"Gilda Display", serif' }}>Front Desk</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage arrivals, departures, and in-house guests</p>
+      <div className="admin-page-header">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-800" style={{ fontFamily: '"Gilda Display", serif' }}>Front Desk</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Manage arrivals, departures, and in-house guests
+            {businessDate && (
+              <span className="ml-2 text-teal-700 font-medium">· Business date: {businessDate}</span>
+            )}
+          </p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={fetchData} className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 hover:bg-white/10 transition text-sm">
-            <MdRefresh size={18} /> Refresh
+        <div className="admin-action-bar">
+          <button onClick={() => void fetchData()} className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 hover:bg-white/10 transition text-sm">
+            <MdRefresh size={18} /> <span className="hidden sm:inline">Refresh</span>
           </button>
-          <button onClick={() => setShowReservation(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-lg text-slate-800 hover:bg-blue-700 transition text-sm">
-            <MdEventAvailable size={18} /> Reservation
+          <button onClick={() => setShowReservation(true)} className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 rounded-lg text-white hover:bg-blue-700 transition text-sm">
+            <MdEventAvailable size={18} /> <span className="hidden sm:inline">Reservation</span>
           </button>
-          <button onClick={() => navigate('/admin/checkout')} className="flex items-center gap-2 px-4 py-2 bg-orange-600 rounded-lg text-white hover:bg-orange-700 transition text-sm font-medium">
-            <MdLogout size={18} /> Check-out
+          <button onClick={() => navigate('/admin/checkout')} className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-orange-600 rounded-lg text-white hover:bg-orange-700 transition text-sm font-medium">
+            <MdLogout size={18} /> <span className="hidden sm:inline">Check-out</span>
           </button>
-          <button onClick={() => setShowWalkIn(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-container rounded-lg text-white hover:brightness-110 transition text-sm font-semibold shadow-sm">
-            <MdPersonAdd size={18} /> New Registration
+          <button onClick={() => setShowWalkIn(true)} className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary-container rounded-lg text-white hover:brightness-110 transition text-sm font-semibold shadow-sm">
+            <MdPersonAdd size={18} /> <span className="hidden sm:inline">New Registration</span>
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1">
+      <div className="flex flex-col sm:flex-row gap-1 bg-white border border-gray-200 rounded-xl p-1">
         {tabs.map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
               tab === t.key ? 'bg-teal-700 text-white' : 'text-gray-500 hover:text-slate-800 hover:bg-gray-50'
             }`}
           >
-            {t.icon} {t.label}
-            <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
-              tab === t.key ? 'bg-white/20' : 'bg-white/10'
+            {t.icon} <span className="truncate">{t.label}</span>
+            <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-xs ${
+              tab === t.key ? 'bg-white/20' : 'bg-gray-100'
             }`}>{t.count}</span>
           </button>
         ))}
@@ -164,12 +219,44 @@ export default function FrontDesk() {
         </div>
       ) : currentList.length === 0 ? (
         <div className="text-center py-20 text-gray-500">
-          No {tab === 'arrivals' ? 'expected arrivals' : tab === 'departures' ? 'expected departures' : 'in-house guests'} today
+          No {tab === 'arrivals' ? 'expected arrivals' : tab === 'departures' ? 'departures' : 'in-house guests'}
+          {businessDate ? ` for ${businessDate}` : ''}
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+        <>
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {currentList.map(b => (
+              <div key={b.id} className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-mono text-xs text-teal-700">{b.booking_ref}</p>
+                    <p className="font-semibold text-slate-800 truncate">{b.guest_name}</p>
+                  </div>
+                  <span className={`shrink-0 px-2 py-1 rounded-full text-xs font-medium ${
+                    isOverdueDeparture(b)
+                      ? 'bg-red-500/20 text-red-500'
+                      : statusBadge[b.status ?? ''] || 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {isOverdueDeparture(b) ? 'OVERDUE' : formatStatus(b.status)}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                  <div><span className="text-gray-400">Room:</span> {b.room_number ?? '—'}</div>
+                  <div><span className="text-gray-400">Type:</span> {b.room_type_detail?.name ?? '—'}</div>
+                  <div><span className="text-gray-400">In:</span> {b.check_in_date}</div>
+                  <div><span className="text-gray-400">Out:</span> {b.check_out_date}</div>
+                  <div><span className="text-gray-400">Nights:</span> {b.nights ?? '—'}</div>
+                </div>
+                {renderBookingActions(b)}
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[720px]">
               <thead className="bg-gray-50">
                 <tr className="text-gray-500 text-left">
                   <th className="px-4 py-3 font-medium">Ref</th>
@@ -194,47 +281,16 @@ export default function FrontDesk() {
                     <td className="px-4 py-3">{b.check_out_date}</td>
                     <td className="px-4 py-3">{b.nights ?? '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge[b.status ?? ''] || 'bg-gray-100 text-gray-500'}`}>
-                        {formatStatus(b.status)}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        isOverdueDeparture(b)
+                          ? 'bg-red-500/20 text-red-500'
+                          : statusBadge[b.status ?? ''] || 'bg-gray-100 text-gray-500'
+                      }`}>
+                        {isOverdueDeparture(b) ? 'OVERDUE' : formatStatus(b.status)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex gap-1">
-                        {(b.status === 'PENDING' || b.status === 'CONFIRMED') && (
-                          <>
-                            <button
-                              onClick={() => { setRegBookingId(b.id); setRegCheckInMode(true); }}
-                              className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs hover:bg-green-500/30 transition"
-                              title="Check In (Registration)"
-                            >
-                              <MdLogin size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleNoShow(b.id)}
-                              className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs hover:bg-red-500/30 transition"
-                              title="No Show"
-                            >
-                              <MdDoNotDisturb size={16} />
-                            </button>
-                          </>
-                        )}
-                        {b.status === 'CHECKED_IN' && (
-                          <button
-                            onClick={() => setCheckOutBooking(b)}
-                            className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs hover:bg-orange-500/30 transition"
-                            title="Check Out"
-                          >
-                            <MdLogout size={16} />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => { setRegBookingId(b.id); setRegCheckInMode(false); }}
-                          className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs hover:bg-purple-500/30 transition"
-                          title="Registration Module"
-                        >
-                          <MdBadge size={16} />
-                        </button>
-                      </div>
+                      {renderBookingActions(b)}
                     </td>
                   </tr>
                 ))}
@@ -242,6 +298,7 @@ export default function FrontDesk() {
             </table>
           </div>
         </div>
+        </>
       )}
 
       {/* Modals */}

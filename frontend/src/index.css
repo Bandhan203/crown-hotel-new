@@ -126,9 +126,26 @@
 
   .section-title {
     font-family: var(--font-heading);
-    font-size: 48px;
+    font-size: clamp(1.75rem, 5vw, 3rem);
     color: var(--color-dark);
     margin-top: 10px;
+  }
+
+  /* Admin: scrollable data tables on small screens */
+  .admin-table-wrap {
+    @apply overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0;
+  }
+
+  .admin-page-header {
+    @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3;
+  }
+
+  .admin-action-bar {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .admin-grid-height {
+    height: clamp(280px, 45vh, 500px);
   }
 
   .star-divider {

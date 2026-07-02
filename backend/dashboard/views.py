@@ -288,7 +288,11 @@ class ArrivalsReportView(APIView):
 
     def get(self, request):
         date_str = request.query_params.get('date')
-        report_date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else date.today()
+        from dashboard.models import HotelConfig
+        report_date = (
+            datetime.strptime(date_str, '%Y-%m-%d').date()
+            if date_str else HotelConfig.load().business_date
+        )
         return Response(get_arrivals_departures_report(report_date))
 
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, type ColDef } from 'ag-grid-community';
 import api from '../../services/api';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import { gridDefaultColDef } from '../utils/gridHelpers';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -37,6 +38,7 @@ export default function AdminDataGrid({
   const [total, setTotal] = useState<number | null>(null);
   const [sortModel, setSortModel] = useState<any[]>([]);
   const gridRef = useRef<any>(null);
+  const isMobile = useIsMobile();
 
   const buildOrdering = useCallback(() => {
     if (!sortModel.length) return undefined;
@@ -65,10 +67,11 @@ export default function AdminDataGrid({
   useEffect(() => { fetchPage(page); }, [fetchPage, page]);
 
   const fitGridColumns = useCallback(() => {
+    if (isMobile) return;
     const api = gridRef.current?.api;
     if (!api) return;
     api.sizeColumnsToFit({ defaultMinWidth: 68 });
-  }, []);
+  }, [isMobile]);
 
   const onGridReady = useCallback(() => {
     fitGridColumns();
@@ -101,7 +104,7 @@ export default function AdminDataGrid({
         </div>
       )}
 
-      <div className="ag-theme-quartz ag-theme-bookings w-full" style={{ height: 500 }}>
+      <div className="ag-theme-quartz ag-theme-bookings w-full admin-grid-height overflow-x-auto">
         {loading ? (
           <div className="flex items-center justify-center h-full bg-white">
             <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
@@ -119,7 +122,7 @@ export default function AdminDataGrid({
             suppressPaginationPanel={true}
             pagination={false}
             suppressCellFocus={true}
-            suppressHorizontalScroll={true}
+            suppressHorizontalScroll={!isMobile}
             animateRows={false}
             onGridReady={onGridReady}
             onFirstDataRendered={fitGridColumns}

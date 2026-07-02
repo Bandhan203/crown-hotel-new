@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import api from '../../services/api';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import { channelBadgeClass, channelLabel } from '../../utils/bookingChannel';
 import GuestFolio from '../components/GuestFolio';
 import RegistrationModule from '../components/GuestRegistrationModal';
@@ -75,6 +76,7 @@ export default function BookingManagement() {
   const [total, setTotal] = useState<number | null>(null);
   const PAGE_SIZE = 15;
   const gridRef = useRef<any>(null);
+  const isMobile = useIsMobile();
 
   const fetchBookings = useCallback(async (p = 1) => {
     setLoading(true);
@@ -147,10 +149,11 @@ export default function BookingManagement() {
   };
 
   const fitGridColumns = useCallback(() => {
+    if (isMobile) return;
     const gridApi = gridRef.current?.api;
     if (!gridApi) return;
     gridApi.sizeColumnsToFit({ defaultMinWidth: 72 });
-  }, []);
+  }, [isMobile]);
 
   const pinCol = { resizable: false, suppressSizeToFit: true };
 
@@ -227,7 +230,7 @@ export default function BookingManagement() {
             <input
               value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search ref, guest, mobile..."
-              className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs text-slate-800 placeholder-gray-500 focus:outline-none focus:border-teal-600 w-48"
+              className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-xs text-slate-800 placeholder-gray-500 focus:outline-none focus:border-teal-600 w-full sm:w-48"
             />
           </div>
           <button onClick={() => setShowCreate(true)}
@@ -238,7 +241,7 @@ export default function BookingManagement() {
       </div>
 
       <div className="rounded-xl overflow-hidden border border-gray-200 bg-[#141414] shadow-lg">
-        <div className="ag-theme-quartz ag-theme-bookings w-full" style={{ height: 500 }}>
+        <div className="ag-theme-quartz ag-theme-bookings w-full admin-grid-height overflow-x-auto">
           {loading ? (
             <div className="flex items-center justify-center h-full bg-white">
               <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
@@ -256,7 +259,7 @@ export default function BookingManagement() {
               suppressPaginationPanel={true}
               pagination={false}
               suppressCellFocus={true}
-              suppressHorizontalScroll={true}
+              suppressHorizontalScroll={!isMobile}
               animateRows={false}
               onGridReady={fitGridColumns}
               onFirstDataRendered={fitGridColumns}

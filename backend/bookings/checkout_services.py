@@ -16,6 +16,11 @@ User = get_user_model()
 SETTLEMENT_TOLERANCE = Decimal('0.01')
 
 
+def get_business_date():
+    """Hotel operational calendar date (never use date.today() for PMS logic)."""
+    return HotelConfig.load().business_date
+
+
 def get_business_datetime():
     """Current hotel business timestamp (date from config, time from wall clock in hotel TZ context)."""
     config = HotelConfig.load()
@@ -336,6 +341,19 @@ def execute_checkout(booking, user, data):
 
     if booking.status != Booking.Status.CHECKED_IN:
         raise ValueError(f'Booking is not in-house (status: {booking.status}).')
+
+    if booking.room:
+        others = Booking.objects.filter(
+            room=booking.room,
+            status=Booking.Status.CHECKED_IN,
+        ).exclude(pk=booking.pk)
+        if others.exists():
+            other = others.select_related('guest').first()
+            guest_name = other.guest.full_name if other.guest else 'Guest'
+            raise ValueError(
+                f'Room {booking.room.room_number} still has in-house guest '
+                f'{guest_name} ({other.booking_ref}). Check them out first.'
+            )
 
     balance_info = compute_folio_balance(booking)
     bal = Decimal(str(balance_info['balance']))

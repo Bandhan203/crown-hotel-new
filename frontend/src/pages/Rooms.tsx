@@ -128,9 +128,9 @@ export default function Rooms() {
             <p className="text-[var(--color-body)] mt-4 text-sm">All rates are per night. Prices include complementary services.</p>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
             {/* Table Header */}
-            <div className="grid grid-cols-3 md:grid-cols-4 bg-[var(--color-dark)] text-slate-800 text-sm font-semibold">
+            <div className="grid grid-cols-3 md:grid-cols-4 bg-[var(--color-dark)] text-white text-sm font-semibold min-w-[320px]">
               <div className="px-6 py-4 col-span-2 md:col-span-1">Room Category</div>
               <div className="px-6 py-4 text-center hidden md:block">Guests</div>
               <div className="px-6 py-4 text-center">BDT / Night</div>
@@ -144,7 +144,7 @@ export default function Rooms() {
               return (
                 <div
                   key={room.id}
-                  className={`grid grid-cols-3 md:grid-cols-4 items-center border-b border-gray-100 last:border-0 transition-colors hover:bg-[var(--color-light)] ${
+                  className={`grid grid-cols-3 md:grid-cols-4 items-center border-b border-gray-100 last:border-0 transition-colors hover:bg-[var(--color-light)] min-w-[320px] ${
                     i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
                   }`}
                 >

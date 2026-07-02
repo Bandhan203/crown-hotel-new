@@ -238,7 +238,7 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="p-4 pb-6">
+      <div className="p-3 sm:p-4 pb-6">
         <div className="grid grid-cols-12 gap-4 items-start">
           <div className="col-span-12 lg:col-span-7 flex flex-col gap-4">
             <RoomGrid

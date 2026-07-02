@@ -60,7 +60,9 @@ export default function ReservationCalendar() {
     d.setHours(0, 0, 0, 0);
     return d;
   });
-  const [viewDays, setViewDays] = useState(14);
+  const [viewDays, setViewDays] = useState(() =>
+    typeof window !== 'undefined' && window.innerWidth < 1024 ? 7 : 14
+  );
   const [viewBookingId, setViewBookingId] = useState<number | null>(null);
 
   const endDate = useMemo(() => {
