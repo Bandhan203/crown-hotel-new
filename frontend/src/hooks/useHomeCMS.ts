@@ -31,6 +31,16 @@ export type HomeSectionConfig = {
   video_url?: string;
   secondary_cta_text?: string;
   secondary_cta_link?: string;
+  primary_cta_fallback_text?: string;
+  primary_cta_fallback_link?: string;
+  show_booking_bar?: boolean;
+  checkin_label?: string;
+  checkout_label?: string;
+  adults_label?: string;
+  children_label?: string;
+  check_button_text?: string;
+  adult_options?: string[];
+  children_options?: string[];
   complimentary_title?: string;
   general_title?: string;
   complimentary_limit?: number;
@@ -46,6 +56,13 @@ export type HomeSectionConfig = {
   email?: string;
   website?: string;
   tagline?: string;
+  guest_suffix?: string;
+  price_prefix?: string;
+  usd_rate?: number;
+  details_button_text?: string;
+  book_button_text?: string;
+  fallback_description?: string;
+  show_form?: boolean;
 };
 
 export type HomeCMSConfig = {
@@ -90,6 +107,16 @@ export const HOME_DEFAULTS: HomeCMSConfig = {
       enabled: true,
       secondary_cta_text: 'Explore Facilities',
       secondary_cta_link: '/facilities',
+      primary_cta_fallback_text: 'Book Your Room',
+      primary_cta_fallback_link: '/rooms',
+      show_booking_bar: true,
+      checkin_label: 'Check-in',
+      checkout_label: 'Check-out',
+      adults_label: 'Adults',
+      children_label: 'Children',
+      check_button_text: 'Check Now',
+      adult_options: ['1', '2', '3', '4'],
+      children_options: ['0', '1', '2', '3'],
     },
     about: {
       enabled: true,
@@ -109,6 +136,12 @@ export const HOME_DEFAULTS: HomeCMSConfig = {
       title: 'Rooms & Suites',
       limit: 6,
       selected_ids: [],
+      guest_suffix: 'Guests',
+      price_prefix: 'BDT',
+      usd_rate: 115,
+      details_button_text: 'Details',
+      book_button_text: 'Book',
+      fallback_description: 'Experience ultimate comfort and luxury in this beautifully designed room, perfectly suited for your stay in Rajshahi.',
     },
     services: {
       enabled: true,
@@ -174,6 +207,13 @@ export const HOME_DEFAULTS: HomeCMSConfig = {
       title: 'Book Your Stay',
       button_text: 'Check Availability',
       tagline: 'Experience Comfort, Luxury & Hospitality at Hotel Crown, Padma Abasik, Rajshahi.',
+      show_form: true,
+      checkin_label: 'Check-in Date',
+      checkout_label: 'Check-out Date',
+      adults_label: 'Adults',
+      children_label: 'Children',
+      adult_options: ['1', '2', '3', '4'],
+      children_options: ['0', '1', '2', '3'],
       front_label: 'Front Office',
       front_phone: '01334 945 375',
       front_phone_href: '01334945375',

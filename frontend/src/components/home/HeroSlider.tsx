@@ -48,6 +48,8 @@ export default function HeroSlider({ config }: { config?: HomeSectionConfig }) {
   const [slides, setSlides] = useState(FALLBACK_SLIDES);
   const secondaryText = config?.secondary_cta_text || 'Explore Facilities';
   const secondaryLink = config?.secondary_cta_link || '/facilities';
+  const adultOptions = config?.adult_options?.length ? config.adult_options : ['1', '2', '3', '4'];
+  const childrenOptions = config?.children_options?.length ? config.children_options : ['0', '1', '2', '3'];
 
   useEffect(() => {
     let mounted = true;
@@ -62,8 +64,8 @@ export default function HeroSlider({ config }: { config?: HomeSectionConfig }) {
               subtitle: slide.subtitle,
               title: slide.title,
               image: toMediaUrl(slide.background_image, hotelImages.hero[0]),
-              cta_text: slide.cta_text || 'Book Your Room',
-              cta_link: slide.cta_link || '/rooms',
+              cta_text: slide.cta_text || config?.primary_cta_fallback_text || 'Book Your Room',
+              cta_link: slide.cta_link || config?.primary_cta_fallback_link || '/rooms',
             })),
           );
         }
@@ -76,7 +78,7 @@ export default function HeroSlider({ config }: { config?: HomeSectionConfig }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [config?.primary_cta_fallback_link, config?.primary_cta_fallback_text]);
 
   return (
     <section className="relative h-screen">
@@ -122,11 +124,12 @@ export default function HeroSlider({ config }: { config?: HomeSectionConfig }) {
         ))}
       </Swiper>
 
+      {config?.show_booking_bar !== false && (
       <div className="absolute bottom-0 left-0 right-0 z-20 bg-black/60 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap items-center justify-center gap-4">
           <div className="flex items-center gap-3">
             <label className="text-white text-xs font-[var(--font-condensed)] uppercase tracking-[2px]">
-              Check-in
+              {config?.checkin_label || 'Check-in'}
             </label>
             <input
               type="date"
@@ -135,7 +138,7 @@ export default function HeroSlider({ config }: { config?: HomeSectionConfig }) {
           </div>
           <div className="flex items-center gap-3">
             <label className="text-white text-xs font-[var(--font-condensed)] uppercase tracking-[2px]">
-              Check-out
+              {config?.checkout_label || 'Check-out'}
             </label>
             <input
               type="date"
@@ -144,31 +147,30 @@ export default function HeroSlider({ config }: { config?: HomeSectionConfig }) {
           </div>
           <div className="flex items-center gap-3">
             <label className="text-white text-xs font-[var(--font-condensed)] uppercase tracking-[2px]">
-              Adults
+              {config?.adults_label || 'Adults'}
             </label>
             <select className="bg-transparent border border-white/30 text-white text-sm px-3 py-2 outline-none">
-              <option className="text-black">1</option>
-              <option className="text-black">2</option>
-              <option className="text-black">3</option>
-              <option className="text-black">4</option>
+              {adultOptions.map((option) => (
+                <option key={option} className="text-black">{option}</option>
+              ))}
             </select>
           </div>
           <div className="flex items-center gap-3">
             <label className="text-white text-xs font-[var(--font-condensed)] uppercase tracking-[2px]">
-              Children
+              {config?.children_label || 'Children'}
             </label>
             <select className="bg-transparent border border-white/30 text-white text-sm px-3 py-2 outline-none">
-              <option className="text-black">0</option>
-              <option className="text-black">1</option>
-              <option className="text-black">2</option>
-              <option className="text-black">3</option>
+              {childrenOptions.map((option) => (
+                <option key={option} className="text-black">{option}</option>
+              ))}
             </select>
           </div>
           <button className="btn-primary !px-8 !py-3">
-            Check Now
+            {config?.check_button_text || 'Check Now'}
           </button>
         </div>
       </div>
+      )}
     </section>
   );
 }

@@ -27,6 +27,7 @@ type RoomType = {
 
 export default function RoomsSection({ config }: { config?: HomeSectionConfig }) {
   const [rooms, setRooms] = useState<RoomType[]>([]);
+  const usdRate = Number(config?.usd_rate || 115) || 115;
 
   useEffect(() => {
     let mounted = true;
@@ -71,7 +72,7 @@ export default function RoomsSection({ config }: { config?: HomeSectionConfig })
         >
           {rooms.map((room) => {
             const bdt = Math.round(parseFloat(room.price_per_night || '0'));
-            const usd = Math.round(bdt / 115);
+            const usd = Math.round(bdt / usdRate);
             return (
               <SwiperSlide key={room.id}>
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 group h-full overflow-hidden transition-all hover:shadow-md">
@@ -82,10 +83,10 @@ export default function RoomsSection({ config }: { config?: HomeSectionConfig })
                       className="w-full h-[300px] object-cover group-hover:scale-105 transition-transform duration-700"
                     />
                     <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm text-[var(--color-dark)] px-3 py-1 text-xs font-bold rounded-md">
-                      {room.max_guests} Guests
+                      {room.max_guests} {config?.guest_suffix || 'Guests'}
                     </div>
                     <div className="absolute top-4 right-4 bg-[var(--color-dark)] text-slate-800 px-4 py-1.5 text-sm font-semibold rounded-full shadow-lg">
-                      BDT {bdt.toLocaleString()} / USD {usd}
+                      {config?.price_prefix || 'BDT'} {bdt.toLocaleString()} / USD {usd}
                     </div>
                   </div>
                   <div className="p-6 text-left">
@@ -93,20 +94,20 @@ export default function RoomsSection({ config }: { config?: HomeSectionConfig })
                       {room.name}
                     </h3>
                     <p className="text-sm text-[var(--color-body)] leading-relaxed mb-4 line-clamp-4">
-                      {room.description || 'Experience ultimate comfort and luxury in this beautifully designed room, perfectly suited for your stay in Rajshahi.'}
+                      {room.description || config?.fallback_description || 'Experience ultimate comfort and luxury in this beautifully designed room, perfectly suited for your stay in Rajshahi.'}
                     </p>
                     <div className="flex justify-start gap-3">
                       <Link
                         to={`/room-details/${room.slug}`}
                         className="btn-primary text-xs !py-2 !px-5"
                       >
-                        Details
+                        {config?.details_button_text || 'Details'}
                       </Link>
                       <Link
                         to={`/room-details/${room.slug}`}
                         className="btn-primary text-xs !py-2 !px-5"
                       >
-                        Book
+                        {config?.book_button_text || 'Book'}
                       </Link>
                     </div>
                   </div>
