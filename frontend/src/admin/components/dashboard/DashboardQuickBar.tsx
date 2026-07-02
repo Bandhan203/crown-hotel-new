@@ -64,8 +64,8 @@ function ActionBtn({ btn }: { btn: Btn }) {
   );
 }
 
-function Divider() {
-  return <div className="w-px h-5 bg-outline-variant/80 shrink-0 mx-0.5" aria-hidden />;
+function Divider({ className = '' }: { className?: string }) {
+  return <div className={`w-px h-5 bg-outline-variant/80 shrink-0 mx-0.5 ${className}`} aria-hidden />;
 }
 
 export default function DashboardQuickBar({
@@ -153,19 +153,19 @@ export default function DashboardQuickBar({
 
   return (
     <div
-      className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex flex-wrap items-center gap-x-1.5 gap-y-2 max-w-full"
       role="toolbar"
       aria-label="Dashboard quick actions"
     >
-      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+      <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
         {core.map(btn => <ActionBtn key={btn.key} btn={btn} />)}
       </div>
 
       {context.length > 0 && (
         <>
           <Divider />
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 px-1.5 py-0.5 rounded-lg bg-primary/5 border border-primary/10">
-            <span className="hidden md:inline text-[10px] font-bold uppercase tracking-wider text-primary/70 pr-1">
+          <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 rounded-lg bg-primary/5 border border-primary/10 max-w-full">
+            <span className="hidden md:inline text-[10px] font-bold uppercase tracking-wider text-primary/70 pr-1 shrink-0">
               Rm {selectedRoom!.room_number}
             </span>
             {context.map(btn => <ActionBtn key={btn.key} btn={btn} />)}
@@ -179,17 +179,17 @@ export default function DashboardQuickBar({
           <button
             type="button"
             onClick={go('/admin/housekeeping')}
-            className="h-8 px-2.5 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1.5 shrink-0 bg-status-dirty/15 text-status-dirty border border-status-dirty/30 hover:bg-status-dirty/25"
+            className="h-8 px-2 sm:px-2.5 rounded-lg text-[10px] sm:text-[11px] font-semibold inline-flex items-center gap-1 shrink-0 bg-status-dirty/15 text-status-dirty border border-status-dirty/30 hover:bg-status-dirty/25 max-w-full"
           >
-            <MdCleaningServices size={14} />
-            <span>{dirtyCount} room{dirtyCount !== 1 ? 's' : ''} need cleaning</span>
+            <MdCleaningServices size={14} className="shrink-0" />
+            <span className="truncate">{dirtyCount} dirty</span>
           </button>
         </>
       )}
 
-      <Divider />
+      <Divider className="hidden sm:block" />
 
-      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 ml-auto">
+      <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 w-full sm:w-auto sm:ml-auto">
         {ops.map(btn => <ActionBtn key={btn.key} btn={btn} />)}
       </div>
     </div>

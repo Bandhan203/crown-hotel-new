@@ -49,7 +49,7 @@ export default function AdminLayout() {
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden fixed top-4 left-4 z-30 p-2 bg-white border border-outline-variant rounded-lg shadow-sm"
+            className="lg:hidden fixed top-3 left-3 z-50 p-2 bg-white border border-outline-variant rounded-lg shadow-sm text-sm"
             aria-label="Open menu"
           >
             ☰
@@ -57,7 +57,7 @@ export default function AdminLayout() {
         )}
         <main className={`flex-1 min-h-0 min-w-0 ${
           isDashboard
-            ? 'overflow-y-auto overflow-x-hidden custom-scrollbar pt-14 pl-12 pr-3 sm:pr-4 lg:pt-0 lg:pl-0 lg:pr-0'
+            ? 'overflow-y-auto overflow-x-hidden custom-scrollbar pt-11 pl-10 pr-2 sm:pt-12 sm:pl-11 sm:pr-3 lg:pt-0 lg:pl-0 lg:pr-0'
             : 'overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6'
         }`}>
           <Outlet />

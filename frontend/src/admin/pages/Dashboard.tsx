@@ -218,27 +218,30 @@ export default function Dashboard() {
   })();
 
   return (
-    <div className="flex flex-col min-h-full bg-surface">
-      <DashboardHeader
-        businessDate={businessDate}
-        mtdRevenue={data.revenue_month}
-        occupancyPct={data.occupancy_rate}
-        arrivals={data.arrivals_today}
-        departures={data.departures_today}
-      />
-
-      <div className="shrink-0 border-b border-outline-variant/60 bg-surface-container-lowest/80 px-4 py-2">
-        <DashboardQuickBar
-          dirtyCount={dirtyCount}
-          selectedRoom={selectedRoomQuick}
-          hkLoading={hkLoading}
-          onRequestCleaning={handleRequestCleaning}
-          onMarkReady={handleMarkReady}
-          onOpenFolio={bookingId ? () => setShowFolio(true) : undefined}
+    <div className="flex flex-col min-h-full bg-surface max-w-full overflow-x-hidden">
+      <div className="sticky top-0 z-40 bg-surface/95 backdrop-blur-md border-b border-outline-variant shrink-0">
+        <DashboardHeader
+          businessDate={businessDate}
+          mtdRevenue={data.revenue_month}
+          occupancyPct={data.occupancy_rate}
+          arrivals={data.arrivals_today}
+          departures={data.departures_today}
+          embedded
         />
+
+        <div className="border-t border-outline-variant/50 bg-surface-container-lowest/80 px-3 sm:px-4 py-2 max-w-full">
+          <DashboardQuickBar
+            dirtyCount={dirtyCount}
+            selectedRoom={selectedRoomQuick}
+            hkLoading={hkLoading}
+            onRequestCleaning={handleRequestCleaning}
+            onMarkReady={handleMarkReady}
+            onOpenFolio={bookingId ? () => setShowFolio(true) : undefined}
+          />
+        </div>
       </div>
 
-      <div className="p-3 sm:p-4 pb-6">
+      <div className="p-3 sm:p-4 pb-6 max-w-full min-w-0">
         <div className="grid grid-cols-12 gap-4 items-start">
           <div className="col-span-12 lg:col-span-7 flex flex-col gap-4">
             <RoomGrid
